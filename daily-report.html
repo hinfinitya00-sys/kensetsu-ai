@@ -434,6 +434,55 @@
       font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase;
       letter-spacing:.8px; margin-bottom:8px;
     }
+
+    /* ── Purple edit section ─────────────────────────────── */
+    :root {
+      --purple:       #7c3aed;
+      --purple-dark:  #6d28d9;
+      --purple-light: #f5f3ff;
+      --purple-border:#ddd6fe;
+    }
+    .report-textarea {
+      width:100%; background:#f8fafc; border:1px solid var(--border); border-radius:9px;
+      padding:16px; font-size:13px; line-height:1.9; resize:vertical; min-height:280px;
+      font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;
+      color:var(--text); word-break:break-word;
+    }
+    .report-textarea:focus {
+      outline:none; border-color:var(--purple); box-shadow:0 0 0 3px rgba(124,58,237,.1);
+    }
+    .edit-section {
+      margin-top:14px; border:2px solid var(--purple-border); border-radius:14px; overflow:hidden;
+    }
+    .edit-section-hd {
+      background:linear-gradient(135deg,var(--purple),var(--primary));
+      color:#fff; padding:13px 16px; font-size:14px; font-weight:800;
+      cursor:pointer; display:flex; align-items:center; justify-content:space-between;
+      user-select:none;
+    }
+    .edit-chevron { font-size:11px; transition:transform .25s; }
+    .edit-section.open .edit-chevron { transform:rotate(180deg); }
+    .edit-body { display:none; padding:14px; background:var(--purple-light); }
+    .edit-section.open .edit-body { display:block; }
+    .edit-panel {
+      background:#fff; border-radius:12px; padding:14px;
+      margin-bottom:12px; border:1px solid var(--purple-border);
+    }
+    .edit-panel:last-child { margin-bottom:0; }
+    .edit-panel-hd {
+      font-size:12px; font-weight:800; color:var(--purple);
+      margin-bottom:10px; display:flex; align-items:center; gap:6px;
+    }
+    .db-save-main {
+      width:100%; background:linear-gradient(135deg,var(--purple),var(--purple-dark));
+      color:#fff; border:none; border-radius:12px; padding:15px;
+      font-size:15px; font-weight:800; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      margin-top:12px; box-shadow:0 4px 14px rgba(124,58,237,.32);
+      transition:opacity .2s,transform .15s;
+    }
+    .db-save-main:active { transform:scale(.97); }
+    .db-save-main:disabled { background:#94a3b8; box-shadow:none; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -784,7 +833,7 @@
       <span class="card-title">生成された日報</span>
     </div>
     <div class="report-ok">✅ <span>工事日報の作成が完了しました</span></div>
-    <div class="report-body" id="reportBody"></div>
+    <textarea class="report-textarea" id="reportBody" spellcheck="false"></textarea>
     <div class="drive-link" id="driveLinkBox"></div>
     <div class="action-grid">
       <button type="button" class="act-btn btn-copy"  id="copyBtn">📋 コピー</button>
@@ -792,6 +841,66 @@
       <button type="button" class="act-btn btn-drive" id="driveBtn">📁 Drive</button>
       <button type="button" class="act-btn btn-print" id="printBtn">🖨️ 印刷</button>
       <button type="button" class="act-btn btn-reset" id="resetBtn" style="grid-column:span 2;">🔄 新しい日報を作成</button>
+    </div>
+
+    <!-- ── 編集セクション ──────────────────────────────────── -->
+    <div class="edit-section" id="editSection">
+      <div class="edit-section-hd" id="editToggle">
+        <span>✏️ 詳細情報を編集・DBに保存</span>
+        <span class="edit-chevron">▼</span>
+      </div>
+      <div class="edit-body">
+        <!-- プロジェクト情報 -->
+        <div class="edit-panel">
+          <div class="edit-panel-hd">🏗️ プロジェクト情報</div>
+          <div class="row2">
+            <div class="fg"><label>工事名</label><input type="text" id="ed-projectName" placeholder="工事名称"></div>
+            <div class="fg"><label>現場名</label><input type="text" id="ed-siteName" placeholder="現場名"></div>
+          </div>
+          <div class="row2">
+            <div class="fg"><label>元請会社</label><input type="text" id="ed-contractor" placeholder="元請会社名"></div>
+            <div class="fg"><label>現場代理人</label><input type="text" id="ed-supervisor" placeholder="代理人名"></div>
+          </div>
+        </div>
+        <!-- 作業情報 -->
+        <div class="edit-panel">
+          <div class="edit-panel-hd">🔨 作業情報</div>
+          <div class="row2">
+            <div class="fg">
+              <label>工種</label>
+              <select id="ed-workType">
+                <option value="">— 選択 —</option>
+                <option>法面工事</option><option>土工</option><option>排水工</option>
+                <option>法枠工</option><option>アンカー工</option><option>吹付工</option>
+                <option>舗装工</option><option>仮設工</option><option>その他</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>進捗率 <span id="ed-progressVal" style="color:var(--purple);font-weight:800;">0%</span></label>
+              <input type="range" id="ed-progress" min="0" max="100" value="0" step="5">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="fg"><label>天候（午前）</label><input type="text" id="ed-weatherAM" placeholder="晴れ・曇り・雨など"></div>
+            <div class="fg"><label>天候（午後）</label><input type="text" id="ed-weatherPM" placeholder="晴れ・曇り・雨など"></div>
+          </div>
+          <div class="fg"><label>明日の予定</label><textarea id="ed-tomorrowPlan" style="min-height:64px;" placeholder="明日の作業予定"></textarea></div>
+          <div class="fg"><label>特記事項</label><textarea id="ed-remarks" style="min-height:64px;" placeholder="特記事項・課題など"></textarea></div>
+        </div>
+        <!-- 使用重機 -->
+        <div class="edit-panel">
+          <div class="edit-panel-hd">🚜 使用重機</div>
+          <div class="eq-custom-row" style="margin-bottom:8px;">
+            <input type="text" id="ed-eqInput" placeholder="機械名を入力（例：バックホウ 0.45㎥）" autocomplete="off">
+            <button type="button" class="eq-custom-add" id="ed-eqAdd">追加</button>
+          </div>
+          <div class="eq-tags" id="ed-eqTags"></div>
+        </div>
+        <!-- DBに保存ボタン -->
+        <button type="button" class="db-save-main" id="dbSaveBtn">
+          <span>🗄️</span><span>DBに保存（UPDATE）</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -956,6 +1065,27 @@
       <div class="hint">Google Formsを作成後、URLの末尾を <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">/viewform</code> から <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">/formResponse</code> に変えて貼り付けてください。</div>
     </div>
 
+    <hr class="qr-divider">
+    <div class="qr-section-label" style="color:#7c3aed;">🗄️ Supabase設定（DB保存機能）</div>
+    <div class="fg">
+      <label>Supabase URL</label>
+      <input type="text" id="supabaseUrl" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off">
+      <div class="hint">SupabaseプロジェクトのURL（Project Settings > API）</div>
+    </div>
+    <div class="fg">
+      <label>Supabase Anon Key</label>
+      <div class="kw">
+        <input type="password" id="supabaseAnonKey" placeholder="eyJhbGciOi..." autocomplete="off">
+        <button type="button" class="tvis" data-target="supabaseAnonKey">👁️</button>
+      </div>
+      <div class="hint">anon / public キーを入力してください</div>
+    </div>
+    <div class="fg">
+      <label>Company ID</label>
+      <input type="text" id="supabaseCompanyId" placeholder="例: company_001" autocomplete="off">
+      <div class="hint">daily_logsテーブルに保存する際のcompany_idです</div>
+    </div>
+
     <button class="save-btn" id="saveSettingsBtn">保存する</button>
 
     <hr class="qr-divider">
@@ -998,13 +1128,16 @@ function showToast(msg, type='', dur=3200) {
 }
 
 // ── Settings ────────────────────────────────────────────
-const SK={cak:'dr_cak',oai:'dr_oai',mdl:'dr_mdl',gcid:'dr_gcid',gf:'dr_gforms'};
+const SK={cak:'dr_cak',oai:'dr_oai',mdl:'dr_mdl',gcid:'dr_gcid',gf:'dr_gforms',sbUrl:'dr_sb_url',sbKey:'dr_sb_key',sbCid:'dr_sb_cid'};
 const getS=()=>({
   companyApiKey: localStorage.getItem(SK.cak)||'',
   openaiKey:     localStorage.getItem(SK.oai)||'',  // Whisper音声入力用（任意）
   model:         localStorage.getItem(SK.mdl)||'gpt-4o',
   gcid:          localStorage.getItem(SK.gcid)||'',
   gformsUrl:     localStorage.getItem(SK.gf)||'https://docs.google.com/forms/d/e/1FAIpQLSfTmUvs7vJVpk_53L5_T_Ka1-g5sy_R63-yPyaPMC34nR3tvg/formResponse',
+  supabaseUrl:   localStorage.getItem(SK.sbUrl)||'',
+  supabaseAnonKey: localStorage.getItem(SK.sbKey)||'',
+  supabaseCompanyId: localStorage.getItem(SK.sbCid)||'',
 });
 function loadS(){
   const s=getS();
@@ -1013,6 +1146,9 @@ function loadS(){
   $('modelSelect').value=s.model;
   $('googleClientId').value=s.gcid;
   $('gformsUrl').value=s.gformsUrl;
+  $('supabaseUrl').value=s.supabaseUrl;
+  $('supabaseAnonKey').value=s.supabaseAnonKey;
+  $('supabaseCompanyId').value=s.supabaseCompanyId;
 }
 function saveS(){
   const cak=$('companyApiKey').value.trim();
@@ -1022,6 +1158,9 @@ function saveS(){
   localStorage.setItem(SK.mdl,$('modelSelect').value);
   localStorage.setItem(SK.gcid,$('googleClientId').value.trim());
   localStorage.setItem(SK.gf,$('gformsUrl').value.trim());
+  localStorage.setItem(SK.sbUrl,$('supabaseUrl').value.trim());
+  localStorage.setItem(SK.sbKey,$('supabaseAnonKey').value.trim());
+  localStorage.setItem(SK.sbCid,$('supabaseCompanyId').value.trim());
   showToast('設定を保存しました ✓','ok');
   closeSettings();
   checkKey();
@@ -1379,16 +1518,43 @@ async function generateReport(d, companyApiKey){
 }
 
 // ── Show report ───────────────────────────────────────────
-let curReport='', curData=null;
-function showReport(text,data){
-  curReport=text; curData=data;
-  $('reportBody').textContent=text;
+let curReport='', curData=null, currentLogId=null;
+async function showReport(text,data){
+  curReport=text; curData=data; currentLogId=null;
+  $('reportBody').value=text;
   $('driveLinkBox').style.display='none';
   $('driveLinkBox').innerHTML='';
   $('loadingCard').style.display='none';
   $('reportCard').style.display='block';
+  populateEditFields(data);
   $('reportCard').scrollIntoView({behavior:'smooth',block:'start'});
   showFeedback();
+  // 日報生成直後に自動INSERT
+  const s=getS();
+  if(s.supabaseUrl&&s.supabaseAnonKey){
+    currentLogId=await supabaseInsert(data,text);
+    if(currentLogId) showToast('DBに自動保存しました ✓','ok',3500);
+  }
+}
+
+function populateEditFields(data){
+  $('ed-projectName').value=data.projectName||'';
+  $('ed-siteName').value=data.siteName||'';
+  $('ed-contractor').value=data.contractor||'';
+  $('ed-supervisor').value=data.supervisor||'';
+  $('ed-workType').value=data.workType||'';
+  const prog=parseInt(data.progress)||0;
+  $('ed-progress').value=prog;
+  $('ed-progressVal').textContent=prog+'%';
+  $('ed-progress').style.setProperty('--prog',prog+'%');
+  $('ed-weatherAM').value=data.weatherAM||'';
+  $('ed-weatherPM').value=data.weatherPM||'';
+  $('ed-tomorrowPlan').value=data.tomorrowPlan||'';
+  $('ed-remarks').value=data.remarks||'';
+  editEqItems=(data.equipment||[]).map(e=>({...e}));
+  renderEditEqTags();
+  // editSectionを開く
+  $('editSection').classList.add('open');
 }
 
 $('resetBtn').addEventListener('click',()=>{
@@ -1396,35 +1562,39 @@ $('resetBtn').addEventListener('click',()=>{
   $('reportCard').style.display='none';
   $('feedbackCard').style.display='none';
   $('submitBtn').disabled=false;
-  curReport=''; curData=null;
+  curReport=''; curData=null; currentLogId=null;
+  $('editSection').classList.remove('open');
   window.scrollTo({top:0,behavior:'smooth'});
 });
 
 // ── Copy ──────────────────────────────────────────────────
 $('copyBtn').addEventListener('click',async()=>{
-  try{await navigator.clipboard.writeText(curReport);}
-  catch{const ta=document.createElement('textarea');ta.value=curReport;ta.style='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+  const txt=$('reportBody').value;
+  try{await navigator.clipboard.writeText(txt);}
+  catch{const ta=document.createElement('textarea');ta.value=txt;ta.style='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
   showToast('クリップボードにコピーしました ✓','ok');
 });
 
 // ── Download ──────────────────────────────────────────────
 $('dlBtn').addEventListener('click',()=>{
-  if(!curReport)return;
+  const txt=$('reportBody').value;
+  if(!txt)return;
   const dt=(curData?.workDate||'').replace(/-/g,'')||'unknown';
   const nm=(curData?.projectName||'工事').replace(/[\\/:*?"<>|]/g,'_').slice(0,20);
   const fn=`工事日報_${dt}_${nm}.txt`;
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([curReport],{type:'text/plain;charset=utf-8'}));
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'}));
   a.download=fn; document.body.appendChild(a); a.click(); document.body.removeChild(a);
   showToast('保存しました ✓','ok');
 });
 
 // ── Print ─────────────────────────────────────────────────
 $('printBtn').addEventListener('click',()=>{
+  const txt=$('reportBody').value;
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>工事日報</title>
 <style>body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;font-size:12pt;line-height:1.9;padding:20mm;white-space:pre-wrap;word-break:break-word;}@page{size:A4;margin:20mm;}</style>
-</head><body>${escHtml(curReport)}</body></html>`);
+</head><body>${escHtml(txt)}</body></html>`);
   w.document.close(); w.focus(); w.print(); w.close();
 });
 
@@ -1726,6 +1896,179 @@ $('qrGenBtn').addEventListener('click',()=>{
 $('qrCloseBtn').addEventListener('click',()=>{
   $('qrPanel').style.display = 'none';
   $('qrCanvas').innerHTML = '';
+});
+
+// ── Edit section toggle ───────────────────────────────────
+$('editToggle').addEventListener('click',()=>{
+  $('editSection').classList.toggle('open');
+});
+
+// ── Edit section progress slider ─────────────────────────
+$('ed-progress').addEventListener('input',()=>{
+  const v=$('ed-progress').value;
+  $('ed-progressVal').textContent=v+'%';
+  $('ed-progress').style.setProperty('--prog',v+'%');
+});
+
+// ── Edit equipment ────────────────────────────────────────
+let editEqItems=[];
+
+function renderEditEqTags(){
+  const el=$('ed-eqTags');
+  el.innerHTML='';
+  editEqItems.forEach((item,i)=>{
+    const tag=document.createElement('div');
+    tag.className='eq-tag';
+    tag.innerHTML=`
+      <span class="eq-tag-name">${escHtml(item.name)}</span>
+      <div class="eq-tag-ctrl">
+        <button type="button" class="eq-tag-cbtn" data-op="minus" data-i="${i}">－</button>
+        <span class="eq-tag-count">${item.count}</span>
+        <button type="button" class="eq-tag-cbtn" data-op="plus" data-i="${i}">＋</button>
+        <span class="eq-tag-unit">台</span>
+      </div>
+      <button type="button" class="eq-tag-del" data-i="${i}" title="削除">✕</button>`;
+    tag.querySelectorAll('.eq-tag-cbtn').forEach(b=>{
+      b.addEventListener('click',()=>{
+        const idx=parseInt(b.dataset.i);
+        if(b.dataset.op==='plus') editEqItems[idx].count++;
+        else if(editEqItems[idx].count>1) editEqItems[idx].count--;
+        renderEditEqTags();
+      });
+    });
+    tag.querySelector('.eq-tag-del').addEventListener('click',()=>{
+      editEqItems.splice(i,1); renderEditEqTags();
+    });
+    el.appendChild(tag);
+  });
+}
+
+$('ed-eqAdd').addEventListener('click',()=>{
+  const name=$('ed-eqInput').value.trim();
+  if(!name){$('ed-eqInput').focus();return;}
+  const found=editEqItems.find(e=>e.name===name);
+  if(found) found.count++;
+  else editEqItems.push({name,count:1});
+  renderEditEqTags();
+  $('ed-eqInput').value='';
+});
+$('ed-eqInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();$('ed-eqAdd').click();}
+});
+
+// ── Supabase helpers ──────────────────────────────────────
+function buildLogPayload(data, reportText){
+  const s=getS();
+  return {
+    company_id:    s.supabaseCompanyId||'',
+    work_date:     data.workDate||'',
+    project_name:  data.projectName||'',
+    site_name:     data.siteName||'',
+    contractor:    data.contractor||'',
+    supervisor:    data.supervisor||'',
+    work_type:     data.workType||'',
+    progress:      parseInt(data.progress)||0,
+    weather_am:    data.weatherAM||'',
+    weather_pm:    data.weatherPM||'',
+    work_content:  data.workContent||'',
+    tomorrow_plan: data.tomorrowPlan||'',
+    remarks:       data.remarks||'',
+    equipment:     data.equipment||[],
+    report_text:   reportText||'',
+    worker_total:  data.workerTotal||0,
+    workers:       data.workers||{},
+  };
+}
+
+async function supabaseInsert(data, reportText){
+  const s=getS();
+  if(!s.supabaseUrl||!s.supabaseAnonKey) return null;
+  try{
+    const r=await fetch(`${s.supabaseUrl}/rest/v1/daily_logs`,{
+      method:'POST',
+      headers:{
+        'apikey':s.supabaseAnonKey,
+        'Authorization':'Bearer '+s.supabaseAnonKey,
+        'Content-Type':'application/json',
+        'Prefer':'return=representation',
+      },
+      body:JSON.stringify(buildLogPayload(data,reportText)),
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'INSERT失敗: '+r.status);}
+    const rows=await r.json();
+    return rows[0]?.id||null;
+  }catch(e){
+    console.warn('[Supabase INSERT]',e.message);
+    return null;
+  }
+}
+
+async function supabaseUpdate(id, data, reportText){
+  const s=getS();
+  if(!s.supabaseUrl||!s.supabaseAnonKey){
+    showToast('Supabase設定が未入力です。⚙️から設定してください','err');
+    return false;
+  }
+  try{
+    const r=await fetch(`${s.supabaseUrl}/rest/v1/daily_logs?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{
+        'apikey':s.supabaseAnonKey,
+        'Authorization':'Bearer '+s.supabaseAnonKey,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal',
+      },
+      body:JSON.stringify(buildLogPayload(data,reportText)),
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'UPDATE失敗: '+r.status);}
+    return true;
+  }catch(e){
+    showToast('DB保存エラー: '+e.message,'err',5000);
+    return false;
+  }
+}
+
+function collectEditData(){
+  return{
+    ...curData,
+    projectName:  $('ed-projectName').value.trim(),
+    siteName:     $('ed-siteName').value.trim(),
+    contractor:   $('ed-contractor').value.trim(),
+    supervisor:   $('ed-supervisor').value.trim(),
+    workType:     $('ed-workType').value,
+    progress:     $('ed-progress').value,
+    weatherAM:    $('ed-weatherAM').value.trim(),
+    weatherPM:    $('ed-weatherPM').value.trim(),
+    tomorrowPlan: $('ed-tomorrowPlan').value.trim(),
+    remarks:      $('ed-remarks').value.trim(),
+    equipment:    editEqItems,
+    workerTotal:  curData?.workerTotal||0,
+  };
+}
+
+// ── DBに保存ボタン ─────────────────────────────────────────
+$('dbSaveBtn').addEventListener('click',async()=>{
+  const s=getS();
+  if(!s.supabaseUrl||!s.supabaseAnonKey){
+    showToast('Supabase設定が未入力です。⚙️から設定してください','err');
+    loadS(); $('settingsOverlay').classList.add('open');
+    return;
+  }
+  const btn=$('dbSaveBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span>⏳</span><span>保存中...</span>';
+  const editData=collectEditData();
+  const txt=$('reportBody').value;
+  if(!currentLogId){
+    currentLogId=await supabaseInsert(editData,txt);
+    if(currentLogId) showToast('DBに保存しました（INSERT）✓','ok');
+    else showToast('DB保存に失敗しました','err');
+  }else{
+    const ok=await supabaseUpdate(currentLogId,editData,txt);
+    if(ok) showToast('DBを更新しました（UPDATE）✓','ok');
+  }
+  btn.disabled=false;
+  btn.innerHTML='<span>🗄️</span><span>DBに保存（UPDATE）</span>';
 });
 
 // ── Init ──────────────────────────────────────────────────
