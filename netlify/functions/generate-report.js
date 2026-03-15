@@ -274,8 +274,9 @@ exports.handler = async (event) => {
   }
 
   // ── STEP 5: daily_logs に保存 ──────────────────────────────
+  let logId = null;
   try {
-    await sbFetch('daily_logs', {
+    const logRow = await sbFetch('daily_logs', {
       method: 'POST',
       body: JSON.stringify({
         project_id:        projectId,
@@ -288,14 +289,20 @@ exports.handler = async (event) => {
         workers_detail:    form_data.workers          ? JSON.stringify(form_data.workers)   : null,
         equipment_used:    form_data.equipment        ? JSON.stringify(form_data.equipment) : null,
         safety_notes:      form_data.safetyNote       || null,
-        quality_notes:     form_data.inspection       || null,
+        quality_notes:     [
+          form_data.workType    ? `工種: ${form_data.workType}` : '',
+          form_data.tomorrowPlan ? `明日の予定: ${form_data.tomorrowPlan}` : '',
+          form_data.remarks     ? `特記事項: ${form_data.remarks}` : '',
+        ].filter(Boolean).join('\n') || null,
         progress_rate:     form_data.progress != null ? Number(form_data.progress) : null,
         generated_report:  reportText,
       }),
     });
+    logId = Array.isArray(logRow) ? logRow[0]?.id : logRow?.id;
+    console.log('[generate-report] daily_logs INSERT ok, id:', logId);
   } catch (e) {
     console.error('[generate-report] daily_logs insert failed:', e.message);
   }
 
-  return json(200, { report: reportText });
+  return json(200, { report: reportText, log_id: logId });
 };

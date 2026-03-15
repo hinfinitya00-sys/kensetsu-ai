@@ -1459,8 +1459,8 @@ $('mainForm').addEventListener('submit',async e=>{
   $('loadingCard').style.display='block';
   $('reportCard').style.display='none';
   try{
-    const rep=await generateReport(d,companyApiKey);
-    showReport(rep,d);
+    const{text:rep,logId}=await generateReport(d,companyApiKey);
+    showReport(rep,d,logId);
   }catch(err){
     $('mainForm').style.display='block';
     $('loadingCard').style.display='none';
@@ -1514,13 +1514,14 @@ async function generateReport(d, companyApiKey){
   }
   const txt=dat.report;
   if(!txt)throw new Error('AIからの応答が空でした。');
-  return txt;
+  console.log('[generateReport] 完了 log_id:', dat.log_id);
+  return {text:txt, logId:dat.log_id||null};
 }
 
 // ── Show report ───────────────────────────────────────────
 let curReport='', curData=null, currentLogId=null;
-async function showReport(text,data){
-  curReport=text; curData=data; currentLogId=null;
+function showReport(text,data,logId){
+  curReport=text; curData=data; currentLogId=logId||null;
   $('reportBody').value=text;
   $('driveLinkBox').style.display='none';
   $('driveLinkBox').innerHTML='';
@@ -1529,11 +1530,12 @@ async function showReport(text,data){
   populateEditFields(data);
   $('reportCard').scrollIntoView({behavior:'smooth',block:'start'});
   showFeedback();
-  // 日報生成直後に自動INSERT
-  const s=getS();
-  if(s.supabaseUrl&&s.supabaseAnonKey){
-    currentLogId=await supabaseInsert(data,text);
-    if(currentLogId) showToast('DBに自動保存しました ✓','ok',3500);
+  // サーバー側でINSERT済み（generate-report.js STEP5）
+  if(logId){
+    console.log('[showReport] DB自動保存済み log_id:', logId);
+    showToast('DBに自動保存しました ✓','ok',3500);
+  }else{
+    console.warn('[showReport] log_idなし: DB保存未完了の可能性があります');
   }
 }
 
@@ -1956,33 +1958,39 @@ $('ed-eqInput').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();$('ed-eqAdd').click();}
 });
 
-// ── Supabase helpers ──────────────────────────────────────
+// ── Supabase helpers（直接アクセス用・RLSポリシー設定済みの場合のみ動作）──
+// ※ 通常の保存はnetlify function経由（update-daily-log.js）を使用
+// カラム名はschema.sqlに合わせて正しくマッピング済み
 function buildLogPayload(data, reportText){
-  const s=getS();
+  // daily_logsに存在しないフィールドはquality_notesに集約
+  const qualityNotes=[
+    data.workType     ? `工種: ${data.workType}`           : '',
+    data.tomorrowPlan ? `明日の予定: ${data.tomorrowPlan}` : '',
+    data.remarks      ? `特記事項: ${data.remarks}`        : '',
+  ].filter(Boolean).join('\n')||null;
   return {
-    company_id:    s.supabaseCompanyId||'',
-    work_date:     data.workDate||'',
-    project_name:  data.projectName||'',
-    site_name:     data.siteName||'',
-    contractor:    data.contractor||'',
-    supervisor:    data.supervisor||'',
-    work_type:     data.workType||'',
-    progress:      parseInt(data.progress)||0,
-    weather_am:    data.weatherAM||'',
-    weather_pm:    data.weatherPM||'',
-    work_content:  data.workContent||'',
-    tomorrow_plan: data.tomorrowPlan||'',
-    remarks:       data.remarks||'',
-    equipment:     data.equipment||[],
-    report_text:   reportText||'',
-    worker_total:  data.workerTotal||0,
-    workers:       data.workers||{},
+    // company_idはUUID型。設定値がUUID形式の場合のみセット
+    ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(getS().supabaseCompanyId)
+      ? {company_id: getS().supabaseCompanyId} : {}),
+    work_date:        data.workDate||null,
+    weather_am:       data.weatherAM||null,
+    weather_pm:       data.weatherPM||null,
+    work_description: data.workContent||null,   // ← 正: work_description
+    workers_count:    data.workerTotal||0,       // ← 正: workers_count
+    workers_detail:   data.workers||null,        // ← 正: workers_detail (jsonb)
+    equipment_used:   data.equipment||null,      // ← 正: equipment_used (jsonb)
+    safety_notes:     data.safetyNote||null,
+    quality_notes:    qualityNotes,
+    progress_rate:    parseInt(data.progress)||0, // ← 正: progress_rate
+    generated_report: reportText||null,           // ← 正: generated_report
   };
 }
 
 async function supabaseInsert(data, reportText){
   const s=getS();
   if(!s.supabaseUrl||!s.supabaseAnonKey) return null;
+  const payload=buildLogPayload(data,reportText);
+  console.log('[Supabase INSERT] payload:', payload);
   try{
     const r=await fetch(`${s.supabaseUrl}/rest/v1/daily_logs`,{
       method:'POST',
@@ -1992,13 +2000,15 @@ async function supabaseInsert(data, reportText){
         'Content-Type':'application/json',
         'Prefer':'return=representation',
       },
-      body:JSON.stringify(buildLogPayload(data,reportText)),
+      body:JSON.stringify(payload),
     });
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'INSERT失敗: '+r.status);}
-    const rows=await r.json();
+    const body=await r.json().catch(()=>({}));
+    console.log('[Supabase INSERT] status:', r.status, 'response:', body);
+    if(!r.ok) throw new Error(body.message||body.error||'INSERT失敗: '+r.status);
+    const rows=Array.isArray(body)?body:[body];
     return rows[0]?.id||null;
   }catch(e){
-    console.warn('[Supabase INSERT]',e.message);
+    console.error('[Supabase INSERT] エラー:', e.message);
     return null;
   }
 }
@@ -2009,6 +2019,8 @@ async function supabaseUpdate(id, data, reportText){
     showToast('Supabase設定が未入力です。⚙️から設定してください','err');
     return false;
   }
+  const payload=buildLogPayload(data,reportText);
+  console.log('[Supabase UPDATE] id:', id, 'payload:', payload);
   try{
     const r=await fetch(`${s.supabaseUrl}/rest/v1/daily_logs?id=eq.${id}`,{
       method:'PATCH',
@@ -2018,12 +2030,15 @@ async function supabaseUpdate(id, data, reportText){
         'Content-Type':'application/json',
         'Prefer':'return=minimal',
       },
-      body:JSON.stringify(buildLogPayload(data,reportText)),
+      body:JSON.stringify(payload),
     });
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'UPDATE失敗: '+r.status);}
+    const body=await r.json().catch(()=>({}));
+    console.log('[Supabase UPDATE] status:', r.status, 'response:', body);
+    if(!r.ok) throw new Error(body.message||body.error||'UPDATE失敗: '+r.status);
     return true;
   }catch(e){
     showToast('DB保存エラー: '+e.message,'err',5000);
+    console.error('[Supabase UPDATE] エラー:', e.message);
     return false;
   }
 }
@@ -2048,24 +2063,28 @@ function collectEditData(){
 
 // ── DBに保存ボタン ─────────────────────────────────────────
 $('dbSaveBtn').addEventListener('click',async()=>{
-  const s=getS();
-  if(!s.supabaseUrl||!s.supabaseAnonKey){
-    showToast('Supabase設定が未入力です。⚙️から設定してください','err');
-    loadS(); $('settingsOverlay').classList.add('open');
-    return;
-  }
+  const{companyApiKey}=getS();
+  if(!companyApiKey){showToast('会社APIキーを設定してください','err');loadS();$('settingsOverlay').classList.add('open');return;}
+  if(!currentLogId){showToast('先に日報を生成してください（DB保存にはlog_idが必要です）','err',5000);return;}
   const btn=$('dbSaveBtn');
   btn.disabled=true;
   btn.innerHTML='<span>⏳</span><span>保存中...</span>';
   const editData=collectEditData();
   const txt=$('reportBody').value;
-  if(!currentLogId){
-    currentLogId=await supabaseInsert(editData,txt);
-    if(currentLogId) showToast('DBに保存しました（INSERT）✓','ok');
-    else showToast('DB保存に失敗しました','err');
-  }else{
-    const ok=await supabaseUpdate(currentLogId,editData,txt);
-    if(ok) showToast('DBを更新しました（UPDATE）✓','ok');
+  console.log('[dbSaveBtn] UPDATE開始 log_id:', currentLogId, 'editData:', editData);
+  try{
+    const r=await fetch('/.netlify/functions/update-daily-log',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({company_api_key:companyApiKey,log_id:currentLogId,form_data:editData,report_text:txt}),
+    });
+    const dat=await r.json().catch(()=>({}));
+    console.log('[dbSaveBtn] レスポンス status:', r.status, 'body:', dat);
+    if(!r.ok) throw new Error(dat.error||'HTTPエラー '+r.status);
+    showToast('DBを更新しました ✓','ok');
+  }catch(e){
+    showToast('DB保存エラー: '+e.message,'err',6000);
+    console.error('[dbSaveBtn] UPDATE失敗:', e.message);
   }
   btn.disabled=false;
   btn.innerHTML='<span>🗄️</span><span>DBに保存（UPDATE）</span>';
