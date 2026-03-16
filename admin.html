@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理ダッシュボード｜建設日報システム</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange:       #FF6B00;
+      --orange-dark:  #CC5500;
+      --orange-light: #FF8C33;
+      --black:        #0A0A0A;
+      --dark:         #111418;
+      --card:         #181C22;
+      --card2:        #1E232B;
+      --border:       #2A3040;
+      --text:         #E8EAF0;
+      --muted:        #7A8499;
+      --green:        #22C55E;
+      --blue:         #3B82F6;
+      --yellow:       #F59E0B;
+      --red:          #EF4444;
+      --purple:       #A855F7;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      background:var(--black); color:var(--text);
+      font-family:'Noto Sans JP',sans-serif; min-height:100vh; overflow-x:hidden;
+    }
+    a { color:inherit; text-decoration:none; }
+    button { font-family:'Noto Sans JP',sans-serif; cursor:pointer; }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background:var(--dark); border-bottom:2px solid var(--orange);
+      padding:0 24px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    .logo {
+      display:flex; align-items:center; gap:10px;
+      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
+      letter-spacing:1px; color:var(--text);
+    }
+    .logo-mark {
+      width:32px; height:32px; background:var(--orange);
+      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900; color:white;
+    }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .header-company { font-size:13px; color:var(--muted); }
+    .badge-live  { background:var(--green);  color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .badge-demo  { background:var(--orange); color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:1px; }
+    .icon-btn {
+      background:rgba(255,255,255,.08); border:1px solid var(--border);
+      color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:18px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    .icon-btn:hover { background:rgba(255,107,0,.15); border-color:var(--orange); color:var(--orange); }
+
+    /* ── Container ───────────────────────────────────────── */
+    .container { max-width:1400px; margin:0 auto; padding:24px 24px 48px; }
+
+    /* ── Demo/RLS Banner ─────────────────────────────────── */
+    .info-banner {
+      display:none; border-radius:10px; padding:12px 16px;
+      align-items:center; gap:12px; margin-bottom:20px; font-size:13px;
+      animation:fadeUp .4s ease both;
+    }
+    .info-banner.show { display:flex; }
+    .banner-demo { background:rgba(255,107,0,.1); border:1px solid rgba(255,107,0,.3); }
+    .banner-rls  { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); color:var(--yellow); }
+    .banner-ok   { background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.25); color:var(--green); }
+
+    /* ── Page Header ─────────────────────────────────────── */
+    .page-header { margin-bottom:24px; }
+    .page-title {
+      font-family:'Oswald',sans-serif; font-size:28px; font-weight:700;
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    .page-title span { color:var(--orange); }
+    .page-sub { font-size:13px; color:var(--muted); }
+
+    /* ── CTA Section ─────────────────────────────────────── */
+    .cta-section {
+      display:flex; gap:12px; margin-bottom:24px; flex-wrap:wrap;
+      padding:20px; background:var(--card); border:1px solid var(--border);
+      border-radius:12px; align-items:center;
+    }
+    .cta-label {
+      font-size:12px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.8px; margin-right:4px;
+    }
+    .cta-primary {
+      background:linear-gradient(135deg,var(--orange),var(--orange-dark));
+      color:#fff; border:none; padding:12px 24px; border-radius:10px;
+      font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px;
+      box-shadow:0 4px 14px rgba(255,107,0,.35);
+      transition:all .2s; white-space:nowrap;
+    }
+    .cta-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,107,0,.45); }
+    .cta-disabled {
+      background:var(--card2); color:var(--muted); border:1px solid var(--border);
+      padding:12px 20px; border-radius:10px; font-size:13px; font-weight:700;
+      display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:not-allowed;
+      position:relative;
+    }
+    .cta-soon {
+      font-size:9px; font-weight:700; background:var(--border); color:var(--muted);
+      padding:2px 6px; border-radius:4px; margin-left:4px;
+    }
+
+    /* ── KPI Grid ────────────────────────────────────────── */
+    .kpi-grid {
+      display:grid; grid-template-columns:repeat(4,1fr);
+      gap:16px; margin-bottom:24px;
+    }
+    .kpi-card {
+      background:var(--card); border:1px solid var(--border); border-radius:12px;
+      padding:20px; position:relative; overflow:hidden;
+      animation:fadeUp .5s ease both;
+      transition:border-color .2s;
+    }
+    .kpi-card:hover { border-color:rgba(255,107,0,.4); }
+    .kpi-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--orange);
+    }
+    .kpi-card:nth-child(2)::before { background:var(--green); }
+    .kpi-card:nth-child(3)::before { background:var(--blue); }
+    .kpi-card:nth-child(4)::before { background:var(--yellow); }
+    .kpi-label { font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:500; }
+    .kpi-value {
+      font-family:'Oswald',sans-serif; font-size:36px; font-weight:700;
+      line-height:1; margin-bottom:6px;
+    }
+    .kpi-card:nth-child(1) .kpi-value { color:var(--orange); }
+    .kpi-card:nth-child(2) .kpi-value { color:var(--green); }
+    .kpi-card:nth-child(3) .kpi-value { color:var(--blue); }
+    .kpi-card:nth-child(4) .kpi-value { color:var(--yellow); }
+    .kpi-sub { font-size:12px; color:var(--muted); }
+    .kpi-icon {
+      position:absolute; right:16px; top:50%; transform:translateY(-50%);
+      font-size:40px; opacity:.07;
+    }
+    .kpi-loading {
+      display:inline-block; width:60px; height:32px;
+      background:var(--border); border-radius:6px;
+      animation:shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      0%,100% { opacity:.4; } 50% { opacity:.8; }
+    }
+
+    /* ── Main Grid ───────────────────────────────────────── */
+    .main-grid {
+      display:grid; grid-template-columns:1fr 360px;
+      gap:20px; align-items:start;
+    }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden;
+    }
+    .card-header {
+      padding:16px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .card-title {
+      font-size:14px; font-weight:700;
+      display:flex; align-items:center; gap:8px;
+    }
+    .dot { width:8px; height:8px; background:var(--orange); border-radius:50%; }
+    .card-badge {
+      font-size:11px; background:rgba(255,107,0,.15); color:var(--orange);
+      padding:3px 10px; border-radius:20px; border:1px solid rgba(255,107,0,.3);
+    }
+    .card-body { padding:20px; }
+
+    /* ── Daily Logs Table ────────────────────────────────── */
+    .table-wrap { overflow-x:auto; margin:-20px; }
+    table { width:100%; border-collapse:collapse; min-width:560px; }
+    thead th {
+      background:var(--card2); padding:10px 14px; text-align:left;
+      font-size:11px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.6px;
+      border-bottom:1px solid var(--border); white-space:nowrap;
+    }
+    tbody tr {
+      border-bottom:1px solid var(--border);
+      transition:background .15s;
+    }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--card2); }
+    td {
+      padding:12px 14px; font-size:13px; vertical-align:middle;
+    }
+    .td-date { font-family:'Oswald',sans-serif; font-size:14px; color:var(--orange); white-space:nowrap; }
+    .td-project { font-weight:700; max-width:200px; }
+    .td-project-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+    .td-mini-prog { display:flex; align-items:center; gap:8px; }
+    .mini-prog-bar {
+      flex:1; height:5px; background:var(--border);
+      border-radius:3px; overflow:hidden; min-width:40px;
+    }
+    .mini-prog-fill {
+      height:100%; border-radius:3px;
+      background:linear-gradient(90deg,var(--orange),var(--orange-light));
+    }
+    .mini-prog-val { font-size:12px; color:var(--muted); white-space:nowrap; }
+    .work-type-tag {
+      display:inline-block; padding:2px 8px; border-radius:4px;
+      font-size:11px; font-weight:700; white-space:nowrap;
+    }
+    .tag-houmen  { background:rgba(34,197,94,.15);  color:var(--green);  }
+    .tag-doboku  { background:rgba(59,130,246,.15);  color:var(--blue);   }
+    .tag-haisuik { background:rgba(168,85,247,.15);  color:var(--purple); }
+    .tag-houwaku { background:rgba(245,158,11,.15);  color:var(--yellow); }
+    .tag-other   { background:rgba(122,132,153,.15); color:var(--muted);  }
+    .detail-btn {
+      background:rgba(255,107,0,.12); color:var(--orange);
+      border:1px solid rgba(255,107,0,.3); border-radius:6px;
+      padding:5px 12px; font-size:12px; font-weight:700;
+      transition:all .15s; white-space:nowrap;
+    }
+    .detail-btn:hover { background:rgba(255,107,0,.25); }
+    .empty-row td {
+      text-align:center; padding:32px; color:var(--muted); font-size:13px;
+    }
+
+    /* ── Project List ────────────────────────────────────── */
+    .project-list { display:flex; flex-direction:column; gap:10px; }
+    .project-item {
+      background:var(--card2); border:1px solid var(--border);
+      border-radius:10px; padding:14px 16px;
+      transition:all .2s; cursor:default;
+    }
+    .project-item:hover { border-color:var(--orange); transform:translateX(3px); }
+    .proj-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px; }
+    .proj-name { font-size:13px; font-weight:700; line-height:1.4; }
+    .proj-status {
+      font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .status-active { background:rgba(34,197,94,.15); color:var(--green); }
+    .status-done   { background:rgba(122,132,153,.15); color:var(--muted); }
+    .status-paused { background:rgba(245,158,11,.15); color:var(--yellow); }
+    .proj-meta { display:flex; gap:10px; font-size:11px; color:var(--muted); }
+    .progress-bar {
+      background:var(--border); border-radius:4px; height:5px;
+      margin-top:8px; overflow:hidden;
+    }
+    .progress-fill {
+      height:100%; border-radius:4px;
+      background:linear-gradient(90deg,var(--orange),var(--orange-light));
+      transition:width 1s ease;
+    }
+    .proj-empty { padding:20px; text-align:center; color:var(--muted); font-size:13px; }
+
+    /* ── Report Detail Modal ─────────────────────────────── */
+    .overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,.7); z-index:200;
+      padding:20px; overflow-y:auto;
+      align-items:flex-start; justify-content:center;
+    }
+    .overlay.open { display:flex; padding-top:40px; }
+    .modal {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:16px; width:100%; max-width:640px;
+      padding:0; overflow:hidden;
+    }
+    .modal-hd {
+      background:var(--card2); padding:16px 20px;
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid var(--border);
+    }
+    .modal-title { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+    .close-btn {
+      background:rgba(255,255,255,.06); border:1px solid var(--border);
+      color:var(--muted); width:32px; height:32px; border-radius:8px;
+      font-size:16px; display:flex; align-items:center; justify-content:center;
+      transition:all .15s;
+    }
+    .close-btn:hover { background:rgba(239,68,68,.15); color:var(--red); border-color:var(--red); }
+    .modal-meta {
+      display:flex; gap:16px; padding:14px 20px;
+      border-bottom:1px solid var(--border); flex-wrap:wrap;
+    }
+    .modal-meta-item { font-size:12px; color:var(--muted); }
+    .modal-meta-item strong { color:var(--text); }
+    .modal-report {
+      padding:20px; font-size:13px; line-height:1.9;
+      white-space:pre-wrap; word-break:break-word; max-height:520px;
+      overflow-y:auto; color:var(--text);
+      font-family:'Hiragino Sans','Noto Sans JP',sans-serif;
+    }
+    .modal-report::-webkit-scrollbar { width:6px; }
+    .modal-report::-webkit-scrollbar-track { background:var(--card2); }
+    .modal-report::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    .modal-actions {
+      padding:14px 20px; border-top:1px solid var(--border);
+      display:flex; gap:10px; flex-wrap:wrap;
+    }
+    .modal-act-btn {
+      padding:9px 16px; border-radius:8px; font-size:13px; font-weight:700;
+      border:1px solid var(--border); background:var(--card2); color:var(--text);
+      transition:all .15s; display:flex; align-items:center; gap:6px;
+    }
+    .modal-act-btn:hover { border-color:var(--orange); color:var(--orange); }
+    .modal-act-btn.primary { background:var(--orange); color:#fff; border-color:var(--orange); }
+    .modal-act-btn.primary:hover { background:var(--orange-dark); }
+
+    /* ── Settings Modal ──────────────────────────────────── */
+    .settings-modal { max-width:480px; }
+    .s-field { margin-bottom:16px; }
+    .s-field label { display:block; font-size:12px; font-weight:700; color:var(--muted); margin-bottom:6px; }
+    .s-field input {
+      width:100%; background:var(--card2); border:1px solid var(--border);
+      color:var(--text); padding:10px 14px; border-radius:8px; font-size:14px;
+      font-family:'Noto Sans JP',sans-serif; transition:border-color .2s;
+    }
+    .s-field input:focus { outline:none; border-color:var(--orange); }
+    .s-field .hint { font-size:11px; color:var(--muted); margin-top:5px; line-height:1.6; }
+    .s-divider { height:1px; background:var(--border); margin:16px 0; }
+    .s-info {
+      background:rgba(245,158,11,.06); border:1px solid rgba(245,158,11,.2);
+      border-radius:8px; padding:12px; font-size:12px; color:var(--yellow);
+      line-height:1.7; margin-bottom:16px;
+    }
+    .s-save-btn {
+      width:100%; background:var(--orange); color:#fff; border:none;
+      border-radius:9px; padding:13px; font-size:14px; font-weight:700;
+      transition:background .15s;
+    }
+    .s-save-btn:hover { background:var(--orange-dark); }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position:fixed; bottom:24px; left:50%;
+      transform:translateX(-50%) translateY(80px);
+      padding:10px 22px; border-radius:100px; font-size:13px; font-weight:600;
+      color:#fff; background:var(--dark); z-index:400;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.4);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.ok  { background:var(--green); }
+    .toast.err { background:var(--red); }
+
+    /* ── Animations ──────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .kpi-card:nth-child(1) { animation-delay:.05s; }
+    .kpi-card:nth-child(2) { animation-delay:.1s;  }
+    .kpi-card:nth-child(3) { animation-delay:.15s; }
+    .kpi-card:nth-child(4) { animation-delay:.2s;  }
+
+    /* ── Loading Overlay ─────────────────────────────────── */
+    #loadingOverlay {
+      position:fixed; inset:0; background:var(--black);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:300; transition:opacity .4s;
+    }
+    #loadingOverlay.fade { opacity:0; pointer-events:none; }
+    .loading-logo {
+      font-family:'Oswald',sans-serif; font-size:24px; font-weight:700;
+      color:var(--text); margin-bottom:20px;
+    }
+    .loading-spinner {
+      width:40px; height:40px; border:3px solid var(--border);
+      border-top-color:var(--orange); border-radius:50%;
+      animation:spin .7s linear infinite; margin-bottom:14px;
+    }
+    .loading-text { font-size:13px; color:var(--muted); }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width:1080px) {
+      .main-grid { grid-template-columns:1fr; }
+    }
+    @media (max-width:768px) {
+      .container { padding:16px; }
+      .kpi-grid { grid-template-columns:1fr 1fr; }
+      .cta-section { padding:14px; gap:8px; }
+      .cta-primary { padding:10px 16px; font-size:13px; }
+      .header-company { display:none; }
+    }
+    @media (max-width:480px) {
+      .kpi-grid { grid-template-columns:1fr 1fr; }
+      .kpi-value { font-size:28px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingOverlay">
+  <div class="loading-logo">建設<span style="color:var(--orange)">AI</span></div>
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">データを読み込み中...</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">建</div>
+    <span>KENSETSU<span style="color:var(--orange)">AI</span></span>
+  </div>
+  <div class="header-right">
+    <span class="header-company" id="headerCompany"></span>
+    <button class="icon-btn" id="refreshBtn" title="データを更新">🔄</button>
+    <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
+    <span id="modeBadge" class="badge-demo">DEMO</span>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="container" id="mainContent">
+
+  <!-- Banner -->
+  <div class="info-banner banner-demo" id="demoBanner">
+    <span>🎭</span>
+    <div>
+      <strong style="color:var(--orange)">デモモード</strong> —
+      Supabaseが未設定のため、サンプルデータを表示しています。
+      ⚙️ から Supabase URL と Anon Key を設定するとリアルデータに切り替わります。
+    </div>
+  </div>
+  <div class="info-banner banner-rls" id="rlsBanner">
+    <span>⚠️</span>
+    <div>
+      Supabaseに接続できましたが、<strong>RLSポリシーが未設定</strong>のためデータ取得に失敗しました。
+      Supabase Dashboard で daily_logs・projects に <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;">SELECT TO anon</code> ポリシーを追加してください。
+    </div>
+  </div>
+  <div class="info-banner banner-ok" id="liveBanner">
+    <span>✅</span>
+    <div>Supabaseからリアルタイムデータを取得しています</div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="page-title">管理 <span>ダッシュボード</span></div>
+        <div class="page-sub" id="pageSubTitle">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA Section -->
+  <div class="cta-section">
+    <span class="cta-label">書類作成</span>
+    <a href="daily-report.html" class="cta-primary">📝 日報を作成</a>
+    <button class="cta-disabled">📄 請求書<span class="cta-soon">準備中</span></button>
+    <button class="cta-disabled">📊 工程表<span class="cta-soon">準備中</span></button>
+    <button class="cta-disabled">🏗️ 安全書類<span class="cta-soon">準備中</span></button>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">今月の日報件数</div>
+      <div class="kpi-value" id="kpi1"><span class="kpi-loading"></span></div>
+      <div class="kpi-sub" id="kpi1sub">集計中...</div>
+      <div class="kpi-icon">📋</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">アクティブなプロジェクト</div>
+      <div class="kpi-value" id="kpi2"><span class="kpi-loading"></span></div>
+      <div class="kpi-sub" id="kpi2sub">集計中...</div>
+      <div class="kpi-icon">🏗</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">本日の作業員合計</div>
+      <div class="kpi-value" id="kpi3"><span class="kpi-loading"></span></div>
+      <div class="kpi-sub" id="kpi3sub">集計中...</div>
+      <div class="kpi-icon">👷</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">最新の日報日付</div>
+      <div class="kpi-value" id="kpi4" style="font-size:22px;line-height:1.2;padding-top:4px;"><span class="kpi-loading"></span></div>
+      <div class="kpi-sub" id="kpi4sub">集計中...</div>
+      <div class="kpi-icon">📅</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+
+    <!-- 日報一覧 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="dot"></div>最近の日報一覧</div>
+        <span class="card-badge" id="logsBadge">読み込み中</span>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>工事名</th>
+                <th>工種</th>
+                <th>進捗</th>
+                <th>作業員</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr class="empty-row"><td colspan="6">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- プロジェクト一覧 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="dot"></div>プロジェクト一覧</div>
+        <span class="card-badge" id="projBadge">読み込み中</span>
+      </div>
+      <div class="card-body">
+        <div class="project-list" id="projectsList">
+          <div class="proj-empty">読み込み中...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Report Detail Modal -->
+<div class="overlay" id="reportModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">📄 <span id="modalTitle">日報詳細</span></div>
+      <button class="close-btn" id="closeReportModal">✕</button>
+    </div>
+    <div class="modal-meta" id="modalMeta"></div>
+    <div class="modal-report" id="modalReport">読み込み中...</div>
+    <div class="modal-actions">
+      <button class="modal-act-btn primary" id="modalCopyBtn">📋 コピー</button>
+      <button class="modal-act-btn" id="modalDlBtn">💾 テキスト保存</button>
+      <a href="daily-report.html" class="modal-act-btn">📝 新しい日報</a>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settingsModal">
+  <div class="modal settings-modal">
+    <div class="modal-hd">
+      <div class="modal-title">⚙️ Supabase接続設定</div>
+      <button class="close-btn" id="closeSettingsModal">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div class="s-info">
+        ⚠️ APIキーはこのデバイスの localStorage にのみ保存されます。
+        管理ダッシュボードでデータを読み込むには Supabase の
+        <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;">anon key</code>（または service role key）と
+        SELECT ポリシーが必要です。
+      </div>
+      <div class="s-field">
+        <label>Supabase URL</label>
+        <input type="text" id="cfgUrl" placeholder="https://xxxxxxxx.supabase.co">
+      </div>
+      <div class="s-field">
+        <label>Supabase Anon Key（または Service Role Key）</label>
+        <input type="password" id="cfgKey" placeholder="eyJhbGciOi...">
+        <div class="hint">daily-report.html の⚙️設定で入力した値と同じです。</div>
+      </div>
+      <div class="s-divider"></div>
+      <div class="s-field">
+        <label>RLSポリシー設定（必要な場合）</label>
+        <div class="hint" style="font-size:12px;line-height:1.8;">
+          Supabase SQL Editor で以下を実行してください：<br>
+          <code style="display:block;background:rgba(0,0,0,.4);padding:8px;border-radius:6px;margin-top:6px;font-size:11px;">
+            CREATE POLICY "dash_read" ON daily_logs FOR SELECT TO anon USING (true);<br>
+            CREATE POLICY "dash_read" ON projects FOR SELECT TO anon USING (true);
+          </code>
+        </div>
+      </div>
+      <button class="s-save-btn" id="saveSettingsBtn">保存してリロード</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Util ──────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+let _tt;
+function toast(msg, type='', dur=3000) {
+  const t=$('toast'); t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  clearTimeout(_tt); _tt=setTimeout(()=>{t.className='toast';},dur);
+}
+
+// ── Settings ──────────────────────────────────────────────
+const SK = { url:'dr_sb_url', key:'dr_sb_key' };
+const getCfg = () => ({
+  url: localStorage.getItem(SK.url)||'',
+  key: localStorage.getItem(SK.key)||'',
+});
+
+// ── Demo Data ─────────────────────────────────────────────
+const today = new Date().toISOString().slice(0,10);
+const ym     = today.slice(0,7);
+
+const DEMO_LOGS = [
+  { id:'d1', work_date: today,
+    project: { name:'R6-法面崩壊防止工事 福岡082', work_type:'法面工事', location:'福岡県北九州市' },
+    quality_notes:'工種: 法面工事\n明日の予定: コンクリート吹付\n特記事項: 特になし',
+    progress_rate:65, workers_count:8,
+    generated_report:'━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n　　　　　工　事　日　報\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n【工事情報】\n工事名称：R6-法面崩壊防止工事 福岡082\n元請会社：○○建設株式会社　　現場代理人：山田 太郎\n\n【作業日時・天候】\n作業日：2026年3月16日（月）\n天候：午前 晴れ ／ 午後 晴れ\n\n【作業員構成】　計8名\n土木作業員5名　重機オペ2名　交通誘導員1名\n\n【使用重機・機械】\n・バックホウ 0.45㎥ × 2台\n・ダンプトラック 10t × 3台\n\n【本日の作業概要】\n工種：法面工事　　進捗率：65%\n法面整形および法枠工の施工を実施しました。\n\n【作業詳細】\n・法面の整形作業（切土・成形）\n・法枠コンクリート打設 約50㎡\n・排水溝清掃・整備\n\n【安全管理】\n朝礼：有　KY活動：有　ヒヤリハット：無\n高所作業における安全帯着用を徹底しました。\n\n【品質管理】\n検査・立会：無　写真撮影：12枚\n\n【明日の作業予定】\nコンクリート吹付工 約80㎡を予定。資材搬入を午前中に実施。\n\n【特記事項・所見】\n特になし\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n作成日時：2026年3月16日 17:30\n担当者：＿＿＿＿＿＿＿＿＿＿（署名）' },
+  { id:'d2', work_date: ym+'-15',
+    project: { name:'県道改良工事 宮崎区間C', work_type:'土工', location:'宮崎県延岡市' },
+    quality_notes:'工種: 土工\n明日の予定: 路盤工\n特記事項: 大型車通行多数',
+    progress_rate:40, workers_count:12,
+    generated_report:'工事日報（サンプル）\n\n工事名：県道改良工事 宮崎区間C\n作業日：2026年3月15日\n進捗率：40%\n\n本日は路盤整備および舗装準備を実施しました。' },
+  { id:'d3', work_date: ym+'-14',
+    project: { name:'NEXCO法面緑化工事 熊本IC', work_type:'法面工事', location:'熊本県菊池市' },
+    quality_notes:'工種: 法面工事\n明日の予定: 仕上げ\n特記事項: 検査立会あり',
+    progress_rate:88, workers_count:5,
+    generated_report:'工事日報（サンプル）\n\n工事名：NEXCO法面緑化工事 熊本IC\n作業日：2026年3月14日\n進捗率：88%\n\n本日は法面緑化工の最終仕上げ作業を実施しました。検査立会も滞りなく完了。' },
+  { id:'d4', work_date: ym+'-13',
+    project: { name:'排水路整備工事 大分014', work_type:'排水工', location:'大分県臼杵市' },
+    quality_notes:'工種: 排水工\n明日の予定: コンクリート打設\n特記事項: 特になし',
+    progress_rate:22, workers_count:6,
+    generated_report:'工事日報（サンプル）\n\n工事名：排水路整備工事 大分014\n作業日：2026年3月13日\n進捗率：22%\n\n本日は排水路掘削工を実施。基礎砕石投入まで完了しました。' },
+  { id:'d5', work_date: ym+'-12',
+    project: { name:'R6-法面崩壊防止工事 福岡082', work_type:'法面工事', location:'福岡県北九州市' },
+    quality_notes:'工種: 法面工事\n明日の予定: 整形作業継続\n特記事項: 特になし',
+    progress_rate:55, workers_count:8,
+    generated_report:'工事日報（サンプル）\n\n工事名：R6-法面崩壊防止工事 福岡082\n作業日：2026年3月12日\n進捗率：55%\n\n本日は法面整形工を継続実施しました。' },
+];
+
+const DEMO_PROJECTS = [
+  { id:'p1', name:'R6-法面崩壊防止工事 福岡082', location:'福岡県北九州市', work_type:'法面工事', status:'進行中' },
+  { id:'p2', name:'県道改良工事 宮崎区間C',        location:'宮崎県延岡市',   work_type:'土木',    status:'進行中' },
+  { id:'p3', name:'NEXCO法面緑化工事 熊本IC',      location:'熊本県菊池市',   work_type:'法面工事', status:'進行中' },
+  { id:'p4', name:'排水路整備工事 大分014',         location:'大分県臼杵市',   work_type:'排水工',   status:'進行中' },
+  { id:'p5', name:'急傾斜地対策工事 鹿児島',        location:'鹿児島県薩摩川内市', work_type:'法面工事', status:'完了' },
+];
+
+// ── Supabase Fetch ─────────────────────────────────────────
+async function sbFetch(path) {
+  const { url, key } = getCfg();
+  if (!url || !key) throw new Error('Supabase未設定');
+  const r = await fetch(`${url}/rest/v1/${path}`, {
+    headers: {
+      'apikey': key,
+      'Authorization': 'Bearer ' + key,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(()=>({}));
+    throw new Error(e.message || e.error || `HTTP ${r.status}`);
+  }
+  return r.json();
+}
+
+async function sbCount(path) {
+  const { url, key } = getCfg();
+  if (!url || !key) return null;
+  const r = await fetch(`${url}/rest/v1/${path}`, {
+    headers: {
+      'apikey': key, 'Authorization': 'Bearer ' + key,
+      'Prefer': 'count=exact', 'Range': '0-0',
+    },
+  });
+  if (!r.ok) return null;
+  const cr = r.headers.get('content-range');
+  return cr ? parseInt(cr.split('/')[1]) : 0;
+}
+
+// ── Parse Quality Notes ────────────────────────────────────
+function parseQN(notes) {
+  const res = {};
+  for (const line of (notes||'').split('\n')) {
+    if (line.startsWith('工種: '))       res.workType     = line.slice(4);
+    if (line.startsWith('明日の予定: ')) res.tomorrowPlan = line.slice(7);
+    if (line.startsWith('特記事項: '))   res.remarks      = line.slice(6);
+  }
+  return res;
+}
+
+// ── Work Type Tag ──────────────────────────────────────────
+function workTypeTag(wt) {
+  if (!wt) return '<span class="work-type-tag tag-other">—</span>';
+  const map = {
+    '法面工事':'tag-houmen','法枠工':'tag-houwaku',
+    'アンカー工':'tag-houwaku','吹付工':'tag-houmen',
+    '土工':'tag-doboku','舗装工':'tag-doboku','仮設工':'tag-doboku',
+    '排水工':'tag-haisuik',
+  };
+  const cls = map[wt] || 'tag-other';
+  return `<span class="work-type-tag ${cls}">${wt}</span>`;
+}
+
+function statusBadge(status) {
+  if (status === '進行中') return `<span class="proj-status status-active">進行中</span>`;
+  if (status === '完了')   return `<span class="proj-status status-done">完了</span>`;
+  return `<span class="proj-status status-paused">${status}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  return `${y}/${m}/${day}`;
+}
+
+function fmtDateJP(d) {
+  if (!d) return '—';
+  const dt = new Date(d + 'T12:00:00');
+  return dt.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'short'});
+}
+
+// ── Render KPIs ────────────────────────────────────────────
+function renderKPIs(logs, projects) {
+  const thisMonth = logs.filter(l => l.work_date && l.work_date.startsWith(ym));
+  $('kpi1').textContent = thisMonth.length;
+  $('kpi1sub').textContent = `${ym.replace('-','年')}月`;
+
+  const active = projects.filter(p => p.status === '進行中');
+  $('kpi2').textContent = active.length;
+  $('kpi2sub').textContent = `完了: ${projects.length - active.length}件`;
+
+  const todayLogs = logs.filter(l => l.work_date === today);
+  const todayWorkers = todayLogs.reduce((s, l) => s + (l.workers_count||0), 0);
+  $('kpi3').textContent = todayWorkers;
+  $('kpi3sub').textContent = todayLogs.length ? `本日 ${todayLogs.length}件の日報` : '本日の日報なし';
+
+  const latest = logs[0];
+  $('kpi4').textContent = latest ? fmtDate(latest.work_date) : '—';
+  $('kpi4sub').textContent = latest
+    ? (latest.project?.name || latest.work_description || '').slice(0,20)
+    : 'データなし';
+}
+
+// ── Render Logs Table ──────────────────────────────────────
+function renderLogsTable(logs) {
+  $('logsBadge').textContent = `${logs.length}件`;
+  const tbody = $('logsTableBody');
+  if (!logs.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">日報データがありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML = logs.slice(0, 20).map(log => {
+    const qn = parseQN(log.quality_notes);
+    const wt = qn.workType || (log.project?.work_type) || '';
+    const pname = log.project?.name || (log.work_description||'').slice(0,30) || '—';
+    const loc   = log.project?.location || '';
+    const prog  = log.progress_rate ?? 0;
+    const workers = log.workers_count ?? '—';
+    return `<tr>
+      <td class="td-date">${fmtDate(log.work_date)}</td>
+      <td class="td-project">
+        <div>${escHtml(pname)}</div>
+        ${loc ? `<div class="td-project-sub">📍 ${escHtml(loc)}</div>` : ''}
+      </td>
+      <td>${workTypeTag(wt)}</td>
+      <td>
+        <div class="td-mini-prog">
+          <div class="mini-prog-bar">
+            <div class="mini-prog-fill" style="width:${prog}%"></div>
+          </div>
+          <span class="mini-prog-val">${prog}%</span>
+        </div>
+      </td>
+      <td style="text-align:center;font-weight:700;color:var(--blue)">
+        ${typeof workers === 'number' ? workers+'<span style="font-size:11px;color:var(--muted);font-weight:400"> 名</span>' : workers}
+      </td>
+      <td>
+        <button class="detail-btn" onclick="showReport(${JSON.stringify(JSON.stringify(log))})">
+          詳細 →
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Render Projects ────────────────────────────────────────
+function renderProjects(projects) {
+  $('projBadge').textContent = `${projects.filter(p=>p.status==='進行中').length}件進行中`;
+  const el = $('projectsList');
+  if (!projects.length) {
+    el.innerHTML = '<div class="proj-empty">プロジェクトデータがありません</div>';
+    return;
+  }
+  el.innerHTML = projects.slice(0,8).map(p => {
+    return `<div class="project-item">
+      <div class="proj-top">
+        <div class="proj-name">${escHtml(p.name||'—')}</div>
+        ${statusBadge(p.status||'—')}
+      </div>
+      <div class="proj-meta">
+        ${p.location ? `<span>📍 ${escHtml(p.location)}</span>` : ''}
+        ${p.work_type ? `<span>${workTypeTag(p.work_type)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Show Report Modal ──────────────────────────────────────
+let _curLog = null;
+function showReport(jsonStr) {
+  const log = JSON.parse(jsonStr);
+  _curLog = log;
+  const qn = parseQN(log.quality_notes);
+  const pname = log.project?.name || '—';
+  $('modalTitle').textContent = escHtml(pname);
+  $('modalMeta').innerHTML = [
+    ['日付',   fmtDateJP(log.work_date)],
+    ['進捗率', (log.progress_rate??'—') + '%'],
+    ['作業員', (log.workers_count??'—') + ' 名'],
+    ['工種',   qn.workType || log.project?.work_type || '—'],
+  ].map(([k,v]) => `<div class="modal-meta-item"><span style="color:var(--muted)">${k}：</span><strong>${v}</strong></div>`).join('');
+  $('modalReport').textContent = log.generated_report || '（日報本文なし）';
+  $('reportModal').classList.add('open');
+}
+
+$('closeReportModal').addEventListener('click', () => $('reportModal').classList.remove('open'));
+$('reportModal').addEventListener('click', e => { if (e.target === $('reportModal')) $('reportModal').classList.remove('open'); });
+
+$('modalCopyBtn').addEventListener('click', async () => {
+  const txt = $('modalReport').textContent;
+  try { await navigator.clipboard.writeText(txt); }
+  catch { const ta=document.createElement('textarea');ta.value=txt;ta.style='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta); }
+  toast('コピーしました ✓','ok');
+});
+
+$('modalDlBtn').addEventListener('click', () => {
+  const txt = $('modalReport').textContent;
+  if (!txt) return;
+  const dt = (_curLog?.work_date||'').replace(/-/g,'');
+  const nm = (_curLog?.project?.name||'日報').replace(/[\\/:*?"<>|]/g,'_').slice(0,20);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'}));
+  a.download = `工事日報_${dt}_${nm}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('保存しました ✓','ok');
+});
+
+// ── Settings Modal ─────────────────────────────────────────
+function openSettings() {
+  const c = getCfg();
+  $('cfgUrl').value = c.url;
+  $('cfgKey').value = c.key;
+  $('settingsModal').classList.add('open');
+}
+function closeSettings() { $('settingsModal').classList.remove('open'); }
+
+$('settingsBtn').addEventListener('click', openSettings);
+$('closeSettingsModal').addEventListener('click', closeSettings);
+$('settingsModal').addEventListener('click', e => { if (e.target === $('settingsModal')) closeSettings(); });
+$('saveSettingsBtn').addEventListener('click', () => {
+  const url = $('cfgUrl').value.trim();
+  const key = $('cfgKey').value.trim();
+  localStorage.setItem(SK.url, url);
+  localStorage.setItem(SK.key, key);
+  toast('設定を保存しました。再読み込みします...','ok');
+  closeSettings();
+  setTimeout(() => location.reload(), 1000);
+});
+
+// ── Page Sub Title ─────────────────────────────────────────
+function setPageSub(logs, projects) {
+  const now = new Date();
+  const weekdays = ['日','月','火','水','木','金','土'];
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${weekdays[now.getDay()]}）`;
+  const active = projects.filter(p=>p.status==='進行中').length;
+  $('pageSubTitle').textContent = `${dateStr}｜進行中プロジェクト：${active}件`;
+}
+
+// ── escHtml ────────────────────────────────────────────────
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Load Dashboard ─────────────────────────────────────────
+let _isDemo = false;
+
+async function loadDashboard() {
+  $('loadingText').textContent = 'Supabaseに接続中...';
+  const { url, key } = getCfg();
+
+  let logs, projects;
+
+  if (!url || !key) {
+    // 未設定 → デモモード
+    _isDemo = true;
+    logs     = DEMO_LOGS;
+    projects = DEMO_PROJECTS;
+    $('demoBanner').classList.add('show');
+    $('modeBadge').textContent = 'DEMO';
+    $('modeBadge').className   = 'badge-demo';
+    $('headerCompany').textContent = '🏢 サンプル建設（デモ）';
+  } else {
+    try {
+      $('loadingText').textContent = 'データを取得中...';
+      [logs, projects] = await Promise.all([
+        sbFetch(`daily_logs?select=id,work_date,work_description,progress_rate,workers_count,generated_report,quality_notes,project:projects(name,work_type,location,status)&order=created_at.desc&limit=30`),
+        sbFetch(`projects?select=id,name,location,work_type,status&order=created_at.desc`),
+      ]);
+      $('liveBanner').classList.add('show');
+      setTimeout(() => $('liveBanner').classList.remove('show'), 4000);
+      $('modeBadge').textContent = 'LIVE';
+      $('modeBadge').className   = 'badge-live';
+      $('headerCompany').textContent = '🏢 接続済み';
+    } catch (err) {
+      console.warn('[Dashboard] Supabase fetch failed:', err.message);
+      // RLSやネットワークエラー → デモフォールバック
+      _isDemo = true;
+      logs     = DEMO_LOGS;
+      projects = DEMO_PROJECTS;
+      if (err.message.includes('42501') || err.message.includes('permission') || err.message.includes('policy')) {
+        $('rlsBanner').classList.add('show');
+      } else {
+        $('demoBanner').classList.add('show');
+      }
+      $('modeBadge').textContent = 'DEMO';
+      $('modeBadge').className   = 'badge-demo';
+      $('headerCompany').textContent = '🏢 未接続（デモ）';
+    }
+  }
+
+  renderKPIs(logs, projects);
+  renderLogsTable(logs);
+  renderProjects(projects);
+  setPageSub(logs, projects);
+}
+
+// ── Refresh Button ─────────────────────────────────────────
+$('refreshBtn').addEventListener('click', async () => {
+  $('refreshBtn').style.transform = 'rotate(360deg)';
+  $('refreshBtn').style.transition = 'transform .6s';
+  await loadDashboard();
+  toast('データを更新しました','ok');
+  setTimeout(() => {
+    $('refreshBtn').style.transform = '';
+    $('refreshBtn').style.transition = '';
+  }, 700);
+});
+
+// ── Init ──────────────────────────────────────────────────
+(async () => {
+  // URLハッシュから設定を自動適用（daily-report.htmlと同じQR共有方式）
+  if (location.hash.startsWith('#setup=')) {
+    try {
+      const json = decodeURIComponent(escape(atob(location.hash.slice(7))));
+      const p = JSON.parse(json);
+      if (p.sbUrl) localStorage.setItem(SK.url, p.sbUrl);
+      if (p.sbKey) localStorage.setItem(SK.key, p.sbKey);
+      history.replaceState(null,'',location.pathname);
+    } catch(e) {}
+  }
+
+  await loadDashboard();
+
+  // ローディング解除
+  const lo = $('loadingOverlay');
+  lo.classList.add('fade');
+  setTimeout(() => lo.style.display='none', 450);
+
+  // Supabase未設定なら設定を促す（初回のみ）
+  if (!getCfg().url && !localStorage.getItem('dash_setup_shown')) {
+    localStorage.setItem('dash_setup_shown','1');
+    setTimeout(() => {
+      if (confirm('Supabase設定をまだ行っていません。\n今すぐ設定しますか？\n（デモモードのままでもご利用いただけます）')) {
+        openSettings();
+      }
+    }, 1200);
+  }
+})();
+</script>
+</body>
+</html>
