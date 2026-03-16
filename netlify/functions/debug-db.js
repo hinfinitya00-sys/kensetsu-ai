@@ -59,21 +59,37 @@ exports.handler = async (event) => {
     }
   }
 
-  // 最新のdaily_logs 1件のカラム名を確認（機密データなし）
+  // 最新のdaily_logs 1件を詳細確認（機密データは除く）
   try {
     const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/daily_logs?select=id,work_date,progress_rate,generated_report&limit=1&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/daily_logs?select=id,work_date,progress_rate,generated_report,workers_detail,equipment_used,quality_notes&limit=1&order=created_at.desc`,
       { headers }
     );
     const data = await r.json().catch(() => null);
     if (r.ok && Array.isArray(data) && data.length > 0) {
       const row = data[0];
+      // workers_detailがJSONオブジェクトか文字列かを確認（二重stringify検出）
+      const wd = row.workers_detail;
+      const eu = row.equipment_used;
       result.latest_daily_log = {
-        id:              row.id,
-        work_date:       row.work_date,
-        progress_rate:   row.progress_rate,
-        has_report:      !!row.generated_report,
-        report_length:   row.generated_report?.length || 0,
+        id:                  row.id,
+        work_date:           row.work_date,
+        progress_rate:       row.progress_rate,
+        has_report:          !!row.generated_report,
+        report_length:       row.generated_report?.length || 0,
+        workers_detail_type: typeof wd === 'string'
+          ? `⚠️ 文字列（二重stringify済み）: ${wd.slice(0, 40)}...`
+          : typeof wd === 'object' && wd !== null
+            ? `✅ オブジェクト: ${JSON.stringify(wd).slice(0, 60)}`
+            : `null/undefined`,
+        equipment_used_type: typeof eu === 'string'
+          ? `⚠️ 文字列（二重stringify済み）: ${eu.slice(0, 40)}...`
+          : Array.isArray(eu)
+            ? `✅ 配列(${eu.length}件): ${JSON.stringify(eu).slice(0, 60)}`
+            : `null/undefined`,
+        quality_notes_preview: row.quality_notes
+          ? row.quality_notes.slice(0, 80)
+          : '（なし）',
       };
     } else if (r.ok) {
       result.latest_daily_log = '（レコードなし）';
