@@ -286,8 +286,8 @@ exports.handler = async (event) => {
         weather_pm:        form_data.weatherPM       || null,
         work_description:  form_data.workContent     || null,
         workers_count:     form_data.workerTotal      ?? null,
-        workers_detail:    form_data.workers          ? JSON.stringify(form_data.workers)   : null,
-        equipment_used:    form_data.equipment        ? JSON.stringify(form_data.equipment) : null,
+        workers_detail:    form_data.workers   || null,   // jsonbにはオブジェクトをそのまま渡す
+        equipment_used:    form_data.equipment || null,   // jsonbにはarrayをそのまま渡す
         safety_notes:      form_data.safetyNote       || null,
         quality_notes:     [
           form_data.workType    ? `工種: ${form_data.workType}` : '',
