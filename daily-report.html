@@ -483,6 +483,49 @@
     }
     .db-save-main:active { transform:scale(.97); }
     .db-save-main:disabled { background:#94a3b8; box-shadow:none; cursor:not-allowed; }
+
+    /* ── Photo Upload ────────────────────────────────── */
+    .photo-drop {
+      border:2px dashed var(--border); border-radius:12px; padding:24px 16px;
+      text-align:center; cursor:pointer; transition:all .2s;
+      background:var(--bg);
+    }
+    .photo-drop:hover,.photo-drop.dragging {
+      border-color:var(--primary); background:rgba(99,102,241,.04);
+    }
+    .photo-drop-icon { font-size:32px; margin-bottom:8px; }
+    .photo-drop-text { font-size:13px; color:var(--muted); line-height:1.6; }
+    .photo-drop-text strong { color:var(--text); }
+    .photo-previews {
+      display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:12px;
+    }
+    .photo-thumb {
+      position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden;
+      border:1px solid var(--border); background:var(--bg);
+    }
+    .photo-thumb img { width:100%; height:100%; object-fit:cover; }
+    .photo-thumb-del {
+      position:absolute; top:4px; right:4px;
+      background:rgba(0,0,0,.6); color:#fff; border:none;
+      width:22px; height:22px; border-radius:50%; font-size:12px;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:background .15s;
+    }
+    .photo-thumb-del:hover { background:rgba(239,68,68,.8); }
+    .photo-thumb-cap {
+      position:absolute; bottom:0; left:0; right:0;
+      background:rgba(0,0,0,.55); padding:3px 6px;
+      font-size:10px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .photo-status {
+      font-size:12px; color:var(--muted); margin-top:8px; text-align:center;
+    }
+    .photo-status.uploading { color:var(--primary); }
+    .photo-status.done { color:#22c55e; }
+    .photo-status.err  { color:#ef4444; }
+    @media(max-width:480px){
+      .photo-previews { grid-template-columns:repeat(3,1fr); }
+    }
   </style>
 </head>
 <body>
@@ -793,6 +836,26 @@
           <input type="number" id="temperature" placeholder="例：18" min="-30" max="55">
         </div>
       </div>
+    </div>
+
+    <!-- ⑦ 現場写真 -->
+    <div class="card" id="photoCard">
+      <div class="card-hd">
+        <div class="card-ico">📷</div>
+        <span class="card-title">現場写真（最大5枚）</span>
+      </div>
+
+      <div class="photo-drop" id="photoDrop">
+        <div class="photo-drop-icon">📁</div>
+        <div class="photo-drop-text">
+          <strong>タップして写真を選択</strong>、またはドラッグ&amp;ドロップ<br>
+          日報生成後に Supabase Storage へ自動アップロード
+        </div>
+        <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
+      </div>
+
+      <div class="photo-previews" id="photoPreviews"></div>
+      <div class="photo-status" id="photoStatus"></div>
     </div>
 
     <!-- iOS HTTPS案内 -->
@@ -1537,6 +1600,10 @@ function showReport(text,data,logId){
   }else{
     console.warn('[showReport] log_idなし: DB保存未完了の可能性があります');
   }
+  // 現場写真アップロード（選択済みの場合）
+  if(photoFiles.length > 0){
+    setTimeout(()=>uploadPhotosToSupabase(logId||null, data.workDate||null), 500);
+  }
 }
 
 function populateEditFields(data){
@@ -2089,6 +2156,140 @@ $('dbSaveBtn').addEventListener('click',async()=>{
   btn.disabled=false;
   btn.innerHTML='<span>🗄️</span><span>DBに保存（UPDATE）</span>';
 });
+
+// ── Photo Upload ──────────────────────────────────────────
+let photoFiles = [];  // File objects selected by user
+
+const photoDrop    = $('photoDrop');
+const photoInput   = $('photoInput');
+const photoPreviews= $('photoPreviews');
+const photoStatus  = $('photoStatus');
+
+// Click to open file picker
+photoDrop.addEventListener('click', () => photoInput.click());
+
+// Drag & drop
+photoDrop.addEventListener('dragover', e => { e.preventDefault(); photoDrop.classList.add('dragging'); });
+photoDrop.addEventListener('dragleave', () => photoDrop.classList.remove('dragging'));
+photoDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  photoDrop.classList.remove('dragging');
+  addPhotoFiles(Array.from(e.dataTransfer.files));
+});
+photoInput.addEventListener('change', e => {
+  addPhotoFiles(Array.from(e.target.files));
+  e.target.value = '';
+});
+
+function addPhotoFiles(files) {
+  const allowed = files.filter(f => f.type.startsWith('image/'));
+  const remaining = 5 - photoFiles.length;
+  if (remaining <= 0) { showToast('最大5枚まで追加できます', 'err'); return; }
+  const toAdd = allowed.slice(0, remaining);
+  if (allowed.length > remaining) showToast(`${remaining}枚まで追加（${allowed.length - remaining}枚を省略）`, 'err', 4000);
+  photoFiles = [...photoFiles, ...toAdd];
+  renderPhotoPreviews();
+}
+
+function renderPhotoPreviews() {
+  photoPreviews.innerHTML = '';
+  photoFiles.forEach((file, i) => {
+    const url = URL.createObjectURL(file);
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = `
+      <img src="${url}" alt="写真${i+1}">
+      <div class="photo-thumb-cap">${escHtml(file.name.slice(0,18))}</div>
+      <button type="button" class="photo-thumb-del" data-i="${i}">✕</button>`;
+    div.querySelector('.photo-thumb-del').addEventListener('click', () => {
+      photoFiles.splice(i, 1);
+      renderPhotoPreviews();
+    });
+    photoPreviews.appendChild(div);
+  });
+  photoStatus.textContent = photoFiles.length
+    ? `${photoFiles.length}枚選択済み（日報生成後にアップロードされます）`
+    : '';
+  photoStatus.className = 'photo-status';
+}
+
+async function uploadPhotosToSupabase(logId, workDate) {
+  if (!photoFiles.length) return;
+  const s = getS();
+  if (!s.supabaseUrl || !s.supabaseAnonKey) {
+    photoStatus.textContent = '⚠️ Supabase未設定のため写真アップロードをスキップ';
+    photoStatus.className = 'photo-status err';
+    return;
+  }
+  photoStatus.textContent = `写真をアップロード中... (0/${photoFiles.length})`;
+  photoStatus.className = 'photo-status uploading';
+
+  let successCount = 0;
+  const dateStr = (workDate || new Date().toISOString().slice(0,10)).replace(/-/g,'');
+
+  for (let i = 0; i < photoFiles.length; i++) {
+    const file = photoFiles[i];
+    const ext  = file.name.split('.').pop() || 'jpg';
+    const path = `${dateStr}/${logId || 'nolog'}_${i+1}.${ext}`;
+
+    try {
+      // Upload to Supabase Storage bucket "site-photos"
+      const uploadRes = await fetch(
+        `${s.supabaseUrl}/storage/v1/object/site-photos/${path}`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey':        s.supabaseAnonKey,
+            'Authorization': `Bearer ${s.supabaseAnonKey}`,
+            'Content-Type':  file.type,
+            'x-upsert':      'true',
+          },
+          body: file,
+        }
+      );
+      if (!uploadRes.ok) {
+        const e = await uploadRes.json().catch(() => ({}));
+        throw new Error(e.message || `Storage ${uploadRes.status}`);
+      }
+
+      const publicUrl = `${s.supabaseUrl}/storage/v1/object/public/site-photos/${path}`;
+
+      // Insert into site_photos table
+      const insertRes = await fetch(`${s.supabaseUrl}/rest/v1/site_photos`, {
+        method: 'POST',
+        headers: {
+          'apikey':        s.supabaseAnonKey,
+          'Authorization': `Bearer ${s.supabaseAnonKey}`,
+          'Content-Type':  'application/json',
+          'Prefer':        'return=minimal',
+        },
+        body: JSON.stringify({
+          log_id:    logId   || null,
+          photo_url: publicUrl,
+          caption:   file.name,
+          taken_at:  workDate || null,
+          ...(s.supabaseCompanyId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.supabaseCompanyId)
+            ? { company_id: s.supabaseCompanyId } : {}),
+        }),
+      });
+
+      if (insertRes.ok) successCount++;
+      else console.warn('[photo] site_photos INSERT failed:', insertRes.status);
+
+      photoStatus.textContent = `写真をアップロード中... (${successCount}/${photoFiles.length})`;
+    } catch (e) {
+      console.error('[photo] upload error:', e.message);
+    }
+  }
+
+  if (successCount === photoFiles.length) {
+    photoStatus.textContent = `✅ ${successCount}枚の写真をアップロードしました`;
+    photoStatus.className = 'photo-status done';
+  } else {
+    photoStatus.textContent = `⚠️ ${successCount}/${photoFiles.length}枚アップロード完了（一部失敗）`;
+    photoStatus.className = 'photo-status err';
+  }
+}
 
 // ── Init ──────────────────────────────────────────────────
 checkKey();

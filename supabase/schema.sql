@@ -106,6 +106,67 @@ CREATE INDEX IF NOT EXISTS idx_daily_logs_work_date   ON daily_logs (work_date D
 ALTER TABLE daily_logs ENABLE ROW LEVEL SECURITY;
 
 -- ────────────────────────────────────────────────────────────
+-- 6. site_photos — 現場写真管理
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS site_photos (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id  uuid        REFERENCES projects (id) ON DELETE SET NULL,
+  company_id  uuid        NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+  log_id      uuid        REFERENCES daily_logs (id) ON DELETE SET NULL,
+  photo_url   text        NOT NULL,              -- Supabase Storage の公開URL
+  caption     text,                              -- 写真キャプション
+  taken_at    date,                              -- 撮影日
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_site_photos_company_id  ON site_photos (company_id);
+CREATE INDEX IF NOT EXISTS idx_site_photos_project_id  ON site_photos (project_id);
+CREATE INDEX IF NOT EXISTS idx_site_photos_log_id      ON site_photos (log_id);
+CREATE INDEX IF NOT EXISTS idx_site_photos_taken_at    ON site_photos (taken_at DESC);
+
+ALTER TABLE site_photos ENABLE ROW LEVEL SECURITY;
+
+-- 管理ダッシュボード用 SELECT ポリシー（必要に応じて有効化）
+-- CREATE POLICY "site_photos_read" ON site_photos FOR SELECT TO anon USING (true);
+
+-- ────────────────────────────────────────────────────────────
+-- 7. invoices — 請求書
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS invoices (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id       uuid        NOT NULL REFERENCES companies (id) ON DELETE CASCADE,
+  invoice_no       text,
+  invoice_date     date,
+  due_date         date,
+  invoice_type     text,
+  project_name     text,
+  project_site     text,
+  project_no       text,
+  period_start     date,
+  period_end       date,
+  recipient_name   text,
+  recipient_person text,
+  issuer_name      text,
+  issuer_reg_num   text,
+  issuer_address   text,
+  issuer_tel       text,
+  issuer_bank      text,
+  items            jsonb,      -- [{desc, qty, unit, price, amt}, ...]
+  subtotal         integer,
+  tax_amount       integer,
+  total_amount     integer,
+  gensen_amount    integer,
+  final_amount     integer,
+  remarks          text,
+  created_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_invoices_company_id   ON invoices (company_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices (invoice_date DESC);
+
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+
+-- ────────────────────────────────────────────────────────────
 -- サンプルデータ（テスト用 — 本番では削除してください）
 -- API キー "TEST-API-KEY-12345" の SHA-256 ハッシュ
 -- ────────────────────────────────────────────────────────────

@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安全書類｜建設AIシステム</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange:#FF6B00; --orange-dark:#CC5500; --orange-light:#FF8C33;
+      --black:#0A0A0A; --dark:#111418; --card:#181C22; --card2:#1E232B;
+      --border:#2A3040; --text:#E8EAF0; --muted:#7A8499;
+      --green:#22C55E; --blue:#3B82F6; --yellow:#F59E0B;
+      --red:#EF4444; --purple:#A855F7;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--black);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;}
+    a{color:inherit;text-decoration:none;}
+    button{font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+    input,select,textarea{font-family:'Noto Sans JP',sans-serif;}
+
+    /* Header */
+    header{
+      background:var(--dark);border-bottom:2px solid var(--orange);
+      padding:0 24px;height:60px;display:flex;align-items:center;
+      justify-content:space-between;position:sticky;top:0;z-index:100;
+    }
+    .logo{display:flex;align-items:center;gap:10px;font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:1px;}
+    .logo-mark{width:32px;height:32px;background:var(--orange);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:white;}
+    .header-right{display:flex;align-items:center;gap:10px;}
+    .icon-btn{background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .icon-btn:hover{background:rgba(255,107,0,.15);border-color:var(--orange);color:var(--orange);}
+
+    /* Container */
+    .container{max-width:900px;margin:0 auto;padding:24px 24px 60px;}
+    .page-title{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;letter-spacing:1px;margin-bottom:4px;}
+    .page-title span{color:var(--orange);}
+    .page-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+
+    /* Tab */
+    .tabs{display:flex;gap:0;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+    .tab-btn{flex:1;padding:14px 10px;font-size:13px;font-weight:700;background:none;border:none;color:var(--muted);border-right:1px solid var(--border);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+    .tab-btn:last-child{border-right:none;}
+    .tab-btn.active{background:var(--orange);color:#fff;}
+    .tab-btn:hover:not(.active){background:rgba(255,107,0,.1);color:var(--orange);}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+
+    /* Card */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+    .card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+    .dot{width:8px;height:8px;background:var(--orange);border-radius:50%;}
+    .card-body{padding:20px;}
+
+    /* Form */
+    .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    .fg label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+    .fg label .req{color:var(--orange);margin-left:2px;}
+    .f-input{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;transition:border-color .2s;width:100%;}
+    .f-input:focus{outline:none;border-color:var(--orange);}
+    .f-input::placeholder{color:var(--muted);opacity:.6;}
+    select.f-input{cursor:pointer;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+    /* Dynamic rows */
+    .dyn-table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+    .dyn-table th{background:var(--card2);padding:9px 10px;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);text-align:left;}
+    .dyn-table td{padding:6px 6px;vertical-align:middle;border-bottom:1px solid rgba(42,48,64,.5);}
+    .dyn-table input,.dyn-table select{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 8px;border-radius:6px;font-size:13px;width:100%;}
+    .dyn-table input:focus,.dyn-table select:focus{outline:none;border-color:var(--orange);}
+    .del-btn{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:6px;width:28px;height:28px;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+    .del-btn:hover{background:rgba(239,68,68,.25);}
+    .add-row-btn{background:rgba(255,107,0,.1);color:var(--orange);border:1px dashed rgba(255,107,0,.4);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;transition:all .15s;width:100%;margin-bottom:16px;}
+    .add-row-btn:hover{background:rgba(255,107,0,.2);}
+
+    /* Buttons */
+    .btn-primary{background:linear-gradient(135deg,var(--orange),var(--orange-dark));color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(255,107,0,.35);transition:all .2s;}
+    .btn-primary:hover{transform:translateY(-2px);}
+    .btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border);padding:11px 20px;border-radius:10px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:all .2s;}
+    .btn-secondary:hover{border-color:var(--orange);color:var(--orange);}
+    .btn-save{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);padding:11px 20px;border-radius:10px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:all .2s;}
+    .btn-save:hover{background:rgba(59,130,246,.25);}
+    .actions{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;}
+
+    /* Toast */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 22px;border-radius:100px;font-size:13px;font-weight:600;color:#fff;background:var(--dark);z-index:400;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+    .toast.show{transform:translateX(-50%) translateY(0);}
+    .toast.ok{background:var(--green);}
+    .toast.err{background:var(--red);}
+
+    /* Check sign area */
+    .sign-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px;}
+    .sign-box{border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;background:var(--card2);}
+    .sign-box-label{font-size:11px;color:var(--muted);margin-bottom:6px;}
+    .sign-line{border-bottom:1px solid var(--border);margin-bottom:4px;height:32px;}
+
+    /* ═══ PRINT ═══════════════════════════════════════ */
+    @media print {
+      body>*:not(#printArea){display:none!important;}
+      #printArea{display:block!important;}
+      .print-page{
+        font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
+        color:#000;background:#fff;
+        width:210mm;min-height:297mm;
+        padding:15mm 18mm;box-sizing:border-box;
+        font-size:10pt;line-height:1.7;
+        page-break-after:always;
+      }
+      .p-title{font-size:18pt;font-weight:900;text-align:center;letter-spacing:3px;margin-bottom:4pt;border-bottom:2pt solid #000;padding-bottom:6pt;}
+      .p-meta{display:flex;justify-content:space-between;font-size:9pt;color:#555;margin-bottom:12pt;flex-wrap:wrap;gap:8pt;}
+      .p-section{margin-bottom:10pt;}
+      .p-section-title{font-size:11pt;font-weight:700;background:#eee;padding:4pt 8pt;margin-bottom:6pt;}
+      table.p-table{width:100%;border-collapse:collapse;font-size:9pt;}
+      table.p-table th{background:#f0f0f0;border:1pt solid #ccc;padding:5pt 6pt;font-weight:700;text-align:left;}
+      table.p-table td{border:1pt solid #ccc;padding:5pt 6pt;}
+      .p-sign-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-top:10pt;}
+      .p-sign-cell{border:1pt solid #ccc;padding:6pt;text-align:center;}
+      .p-sign-label{font-size:8pt;color:#666;margin-bottom:20pt;}
+      .p-sign-line{border-bottom:1pt solid #000;margin-bottom:4pt;}
+      .p-remarks{border:1pt solid #ccc;padding:8pt;min-height:40pt;font-size:9pt;}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">建</div>
+    <span>KENSETSU<span style="color:var(--orange)">AI</span></span>
+  </div>
+  <div class="header-right">
+    <a href="admin.html" class="icon-btn" title="ダッシュボードへ戻る">🏠</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="page-title">安全<span>書類</span></div>
+  <div class="page-sub">KY活動表 / 作業員名簿 / 新規入場者教育記録 ― 印刷・PDF出力対応</div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="ky">🎯 KY活動表</button>
+    <button class="tab-btn" data-tab="roster">👷 作業員名簿</button>
+    <button class="tab-btn" data-tab="education">📚 新規入場者教育</button>
+  </div>
+
+  <!-- ════ TAB 1: KY活動表 ════ -->
+  <div class="tab-content active" id="tab-ky">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="dot"></div>基本情報</div>
+        <button class="btn-save" id="kySaveBtn">💾 保存</button>
+      </div>
+      <div class="card-body">
+        <div class="row2">
+          <div class="fg"><label>工事名称<span class="req">*</span></label><input type="text" id="ky-project" class="f-input" placeholder="○○法面崩壊防止工事"></div>
+          <div class="fg"><label>作業日<span class="req">*</span></label><input type="date" id="ky-date" class="f-input"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>作業場所</label><input type="text" id="ky-location" class="f-input" placeholder="○○地区 法面部"></div>
+          <div class="fg"><label>天候</label><input type="text" id="ky-weather" class="f-input" placeholder="晴れ"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>職長氏名</label><input type="text" id="ky-leader" class="f-input" placeholder="山田 太郎"></div>
+          <div class="fg"><label>作業員数</label><input type="number" id="ky-workers" class="f-input" placeholder="0" min="0"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>本日の作業内容</div></div>
+      <div class="card-body">
+        <textarea id="ky-work" class="f-input" rows="3" placeholder="本日実施する作業の概要を記入してください。例：法枠工 コンクリート打設 約50㎡"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>危険予知 — どんな危険が潜んでいるか</div></div>
+      <div class="card-body">
+        <div class="overflow-x-auto">
+          <table class="dyn-table" id="kyHazardTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">No.</th>
+                <th>作業手順・場面</th>
+                <th>潜む危険</th>
+                <th>事故の型</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="kyHazardBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="kyAddHazardBtn">＋ 危険ポイントを追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>対策 — どうすれば防げるか</div></div>
+      <div class="card-body">
+        <div class="overflow-x-auto">
+          <table class="dyn-table" id="kyMeasureTable">
+            <thead>
+              <tr>
+                <th style="width:40px;">No.</th>
+                <th>具体的な安全対策</th>
+                <th>担当</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="kyMeasureBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="kyAddMeasureBtn">＋ 対策を追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>今日の目標（行動目標）</div></div>
+      <div class="card-body">
+        <input type="text" id="ky-target" class="f-input" placeholder="例：高所作業時は必ず安全帯を着用する！">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>確認署名（参加作業員）</div></div>
+      <div class="card-body">
+        <div class="sign-row" id="kySignRow">
+          <!-- JS で生成 -->
+        </div>
+        <button class="add-row-btn" id="kyAddSignBtn" style="margin-top:10px;">＋ 署名欄を追加</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" onclick="printDoc('ky')">🖨️ 印刷 / PDF出力</button>
+      <button class="btn-secondary" onclick="clearDoc('ky')">🗑️ クリア</button>
+    </div>
+  </div>
+
+  <!-- ════ TAB 2: 作業員名簿 ════ -->
+  <div class="tab-content" id="tab-roster">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="dot"></div>現場情報</div>
+        <button class="btn-save" id="rosterSaveBtn">💾 保存</button>
+      </div>
+      <div class="card-body">
+        <div class="row2">
+          <div class="fg"><label>工事名称</label><input type="text" id="ros-project" class="f-input" placeholder="○○法面崩壊防止工事"></div>
+          <div class="fg"><label>元請会社</label><input type="text" id="ros-contractor" class="f-input" placeholder="○○建設株式会社"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>作成日</label><input type="date" id="ros-date" class="f-input"></div>
+          <div class="fg"><label>会社名（下請）</label><input type="text" id="ros-company" class="f-input" placeholder="翼工業"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>作業員一覧</div></div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table class="dyn-table" id="rosterTable">
+            <thead>
+              <tr>
+                <th style="width:28px;">No.</th>
+                <th style="min-width:90px;">氏名</th>
+                <th style="min-width:80px;">生年月日</th>
+                <th style="min-width:120px;">住所</th>
+                <th style="min-width:110px;">保有資格</th>
+                <th style="min-width:100px;">緊急連絡先</th>
+                <th style="min-width:70px;">血液型</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="rosterBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="addRosterBtn">＋ 作業員を追加</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" onclick="printDoc('roster')">🖨️ 印刷 / PDF出力</button>
+      <button class="btn-secondary" onclick="clearDoc('roster')">🗑️ クリア</button>
+    </div>
+  </div>
+
+  <!-- ════ TAB 3: 新規入場者教育記録 ════ -->
+  <div class="tab-content" id="tab-education">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="dot"></div>教育実施情報</div>
+        <button class="btn-save" id="eduSaveBtn">💾 保存</button>
+      </div>
+      <div class="card-body">
+        <div class="row2">
+          <div class="fg"><label>工事名称</label><input type="text" id="edu-project" class="f-input" placeholder="○○法面崩壊防止工事"></div>
+          <div class="fg"><label>教育実施日</label><input type="date" id="edu-date" class="f-input"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>現場代理人</label><input type="text" id="edu-manager" class="f-input" placeholder="山田 太郎"></div>
+          <div class="fg"><label>教育実施者</label><input type="text" id="edu-trainer" class="f-input" placeholder="鈴木 一郎"></div>
+        </div>
+        <div class="row2">
+          <div class="fg"><label>教育場所</label><input type="text" id="edu-place" class="f-input" placeholder="現場事務所 会議室"></div>
+          <div class="fg"><label>教育時間</label><input type="text" id="edu-time" class="f-input" placeholder="60分"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>教育内容</div></div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table class="dyn-table" id="eduContentTable">
+            <thead>
+              <tr>
+                <th style="width:28px;">No.</th>
+                <th>教育項目</th>
+                <th style="width:70px;">時間（分）</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="eduContentBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="addEduContentBtn">＋ 教育項目を追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>受講者一覧（署名欄）</div></div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table class="dyn-table" id="eduAttendTable">
+            <thead>
+              <tr>
+                <th style="width:28px;">No.</th>
+                <th style="min-width:90px;">氏名</th>
+                <th style="min-width:80px;">職種</th>
+                <th style="min-width:90px;">所属会社</th>
+                <th style="min-width:80px;">署名</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody id="eduAttendBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="addEduAttendBtn">＋ 受講者を追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title"><div class="dot"></div>教育実施確認</div></div>
+      <div class="card-body">
+        <div class="fg"><label>特記事項・備考</label>
+          <textarea id="edu-remarks" class="f-input" rows="3" placeholder="教育実施時の特記事項・配布資料名など"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" onclick="printDoc('education')">🖨️ 印刷 / PDF出力</button>
+      <button class="btn-secondary" onclick="clearDoc('education')">🗑️ クリア</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print Area -->
+<div id="printArea" style="display:none;"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let _tt;
+function toast(msg,type='',dur=3000){
+  const t=$('toast');t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
+  clearTimeout(_tt);_tt=setTimeout(()=>{t.className='toast';},dur);
+}
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Tabs ──────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── localStorage keys ─────────────────────────────────────
+const LS_KY    = 'safety_ky';
+const LS_ROSTER= 'safety_roster';
+const LS_EDU   = 'safety_edu';
+
+// ════════════════════════════════════════════════════════
+// KY活動表
+// ════════════════════════════════════════════════════════
+let kyHazards = [];
+let kyMeasures= [];
+let kySigns   = 4; // default 4 signature boxes
+
+function renderKyHazards(){
+  $('kyHazardBody').innerHTML = kyHazards.map((h,i)=>`
+    <tr>
+      <td style="text-align:center;font-weight:700;color:var(--muted);">${i+1}</td>
+      <td><input type="text" value="${escHtml(h.scene||'')}" oninput="kyHazards[${i}].scene=this.value" placeholder="作業手順・場面"></td>
+      <td><input type="text" value="${escHtml(h.hazard||'')}" oninput="kyHazards[${i}].hazard=this.value" placeholder="○○して△△になる"></td>
+      <td><input type="text" value="${escHtml(h.type||'')}" oninput="kyHazards[${i}].type=this.value" placeholder="転落・挟まれ等"></td>
+      <td><button class="del-btn" onclick="kyHazards.splice(${i},1);renderKyHazards();">✕</button></td>
+    </tr>`).join('');
+}
+function renderKyMeasures(){
+  $('kyMeasureBody').innerHTML = kyMeasures.map((m,i)=>`
+    <tr>
+      <td style="text-align:center;font-weight:700;color:var(--orange);">◎</td>
+      <td><input type="text" value="${escHtml(m.measure||'')}" oninput="kyMeasures[${i}].measure=this.value" placeholder="具体的な対策を記入"></td>
+      <td><input type="text" value="${escHtml(m.person||'')}" oninput="kyMeasures[${i}].person=this.value" placeholder="全員" style="max-width:80px;"></td>
+      <td><button class="del-btn" onclick="kyMeasures.splice(${i},1);renderKyMeasures();">✕</button></td>
+    </tr>`).join('');
+}
+function renderKySigns(){
+  $('kySignRow').innerHTML = Array.from({length:kySigns},(_, i)=>`
+    <div class="sign-box">
+      <div class="sign-box-label">署名 ${i+1}</div>
+      <div class="sign-line"></div>
+      <div style="font-size:10px;color:var(--muted);">確認済み</div>
+    </div>`).join('');
+}
+
+$('kyAddHazardBtn').addEventListener('click',()=>{kyHazards.push({scene:'',hazard:'',type:''});renderKyHazards();});
+$('kyAddMeasureBtn').addEventListener('click',()=>{kyMeasures.push({measure:'',person:''});renderKyMeasures();});
+$('kyAddSignBtn').addEventListener('click',()=>{kySigns++;renderKySigns();});
+
+$('kySaveBtn').addEventListener('click',()=>{
+  const data={
+    project:$('ky-project').value,date:$('ky-date').value,
+    location:$('ky-location').value,weather:$('ky-weather').value,
+    leader:$('ky-leader').value,workers:$('ky-workers').value,
+    work:$('ky-work').value,hazards:kyHazards,measures:kyMeasures,
+    target:$('ky-target').value,signs:kySigns,
+  };
+  localStorage.setItem(LS_KY,JSON.stringify(data));
+  toast('KY活動表を保存しました','ok');
+});
+
+function loadKy(){
+  const raw=localStorage.getItem(LS_KY);
+  if(!raw) return;
+  try{
+    const d=JSON.parse(raw);
+    $('ky-project').value=d.project||'';
+    $('ky-date').value=d.date||'';
+    $('ky-location').value=d.location||'';
+    $('ky-weather').value=d.weather||'';
+    $('ky-leader').value=d.leader||'';
+    $('ky-workers').value=d.workers||'';
+    $('ky-work').value=d.work||'';
+    $('ky-target').value=d.target||'';
+    kyHazards=d.hazards||[];
+    kyMeasures=d.measures||[];
+    kySigns=d.signs||4;
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════════════
+// 作業員名簿
+// ════════════════════════════════════════════════════════
+let rosterRows=[];
+
+function renderRoster(){
+  $('rosterBody').innerHTML=rosterRows.map((r,i)=>`
+    <tr>
+      <td style="text-align:center;color:var(--muted);font-weight:700;">${i+1}</td>
+      <td><input type="text" value="${escHtml(r.name||'')}" oninput="rosterRows[${i}].name=this.value" placeholder="山田 太郎"></td>
+      <td><input type="date" value="${escHtml(r.dob||'')}" oninput="rosterRows[${i}].dob=this.value"></td>
+      <td><input type="text" value="${escHtml(r.addr||'')}" oninput="rosterRows[${i}].addr=this.value" placeholder="福岡県飯塚市..."></td>
+      <td><input type="text" value="${escHtml(r.license||'')}" oninput="rosterRows[${i}].license=this.value" placeholder="玉掛け・小型移動式クレーン等"></td>
+      <td><input type="tel" value="${escHtml(r.tel||'')}" oninput="rosterRows[${i}].tel=this.value" placeholder="090-0000-0000"></td>
+      <td><select oninput="rosterRows[${i}].blood=this.value" class="f-input" style="padding:7px 8px;">
+        <option value="">—</option>
+        ${['A','B','O','AB'].map(b=>`<option value="${b}" ${r.blood===b?'selected':''}>${b}型</option>`).join('')}
+      </select></td>
+      <td><button class="del-btn" onclick="rosterRows.splice(${i},1);renderRoster();">✕</button></td>
+    </tr>`).join('');
+}
+
+$('addRosterBtn').addEventListener('click',()=>{rosterRows.push({name:'',dob:'',addr:'',license:'',tel:'',blood:''});renderRoster();});
+
+$('rosterSaveBtn').addEventListener('click',()=>{
+  const data={
+    project:$('ros-project').value,contractor:$('ros-contractor').value,
+    date:$('ros-date').value,company:$('ros-company').value,
+    rows:rosterRows,
+  };
+  localStorage.setItem(LS_ROSTER,JSON.stringify(data));
+  toast('作業員名簿を保存しました','ok');
+});
+
+function loadRoster(){
+  const raw=localStorage.getItem(LS_ROSTER);
+  if(!raw) return;
+  try{
+    const d=JSON.parse(raw);
+    $('ros-project').value=d.project||'';
+    $('ros-contractor').value=d.contractor||'';
+    $('ros-date').value=d.date||'';
+    $('ros-company').value=d.company||'';
+    rosterRows=d.rows||[];
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════════════
+// 新規入場者教育記録
+// ════════════════════════════════════════════════════════
+let eduContents=[
+  {item:'現場ルール・就業規則の説明',time:'10'},
+  {item:'緊急連絡体制・避難経路の確認',time:'5'},
+  {item:'危険箇所・立入禁止区域の説明',time:'10'},
+  {item:'保護具の着用方法・使用基準',time:'10'},
+  {item:'安全作業手順の確認',time:'15'},
+  {item:'KY活動・ヒヤリハット報告方法',time:'10'},
+];
+let eduAttends=[];
+
+function renderEduContents(){
+  $('eduContentBody').innerHTML=eduContents.map((c,i)=>`
+    <tr>
+      <td style="text-align:center;color:var(--muted);">${i+1}</td>
+      <td><input type="text" value="${escHtml(c.item||'')}" oninput="eduContents[${i}].item=this.value" placeholder="教育項目"></td>
+      <td><input type="number" value="${escHtml(c.time||'')}" oninput="eduContents[${i}].time=this.value" placeholder="10" min="0"></td>
+      <td><button class="del-btn" onclick="eduContents.splice(${i},1);renderEduContents();">✕</button></td>
+    </tr>`).join('');
+}
+function renderEduAttends(){
+  $('eduAttendBody').innerHTML=eduAttends.map((a,i)=>`
+    <tr>
+      <td style="text-align:center;color:var(--muted);">${i+1}</td>
+      <td><input type="text" value="${escHtml(a.name||'')}" oninput="eduAttends[${i}].name=this.value" placeholder="山田 太郎"></td>
+      <td><input type="text" value="${escHtml(a.role||'')}" oninput="eduAttends[${i}].role=this.value" placeholder="土木作業員"></td>
+      <td><input type="text" value="${escHtml(a.company||'')}" oninput="eduAttends[${i}].company=this.value" placeholder="翼工業"></td>
+      <td style="min-width:80px;"><div style="border-bottom:1px solid var(--border);height:28px;"></div></td>
+      <td><button class="del-btn" onclick="eduAttends.splice(${i},1);renderEduAttends();">✕</button></td>
+    </tr>`).join('');
+}
+
+$('addEduContentBtn').addEventListener('click',()=>{eduContents.push({item:'',time:''});renderEduContents();});
+$('addEduAttendBtn').addEventListener('click',()=>{eduAttends.push({name:'',role:'',company:''});renderEduAttends();});
+
+$('eduSaveBtn').addEventListener('click',()=>{
+  const data={
+    project:$('edu-project').value,date:$('edu-date').value,
+    manager:$('edu-manager').value,trainer:$('edu-trainer').value,
+    place:$('edu-place').value,time:$('edu-time').value,
+    remarks:$('edu-remarks').value,
+    contents:eduContents,attends:eduAttends,
+  };
+  localStorage.setItem(LS_EDU,JSON.stringify(data));
+  toast('教育記録を保存しました','ok');
+});
+
+function loadEdu(){
+  const raw=localStorage.getItem(LS_EDU);
+  if(!raw) return;
+  try{
+    const d=JSON.parse(raw);
+    $('edu-project').value=d.project||'';
+    $('edu-date').value=d.date||'';
+    $('edu-manager').value=d.manager||'';
+    $('edu-trainer').value=d.trainer||'';
+    $('edu-place').value=d.place||'';
+    $('edu-time').value=d.time||'';
+    $('edu-remarks').value=d.remarks||'';
+    eduContents=d.contents||eduContents;
+    eduAttends=d.attends||[];
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════════════
+// Clear
+// ════════════════════════════════════════════════════════
+function clearDoc(type){
+  if(!confirm('入力内容をクリアしますか？')) return;
+  if(type==='ky'){
+    ['ky-project','ky-date','ky-location','ky-weather','ky-leader','ky-workers','ky-work','ky-target'].forEach(id=>{$(id).value='';});
+    kyHazards=[];kyMeasures=[];kySigns=4;
+    renderKyHazards();renderKyMeasures();renderKySigns();
+    localStorage.removeItem(LS_KY);
+  }else if(type==='roster'){
+    ['ros-project','ros-contractor','ros-date','ros-company'].forEach(id=>{$(id).value='';});
+    rosterRows=[];renderRoster();
+    localStorage.removeItem(LS_ROSTER);
+  }else if(type==='education'){
+    ['edu-project','edu-date','edu-manager','edu-trainer','edu-place','edu-time','edu-remarks'].forEach(id=>{$(id).value='';});
+    eduContents=[];eduAttends=[];renderEduContents();renderEduAttends();
+    localStorage.removeItem(LS_EDU);
+  }
+  toast('クリアしました');
+}
+
+// ════════════════════════════════════════════════════════
+// Print
+// ════════════════════════════════════════════════════════
+function printDoc(type){
+  const pa=$('printArea');
+  pa.style.display='block';
+
+  if(type==='ky'){
+    const hazardRows=kyHazards.map((h,i)=>`
+      <tr><td>${i+1}</td><td>${escHtml(h.scene)}</td><td>${escHtml(h.hazard)}</td><td>${escHtml(h.type)}</td></tr>`).join('');
+    const measureRows=kyMeasures.map((m,i)=>`
+      <tr><td>◎</td><td>${escHtml(m.measure)}</td><td>${escHtml(m.person)}</td></tr>`).join('');
+    const signCells=Array.from({length:kySigns},(_,i)=>`
+      <div class="p-sign-cell">
+        <div class="p-sign-label">No.${i+1}</div>
+        <div class="p-sign-line"></div>
+        <div style="font-size:8pt;color:#999;">確認</div>
+      </div>`).join('');
+
+    pa.innerHTML=`<div class="print-page">
+      <div class="p-title">危　険　予　知　活　動　表</div>
+      <div class="p-meta">
+        <span>工事名：${escHtml($('ky-project').value||'—')}</span>
+        <span>作業日：${escHtml($('ky-date').value||'—')}</span>
+        <span>場所：${escHtml($('ky-location').value||'—')}</span>
+        <span>天候：${escHtml($('ky-weather').value||'—')}</span>
+        <span>職長：${escHtml($('ky-leader').value||'—')}</span>
+        <span>人数：${escHtml($('ky-workers').value||'—')}名</span>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">本日の作業内容</div>
+        <div style="border:1pt solid #ccc;padding:8pt;min-height:30pt;font-size:10pt;">${escHtml($('ky-work').value||'')}</div>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">危険ポイント（どんな危険が潜んでいるか）</div>
+        <table class="p-table"><thead><tr><th>No.</th><th>作業手順・場面</th><th>潜む危険</th><th>事故の型</th></tr></thead>
+        <tbody>${hazardRows||'<tr><td colspan="4">（記録なし）</td></tr>'}</tbody></table>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">対策（どうすれば防げるか）</div>
+        <table class="p-table"><thead><tr><th>No.</th><th>具体的な安全対策</th><th>担当</th></tr></thead>
+        <tbody>${measureRows||'<tr><td colspan="3">（記録なし）</td></tr>'}</tbody></table>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">今日の目標（行動目標）</div>
+        <div style="border:1pt solid #000;padding:10pt;font-size:12pt;font-weight:700;text-align:center;">
+          ${escHtml($('ky-target').value||'　')}
+        </div>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">参加者確認署名</div>
+        <div class="p-sign-grid">${signCells}</div>
+      </div>
+    </div>`;
+
+  }else if(type==='roster'){
+    const rows=rosterRows.map((r,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${escHtml(r.name||'')}</td>
+        <td>${escHtml(r.dob||'')}</td>
+        <td>${escHtml(r.addr||'')}</td>
+        <td>${escHtml(r.license||'')}</td>
+        <td>${escHtml(r.tel||'')}</td>
+        <td>${escHtml(r.blood||'')}${r.blood?'型':''}</td>
+      </tr>`).join('');
+
+    pa.innerHTML=`<div class="print-page">
+      <div class="p-title">作　業　員　名　簿</div>
+      <div class="p-meta">
+        <span>工事名：${escHtml($('ros-project').value||'—')}</span>
+        <span>元請：${escHtml($('ros-contractor').value||'—')}</span>
+        <span>会社名：${escHtml($('ros-company').value||'—')}</span>
+        <span>作成日：${escHtml($('ros-date').value||'—')}</span>
+      </div>
+      <table class="p-table">
+        <thead><tr><th>No.</th><th>氏名</th><th>生年月日</th><th>住所</th><th>保有資格</th><th>緊急連絡先</th><th>血液型</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="7">（記録なし）</td></tr>'}</tbody>
+      </table>
+      <div style="margin-top:20pt;display:flex;justify-content:flex-end;">
+        <div style="border:1pt solid #000;width:120pt;padding:6pt;text-align:center;">
+          <div style="font-size:9pt;margin-bottom:16pt;">会社代表者署名</div>
+          <div style="border-bottom:1pt solid #000;"></div>
+        </div>
+      </div>
+    </div>`;
+
+  }else if(type==='education'){
+    const contentRows=eduContents.map((c,i)=>`
+      <tr><td>${i+1}</td><td>${escHtml(c.item||'')}</td><td style="text-align:right;">${escHtml(c.time||'')} 分</td></tr>`).join('');
+    const totalTime=eduContents.reduce((s,c)=>s+(parseInt(c.time)||0),0);
+    const attendRows=eduAttends.map((a,i)=>`
+      <tr><td>${i+1}</td><td>${escHtml(a.name||'')}</td><td>${escHtml(a.role||'')}</td><td>${escHtml(a.company||'')}</td><td></td></tr>`).join('');
+
+    pa.innerHTML=`<div class="print-page">
+      <div class="p-title">新規入場者教育記録</div>
+      <div class="p-meta">
+        <span>工事名：${escHtml($('edu-project').value||'—')}</span>
+        <span>実施日：${escHtml($('edu-date').value||'—')}</span>
+        <span>場所：${escHtml($('edu-place').value||'—')}</span>
+        <span>時間：${escHtml($('edu-time').value||'—')}</span>
+        <span>現場代理人：${escHtml($('edu-manager').value||'—')}</span>
+        <span>教育実施者：${escHtml($('edu-trainer').value||'—')}</span>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">教育内容（合計 ${totalTime} 分）</div>
+        <table class="p-table"><thead><tr><th>No.</th><th>教育項目</th><th style="text-align:right;">時間</th></tr></thead>
+        <tbody>${contentRows||'<tr><td colspan="3">（記録なし）</td></tr>'}</tbody></table>
+      </div>
+      <div class="p-section">
+        <div class="p-section-title">受講者一覧</div>
+        <table class="p-table"><thead><tr><th>No.</th><th>氏名</th><th>職種</th><th>所属</th><th>署名</th></tr></thead>
+        <tbody>${attendRows||'<tr><td colspan="5">（記録なし）</td></tr>'}</tbody></table>
+      </div>
+      ${$('edu-remarks').value?`<div class="p-section"><div class="p-section-title">備考</div><div class="p-remarks">${escHtml($('edu-remarks').value)}</div></div>`:''}
+      <div style="margin-top:20pt;display:flex;justify-content:space-between;">
+        <div style="border:1pt solid #000;width:120pt;padding:6pt;text-align:center;">
+          <div style="font-size:9pt;margin-bottom:16pt;">現場代理人署名</div>
+          <div style="border-bottom:1pt solid #000;"></div>
+        </div>
+        <div style="border:1pt solid #000;width:120pt;padding:6pt;text-align:center;">
+          <div style="font-size:9pt;margin-bottom:16pt;">教育実施者署名</div>
+          <div style="border-bottom:1pt solid #000;"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.print();
+  setTimeout(()=>{pa.style.display='none';pa.innerHTML='';},1000);
+}
+
+// ── Init ──────────────────────────────────────────────────
+(function init(){
+  // デフォルト日付
+  const today=new Date().toISOString().slice(0,10);
+  $('ky-date').value=today;
+  $('ros-date').value=today;
+  $('edu-date').value=today;
+
+  // Load from localStorage
+  loadKy();
+  loadRoster();
+  loadEdu();
+
+  // Initial renders
+  renderKyHazards();
+  renderKyMeasures();
+  renderKySigns();
+  renderRoster();
+  renderEduContents();
+  renderEduAttends();
+
+  // Add default rows if empty
+  if(!kyHazards.length){
+    kyHazards=[
+      {scene:'高所での法面整形作業',hazard:'足場が不安定で転落する',type:'転落'},
+      {scene:'重機旋回範囲内での作業',hazard:'バックホウに接触して挟まれる',type:'激突・挟まれ'},
+    ];
+    renderKyHazards();
+    kyMeasures=[
+      {measure:'安全帯・命綱を必ず着用し、ロープの固定を確認する',person:'全員'},
+      {measure:'重機旋回半径外で作業し、オペレーターと合図を確認する',person:'全員'},
+    ];
+    renderKyMeasures();
+  }
+  if(!rosterRows.length){
+    for(let i=0;i<3;i++) rosterRows.push({name:'',dob:'',addr:'',license:'',tel:'',blood:''});
+    renderRoster();
+  }
+  if(!eduAttends.length){
+    for(let i=0;i<3;i++) eduAttends.push({name:'',role:'',company:''});
+    renderEduAttends();
+  }
+})();
+</script>
+</body>
+</html>
