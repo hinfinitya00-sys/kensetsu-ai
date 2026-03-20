@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理ダッシュボード｜建設日報システム</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="auth.js"></script>
+  <script>checkAuth();</script>
   <style>
     :root {
       --orange:       #FF6B00;
@@ -418,6 +420,7 @@
     <span class="header-company" id="headerCompany"></span>
     <button class="icon-btn" id="refreshBtn" title="データを更新">🔄</button>
     <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
+    <button class="icon-btn" onclick="logout()" title="ログアウト" style="font-size:16px;">🚪</button>
     <span id="modeBadge" class="badge-demo">DEMO</span>
   </div>
 </header>

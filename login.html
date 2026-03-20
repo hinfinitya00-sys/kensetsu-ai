@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者ログイン｜建設AIシステム</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="auth.js"></script>
+  <script>
+    // すでにログイン済みなら管理画面へ
+    (function () {
+      try {
+        const raw = localStorage.getItem('ks_auth_session');
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.expires && Date.now() < s.expires) {
+            const params = new URLSearchParams(location.search);
+            const ret = params.get('return') || 'admin.html';
+            location.replace(ret);
+          }
+        }
+      } catch {}
+    })();
+  </script>
+  <style>
+    :root {
+      --navy:         #0B1426;
+      --navy2:        #111D35;
+      --navy3:        #172140;
+      --card:         #1A2747;
+      --card2:        #1F2E52;
+      --border:       #2A3D6B;
+      --text:         #E8EDF8;
+      --muted:        #7A8CAE;
+      --orange:       #FF6B00;
+      --orange-dark:  #CC5500;
+      --green:        #22C55E;
+      --red:          #EF4444;
+      --blue:         #3B82F6;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { height:100%; }
+    body {
+      background:var(--navy);
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(59,130,246,.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,107,0,.06) 0%, transparent 50%);
+      color:var(--text);
+      font-family:'Noto Sans JP',sans-serif;
+      min-height:100vh;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding:20px;
+    }
+
+    /* ── Logo ────────────────────────────────────────────── */
+    .logo-wrap {
+      text-align:center; margin-bottom:40px;
+      animation:fadeUp .5s ease both;
+    }
+    .logo-mark {
+      width:56px; height:56px; background:var(--orange);
+      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:24px; font-weight:900; color:white;
+      margin:0 auto 14px;
+    }
+    .logo-text {
+      font-family:'Oswald',sans-serif; font-size:30px; font-weight:700;
+      letter-spacing:2px; color:var(--text);
+    }
+    .logo-text span { color:var(--orange); }
+    .logo-sub { font-size:13px; color:var(--muted); margin-top:6px; letter-spacing:.5px; }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .login-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:20px; padding:40px 36px;
+      width:100%; max-width:420px;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
+      animation:fadeUp .5s .1s ease both;
+    }
+    .card-title {
+      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
+      text-align:center; margin-bottom:28px; letter-spacing:1px;
+      color:var(--text);
+    }
+    .card-title span { color:var(--orange); }
+
+    /* ── Form ────────────────────────────────────────────── */
+    .fg { margin-bottom:20px; }
+    .fg label {
+      display:block; font-size:12px; font-weight:700; color:var(--muted);
+      margin-bottom:8px; text-transform:uppercase; letter-spacing:.7px;
+    }
+    .input-wrap { position:relative; }
+    .fg input[type=password], .fg input[type=text] {
+      width:100%; background:var(--card2); border:2px solid var(--border);
+      color:var(--text); padding:14px 48px 14px 18px; border-radius:12px;
+      font-size:18px; font-family:'Noto Sans JP',sans-serif;
+      transition:border-color .2s, box-shadow .2s; letter-spacing:.1em;
+    }
+    .fg input:focus {
+      outline:none; border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(59,130,246,.15);
+    }
+    .fg input.error-input { border-color:var(--red); }
+    .toggle-pw {
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      background:none; border:none; color:var(--muted); font-size:18px;
+      cursor:pointer; padding:4px; transition:color .15s;
+    }
+    .toggle-pw:hover { color:var(--text); }
+
+    /* Error message */
+    .error-msg {
+      display:none; color:var(--red); font-size:13px; font-weight:700;
+      margin-top:8px; padding:10px 14px;
+      background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25);
+      border-radius:8px; text-align:center;
+    }
+    .error-msg.show { display:block; }
+
+    /* ── Submit ──────────────────────────────────────────── */
+    .btn-login {
+      width:100%; background:linear-gradient(135deg,var(--orange),var(--orange-dark));
+      color:#fff; border:none; padding:16px; border-radius:12px;
+      font-size:16px; font-weight:900; letter-spacing:.5px;
+      font-family:'Noto Sans JP',sans-serif;
+      box-shadow:0 4px 20px rgba(255,107,0,.35);
+      transition:all .2s; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      margin-top:8px;
+    }
+    .btn-login:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(255,107,0,.45); }
+    .btn-login:active { transform:scale(.98); }
+
+    /* ── Worker link ─────────────────────────────────────── */
+    .worker-link {
+      text-align:center; margin-top:28px;
+      font-size:13px; color:var(--muted);
+    }
+    .worker-link a {
+      color:var(--blue); text-decoration:none; font-weight:700;
+      border-bottom:1px solid rgba(59,130,246,.3);
+      transition:border-color .15s;
+    }
+    .worker-link a:hover { border-bottom-color:var(--blue); }
+
+    /* ── Footer note ─────────────────────────────────────── */
+    .footer-note {
+      margin-top:32px; text-align:center; font-size:11px; color:var(--muted);
+      opacity:.6; animation:fadeUp .5s .3s ease both;
+    }
+
+    /* ── Animations ──────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ── Session expired notice ──────────────────────────── */
+    .notice {
+      display:none; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3);
+      color:#F59E0B; border-radius:10px; padding:10px 16px;
+      font-size:13px; text-align:center; margin-bottom:20px;
+    }
+    .notice.show { display:block; }
+  </style>
+</head>
+<body>
+
+<!-- Logo -->
+<div class="logo-wrap">
+  <div class="logo-mark">建</div>
+  <div class="logo-text">KENSETSU<span>AI</span></div>
+  <div class="logo-sub">建設業向け DX管理システム</div>
+</div>
+
+<!-- Login Card -->
+<div class="login-card">
+  <div class="card-title">管理者 <span>ログイン</span></div>
+
+  <div class="notice" id="notice">⏰ セッションが切れました。再度ログインしてください。</div>
+
+  <div class="fg">
+    <label>パスワード</label>
+    <div class="input-wrap">
+      <input type="password" id="pwInput" placeholder="••••••••••••"
+             autofocus autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="toggle-pw" id="togglePw" onclick="togglePw()" type="button" title="表示/非表示">👁</button>
+    </div>
+    <div class="error-msg" id="errorMsg">❌ パスワードが違います</div>
+  </div>
+
+  <button class="btn-login" onclick="doLogin()">
+    🔑 ログイン
+  </button>
+
+  <div class="worker-link">
+    従業員の方はこちら →
+    <a href="worker-attendance.html">出勤報告ページ</a>
+  </div>
+</div>
+
+<div class="footer-note">
+  © 建設AIシステム — 管理者専用ページ
+</div>
+
+<script>
+(function () {
+  // セッション切れで来た場合の通知
+  const params = new URLSearchParams(location.search);
+  if (params.get('return')) {
+    document.getElementById('notice').classList.add('show');
+  }
+
+  window.doLogin = function () {
+    const pw  = document.getElementById('pwInput').value;
+    const err = document.getElementById('errorMsg');
+    const inp = document.getElementById('pwInput');
+
+    err.classList.remove('show');
+    inp.classList.remove('error-input');
+
+    if (!pw) {
+      err.textContent = '❌ パスワードを入力してください';
+      err.classList.add('show');
+      inp.focus();
+      return;
+    }
+
+    if (login(pw)) {
+      const ret = params.get('return') || 'admin.html';
+      location.replace(decodeURIComponent(ret));
+    } else {
+      err.textContent = '❌ パスワードが違います';
+      err.classList.add('show');
+      inp.classList.add('error-input');
+      inp.value = '';
+      inp.focus();
+      // Shake animation
+      inp.style.animation = 'shake .3s ease';
+      setTimeout(() => { inp.style.animation = ''; }, 300);
+    }
+  };
+
+  window.togglePw = function () {
+    const inp = document.getElementById('pwInput');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  };
+})();
+</script>
+<style>
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
+  }
+</style>
+</body>
+</html>
