@@ -4,64 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>出勤管理・給与計算｜建設AIシステム</title>
-  <!--
-  ================================================================
-  Supabase テーブル定義 / 拡張 SQL
-  ================================================================
-
-  -- 作業員マスタ（未作成の場合）
-  CREATE TABLE IF NOT EXISTS workers (
-    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        text NOT NULL,
-    trade       text NOT NULL DEFAULT '土木作業員',
-    daily_rate  integer NOT NULL DEFAULT 0,
-    affiliation text,
-    is_active   boolean NOT NULL DEFAULT true,
-    created_at  timestamptz NOT NULL DEFAULT now()
-  );
-
-  -- attendance_logs 既存カラム拡張
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS worker_name  text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS company      text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS site_name    text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS work_content text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS submitted_at timestamptz DEFAULT now();
-
-  -- RLS
-  ALTER TABLE workers          ENABLE ROW LEVEL SECURITY;
-  ALTER TABLE attendance_logs  ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY IF NOT EXISTS "workers_all"  ON workers         FOR ALL TO anon USING (true) WITH CHECK (true);
-  CREATE POLICY IF NOT EXISTS "attend_all"   ON attendance_logs FOR ALL TO anon USING (true) WITH CHECK (true);
-
-  ================================================================
-  -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="auth.js"></script>
   <script>checkAuth();</script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --orange:       #FF6B00;
-      --orange-dark:  #CC5500;
-      --orange-light: #FF8C33;
-      --black:        #0A0A0A;
-      --dark:         #111418;
-      --card:         #181C22;
-      --card2:        #1E232B;
-      --border:       #2A3040;
-      --text:         #E8EAF0;
-      --muted:        #7A8499;
-      --green:        #22C55E;
-      --blue:         #3B82F6;
-      --yellow:       #F59E0B;
-      --red:          #EF4444;
-      --teal:         #14B8A6;
-      --purple:       #A855F7;
+      --navy:         #0f172a;
+      --navy2:        #1e293b;
+      --navy3:        #243247;
+      --card:         #1e293b;
+      --card2:        #263348;
+      --border:       #334155;
+      --text:         #e2e8f0;
+      --muted:        #94a3b8;
+      --orange:       #f97316;
+      --orange-d:     #ea580c;
+      --green:        #22c55e;
+      --blue:         #3b82f6;
+      --yellow:       #f59e0b;
+      --red:          #ef4444;
+      --teal:         #14b8a6;
+      --purple:       #a855f7;
     }
-
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior:smooth; }
     body {
-      background:var(--black); color:var(--text);
+      background:var(--navy); color:var(--text);
       font-family:'Noto Sans JP',sans-serif; min-height:100vh; overflow-x:hidden;
     }
     a { color:inherit; text-decoration:none; }
@@ -69,7 +37,7 @@
 
     /* ── Header ─────────────────────────────────────────── */
     header {
-      background:var(--dark); border-bottom:2px solid var(--orange);
+      background:var(--navy2); border-bottom:2px solid var(--orange);
       padding:0 24px; height:60px;
       display:flex; align-items:center; justify-content:space-between;
       position:sticky; top:0; z-index:100;
@@ -84,20 +52,16 @@
       display:flex; align-items:center; justify-content:center;
       font-size:14px; font-weight:900; color:white;
     }
-    .header-right { display:flex; align-items:center; gap:10px; }
+    .hdr-right { display:flex; align-items:center; gap:10px; }
     .icon-btn {
-      background:rgba(255,255,255,.08); border:1px solid var(--border);
-      color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:18px;
+      background:rgba(255,255,255,.07); border:1px solid var(--border);
+      color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:17px;
       display:flex; align-items:center; justify-content:center; transition:all .2s;
     }
-    .icon-btn:hover { background:rgba(255,107,0,.15); border-color:var(--orange); color:var(--orange); }
-    .badge-live { background:var(--green);  color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
-    .badge-demo { background:var(--orange); color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .icon-btn:hover { background:rgba(249,115,22,.15); border-color:var(--orange); color:var(--orange); }
 
     /* ── Container ───────────────────────────────────────── */
-    .container { max-width:1200px; margin:0 auto; padding:24px 24px 64px; }
-
-    /* ── Back ────────────────────────────────────────────── */
+    .container { max-width:1300px; margin:0 auto; padding:24px 24px 72px; }
     .back-link {
       display:inline-flex; align-items:center; gap:6px; margin-bottom:20px;
       font-size:13px; color:var(--muted);
@@ -105,51 +69,31 @@
       padding:6px 14px; border-radius:8px; transition:all .15s;
     }
     .back-link:hover { border-color:var(--orange); color:var(--orange); }
-
-    /* ── Page Header ─────────────────────────────────────── */
-    .page-header { margin-bottom:24px; }
     .page-title {
-      font-family:'Oswald',sans-serif; font-size:28px; font-weight:700;
+      font-family:'Oswald',sans-serif; font-size:26px; font-weight:700;
       letter-spacing:1px; margin-bottom:4px;
     }
     .page-title span { color:var(--orange); }
-    .page-sub { font-size:13px; color:var(--muted); }
-
-    /* ── Banners ─────────────────────────────────────────── */
-    .info-banner {
-      display:none; border-radius:10px; padding:12px 16px;
-      align-items:center; gap:12px; margin-bottom:20px; font-size:13px;
-    }
-    .info-banner.show { display:flex; }
-    .banner-demo { background:rgba(255,107,0,.1); border:1px solid rgba(255,107,0,.3); }
-    .banner-ok   { background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.25); color:var(--green); }
-    .banner-err  { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25); color:var(--red); }
+    .page-sub { font-size:13px; color:var(--muted); margin-bottom:24px; }
 
     /* ── KPI Grid ────────────────────────────────────────── */
-    .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+    .kpi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
     .kpi-card {
       background:var(--card); border:1px solid var(--border); border-radius:12px;
-      padding:20px; position:relative; overflow:hidden; animation:fadeUp .5s ease both;
+      padding:20px; position:relative; overflow:hidden;
     }
     .kpi-card::before {
       content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--orange);
     }
     .kpi-card:nth-child(2)::before { background:var(--green); }
-    .kpi-card:nth-child(3)::before { background:var(--blue); }
-    .kpi-card:nth-child(4)::before { background:var(--yellow); }
-    .kpi-label { font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:500; }
-    .kpi-value {
-      font-family:'Oswald',sans-serif; font-size:32px; font-weight:700; line-height:1; margin-bottom:6px;
-    }
+    .kpi-card:nth-child(3)::before { background:var(--yellow); }
+    .kpi-label { font-size:12px; color:var(--muted); margin-bottom:8px; }
+    .kpi-value { font-family:'Oswald',sans-serif; font-size:30px; font-weight:700; line-height:1; margin-bottom:4px; }
     .kpi-card:nth-child(1) .kpi-value { color:var(--orange); }
     .kpi-card:nth-child(2) .kpi-value { color:var(--green); }
-    .kpi-card:nth-child(3) .kpi-value { color:var(--blue); }
-    .kpi-card:nth-child(4) .kpi-value { color:var(--yellow); }
-    .kpi-sub { font-size:12px; color:var(--muted); }
-    .kpi-icon {
-      position:absolute; right:16px; top:50%; transform:translateY(-50%);
-      font-size:38px; opacity:.07;
-    }
+    .kpi-card:nth-child(3) .kpi-value { color:var(--yellow); }
+    .kpi-sub  { font-size:12px; color:var(--muted); }
+    .kpi-icon { position:absolute; right:16px; top:50%; transform:translateY(-50%); font-size:36px; opacity:.07; }
 
     /* ── Tab Nav ─────────────────────────────────────────── */
     .tab-nav {
@@ -158,12 +102,12 @@
       border-radius:12px; padding:6px; overflow-x:auto;
     }
     .tab-btn {
-      flex-shrink:0; padding:9px 20px; border-radius:8px; border:none;
+      flex-shrink:0; padding:9px 22px; border-radius:8px; border:none;
       background:transparent; color:var(--muted); font-size:13px; font-weight:700;
       transition:all .2s; white-space:nowrap; display:flex; align-items:center; gap:6px;
     }
-    .tab-btn.active { background:var(--orange); color:#fff; box-shadow:0 2px 8px rgba(255,107,0,.35); }
-    .tab-btn:not(.active):hover { background:rgba(255,107,0,.1); color:var(--text); }
+    .tab-btn.active { background:var(--orange); color:#fff; box-shadow:0 2px 8px rgba(249,115,22,.35); }
+    .tab-btn:not(.active):hover { background:rgba(249,115,22,.1); color:var(--text); }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
 
@@ -172,7 +116,7 @@
       background:var(--card); border:1px solid var(--border);
       border-radius:12px; overflow:hidden; margin-bottom:20px;
     }
-    .card-header {
+    .card-hd {
       padding:14px 20px; border-bottom:1px solid var(--border);
       display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
     }
@@ -180,145 +124,94 @@
     .dot { width:8px; height:8px; background:var(--orange); border-radius:50%; }
     .card-body { padding:20px; }
 
-    /* ── Form ────────────────────────────────────────────── */
-    .form-grid   { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
-    .fg label {
-      display:block; font-size:12px; font-weight:700; color:var(--muted);
-      margin-bottom:6px; text-transform:uppercase; letter-spacing:.6px;
+    /* ── Filters bar ─────────────────────────────────────── */
+    .filters {
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      background:var(--card2);
     }
-    .fg input, .fg select, .fg textarea {
-      width:100%; background:var(--card2); border:1px solid var(--border);
-      color:var(--text); padding:10px 14px; border-radius:8px; font-size:14px;
-      font-family:'Noto Sans JP',sans-serif; transition:border-color .2s;
+    .filter-inp {
+      background:var(--card); border:1px solid var(--border); color:var(--text);
+      padding:8px 12px; border-radius:8px; font-size:13px;
+      font-family:'Noto Sans JP',sans-serif; transition:border-color .15s;
     }
-    .fg input:focus, .fg select:focus, .fg textarea:focus { outline:none; border-color:var(--orange); }
-    .fg select option { background:var(--card2); }
+    .filter-inp:focus { outline:none; border-color:var(--orange); }
+    .filter-inp[type=month] { min-width:150px; }
+    .filter-inp[type=text]  { min-width:140px; }
 
     /* ── Buttons ─────────────────────────────────────────── */
     .btn-primary {
-      background:linear-gradient(135deg,var(--orange),var(--orange-dark));
-      color:#fff; border:none; padding:10px 22px; border-radius:9px;
-      font-size:14px; font-weight:700; display:inline-flex; align-items:center; gap:7px;
-      box-shadow:0 3px 12px rgba(255,107,0,.3); transition:all .2s;
+      background:linear-gradient(135deg,var(--orange),var(--orange-d));
+      color:#fff; border:none; padding:9px 20px; border-radius:8px;
+      font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:6px;
+      box-shadow:0 2px 10px rgba(249,115,22,.3); transition:all .2s;
     }
-    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(255,107,0,.4); }
-    .btn-secondary {
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(249,115,22,.4); }
+    .btn-sec {
       background:var(--card2); color:var(--text); border:1px solid var(--border);
-      padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700;
-      display:inline-flex; align-items:center; gap:6px; transition:all .15s;
-    }
-    .btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
-    .btn-danger {
-      background:rgba(239,68,68,.12); color:var(--red); border:1px solid rgba(239,68,68,.3);
-      padding:6px 12px; border-radius:6px; font-size:12px; font-weight:700;
-      display:inline-flex; align-items:center; gap:4px; transition:all .15s;
-    }
-    .btn-danger:hover { background:rgba(239,68,68,.22); }
-    .btn-edit {
-      background:rgba(59,130,246,.12); color:var(--blue); border:1px solid rgba(59,130,246,.3);
-      padding:6px 12px; border-radius:6px; font-size:12px; font-weight:700;
-      display:inline-flex; align-items:center; gap:4px; transition:all .15s;
-    }
-    .btn-edit:hover { background:rgba(59,130,246,.22); }
-    .btn-teal {
-      background:rgba(20,184,166,.12); color:var(--teal); border:1px solid rgba(20,184,166,.3);
       padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700;
       display:inline-flex; align-items:center; gap:6px; transition:all .15s;
     }
-    .btn-teal:hover { background:rgba(20,184,166,.22); }
+    .btn-sec:hover { border-color:var(--orange); color:var(--orange); }
+    .btn-sm-edit {
+      background:rgba(59,130,246,.12); color:var(--blue); border:1px solid rgba(59,130,246,.25);
+      padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700;
+      display:inline-flex; align-items:center; gap:3px; transition:all .15s;
+    }
+    .btn-sm-edit:hover { background:rgba(59,130,246,.22); }
+    .btn-sm-del {
+      background:rgba(239,68,68,.1); color:var(--red); border:1px solid rgba(239,68,68,.25);
+      padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700;
+      display:inline-flex; align-items:center; gap:3px; transition:all .15s;
+    }
+    .btn-sm-del:hover { background:rgba(239,68,68,.2); }
+    .btn-pdf {
+      background:rgba(168,85,247,.12); color:var(--purple); border:1px solid rgba(168,85,247,.25);
+      padding:7px 14px; border-radius:7px; font-size:12px; font-weight:700;
+      display:inline-flex; align-items:center; gap:5px; transition:all .15s;
+    }
+    .btn-pdf:hover { background:rgba(168,85,247,.22); }
 
     /* ── Table ───────────────────────────────────────────── */
     .table-wrap { overflow-x:auto; }
-    table { width:100%; border-collapse:collapse; min-width:480px; }
+    table { width:100%; border-collapse:collapse; min-width:560px; }
     thead th {
       background:var(--card2); padding:10px 14px; text-align:left;
       font-size:11px; font-weight:700; color:var(--muted);
-      text-transform:uppercase; letter-spacing:.6px;
+      text-transform:uppercase; letter-spacing:.5px;
       border-bottom:1px solid var(--border); white-space:nowrap;
     }
     tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
     tbody tr:last-child { border-bottom:none; }
     tbody tr:hover { background:var(--card2); }
-    td { padding:12px 14px; font-size:13px; vertical-align:middle; }
-    .td-actions { display:flex; gap:6px; }
-    .empty-row td { text-align:center; padding:32px; color:var(--muted); font-size:13px; }
-
-    /* ── Status Badge ─────────────────────────────────────── */
-    .status-badge {
-      display:inline-block; padding:3px 10px; border-radius:20px;
-      font-size:11px; font-weight:700; white-space:nowrap;
-    }
-    .status-present { background:rgba(34,197,94,.15);  color:var(--green);  border:1px solid rgba(34,197,94,.3); }
-    .status-absent  { background:rgba(239,68,68,.12);  color:var(--red);    border:1px solid rgba(239,68,68,.3); }
-    .status-half    { background:rgba(245,158,11,.12); color:var(--yellow); border:1px solid rgba(245,158,11,.3); }
-
-    /* ── Month selector ──────────────────────────────────── */
-    .month-selector { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .month-selector input[type=month] {
-      background:var(--card2); border:1px solid var(--border);
-      color:var(--text); padding:8px 12px; border-radius:8px; font-size:14px;
-      font-family:'Noto Sans JP',sans-serif;
-    }
-    .month-selector input[type=month]:focus { outline:none; border-color:var(--orange); }
-
-    /* ── Salary input cell ───────────────────────────────── */
-    .sal-input {
-      width:100%; background:var(--card); border:1px solid var(--border);
-      color:var(--text); padding:6px 10px; border-radius:6px; font-size:13px;
-      font-family:'Noto Sans JP',sans-serif; text-align:right;
-    }
-    .sal-input:focus { outline:none; border-color:var(--orange); }
+    td { padding:11px 14px; font-size:13px; vertical-align:middle; }
+    .empty-row td { text-align:center; padding:36px; color:var(--muted); font-size:13px; }
+    .td-actions { display:flex; gap:5px; }
     .num-cell { font-family:'Oswald',sans-serif; }
 
-    /* ── Payslip ─────────────────────────────────────────── */
-    .payslip-controls {
-      display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center;
+    /* ── Worker cards ────────────────────────────────────── */
+    .worker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+    .worker-card {
+      background:var(--card2); border:1px solid var(--border); border-radius:12px;
+      padding:18px 20px; transition:border-color .2s;
     }
-    .payslip-controls select {
-      background:var(--card2); border:1px solid var(--border); color:var(--text);
-      padding:9px 14px; border-radius:8px; font-size:14px;
-      font-family:'Noto Sans JP',sans-serif; min-width:160px;
-    }
-    .payslip-controls select:focus { outline:none; border-color:var(--orange); }
-    #payslipPreview {
-      background:var(--card2); border:1px solid var(--border);
-      border-radius:12px; padding:32px; font-size:14px;
-      max-width:520px; font-family:'Noto Sans JP',sans-serif;
-    }
-    .payslip-title {
-      font-family:'Oswald',sans-serif; font-size:22px; font-weight:700;
-      text-align:center; letter-spacing:3px; margin-bottom:20px;
-      color:var(--orange);
-    }
-    .payslip-meta { margin-bottom:20px; font-size:13px; color:var(--muted); line-height:1.9; }
-    .payslip-divider { border:none; border-top:1px solid var(--border); margin:14px 0; }
-    .payslip-row {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:6px 0; font-size:14px; border-bottom:1px solid rgba(255,255,255,.04);
-    }
-    .payslip-row:last-child { border-bottom:none; }
-    .payslip-label { color:var(--muted); }
-    .payslip-val { font-family:'Oswald',sans-serif; font-weight:700; }
-    .payslip-total-row {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:12px 0; font-size:16px; font-weight:700;
-      border-top:2px solid var(--orange); margin-top:8px;
-    }
-    .payslip-total-val { font-family:'Oswald',sans-serif; font-size:22px; color:var(--orange); }
-    .payslip-empty { color:var(--muted); text-align:center; padding:40px; font-size:13px; }
+    .worker-card:hover { border-color:rgba(249,115,22,.4); }
+    .wc-name  { font-size:15px; font-weight:800; margin-bottom:4px; }
+    .wc-meta  { font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.7; }
+    .wc-rate  { font-family:'Oswald',sans-serif; font-size:20px; color:var(--yellow); font-weight:700; }
+    .wc-rates { font-size:11px; color:var(--muted); margin-top:4px; }
+    .wc-actions { display:flex; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
 
     /* ── Modal ───────────────────────────────────────────── */
     .overlay {
       display:none; position:fixed; inset:0;
       background:rgba(0,0,0,.75); z-index:200;
-      padding:20px; overflow-y:auto;
-      align-items:flex-start; justify-content:center;
+      padding:20px; overflow-y:auto; align-items:flex-start; justify-content:center;
     }
-    .overlay.open { display:flex; padding-top:60px; }
+    .overlay.open { display:flex; padding-top:50px; }
     .modal {
       background:var(--card); border:1px solid var(--border);
-      border-radius:16px; width:100%; max-width:480px; overflow:hidden;
+      border-radius:16px; width:100%; max-width:500px; overflow:hidden;
     }
     .modal-hd {
       background:var(--card2); padding:16px 20px;
@@ -327,7 +220,7 @@
     }
     .modal-title { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
     .close-btn {
-      background:rgba(255,255,255,.06); border:1px solid var(--border);
+      background:rgba(255,255,255,.05); border:1px solid var(--border);
       color:var(--muted); width:32px; height:32px; border-radius:8px;
       font-size:16px; display:flex; align-items:center; justify-content:center; transition:all .15s;
     }
@@ -335,72 +228,70 @@
     .modal-body { padding:20px; display:flex; flex-direction:column; gap:14px; }
     .modal-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
 
-    /* ── Loading ─────────────────────────────────────────── */
-    #loadingOverlay {
-      position:fixed; inset:0; background:var(--black);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      z-index:300; transition:opacity .4s;
+    /* ── Form fields in modal ────────────────────────────── */
+    .fg label {
+      display:block; font-size:12px; font-weight:700; color:var(--muted);
+      margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;
     }
-    #loadingOverlay.fade { opacity:0; pointer-events:none; }
-    .loading-logo { font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; margin-bottom:20px; }
-    .loading-spinner {
-      width:40px; height:40px; border:3px solid var(--border);
-      border-top-color:var(--orange); border-radius:50%;
-      animation:spin .7s linear infinite; margin-bottom:14px;
+    .fg input, .fg select, .fg textarea {
+      width:100%; background:var(--card2); border:1px solid var(--border);
+      color:var(--text); padding:10px 13px; border-radius:8px; font-size:14px;
+      font-family:'Noto Sans JP',sans-serif; transition:border-color .15s;
     }
-    .loading-text { font-size:13px; color:var(--muted); }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { outline:none; border-color:var(--orange); }
+    .fg select option { background:var(--card2); }
+    .fg textarea { resize:vertical; min-height:80px; }
+    .hint { font-size:11px; color:var(--muted); margin-top:5px; line-height:1.6; }
+
+    /* ── Salary table ────────────────────────────────────── */
+    .sal-input {
+      width:100%; background:var(--card); border:1px solid var(--border);
+      color:var(--text); padding:6px 9px; border-radius:6px; font-size:13px;
+      font-family:'Noto Sans JP',sans-serif; text-align:right;
+    }
+    .sal-input:focus { outline:none; border-color:var(--orange); }
+    .total-row { background:var(--card2) !important; border-top:2px solid var(--border) !important; }
 
     /* ── Toast ───────────────────────────────────────────── */
     .toast {
       position:fixed; bottom:24px; left:50%;
       transform:translateX(-50%) translateY(80px);
       padding:10px 22px; border-radius:100px; font-size:13px; font-weight:600;
-      color:#fff; background:var(--dark); z-index:400;
+      color:#fff; background:var(--navy2); z-index:400;
       transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.4);
+      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.5);
     }
     .toast.show { transform:translateX(-50%) translateY(0); }
     .toast.ok  { background:var(--green); }
     .toast.err { background:var(--red); }
 
-    /* ── Animations ──────────────────────────────────────── */
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(14px); }
-      to   { opacity:1; transform:translateY(0); }
+    /* ── Loading ─────────────────────────────────────────── */
+    #loadingOverlay {
+      position:fixed; inset:0; background:var(--navy);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:300; transition:opacity .4s;
     }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    #loadingOverlay.fade { opacity:0; pointer-events:none; }
+    .ld-logo { font-family:'Oswald',sans-serif; font-size:22px; font-weight:700; margin-bottom:18px; }
+    .ld-spinner {
+      width:38px; height:38px; border:3px solid var(--border);
+      border-top-color:var(--orange); border-radius:50%;
+      animation:spin .7s linear infinite; margin-bottom:12px;
+    }
+    .ld-text { font-size:12px; color:var(--muted); }
 
-    /* ── Print ───────────────────────────────────────────── */
-    @media print {
-      body { background:#fff; color:#000; }
-      header, .back-link, .page-header, .tab-nav, .kpi-grid,
-      .info-banner, .payslip-controls, .btn-primary, .btn-secondary, .btn-teal,
-      #loadingOverlay { display:none !important; }
-      .tab-panel { display:block !important; }
-      #tab-payslip { display:block !important; }
-      #payslipPreview {
-        background:#fff; color:#000; border:1px solid #ccc;
-        border-radius:0; max-width:100%; box-shadow:none;
-      }
-      .payslip-title { color:#333; }
-      .payslip-label { color:#555; }
-      .payslip-divider { border-color:#ccc; }
-      .payslip-total-val { color:#333; }
-    }
+    /* ── Animations ──────────────────────────────────────── */
+    @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin   { to{transform:rotate(360deg)} }
 
     /* ── Responsive ──────────────────────────────────────── */
-    @media (max-width:900px) {
-      .kpi-grid { grid-template-columns:1fr 1fr; }
-      .form-grid-3 { grid-template-columns:1fr 1fr; }
-    }
-    @media (max-width:600px) {
-      .container { padding:14px 12px 64px; }
-      .kpi-grid { grid-template-columns:1fr 1fr; }
-      .kpi-value { font-size:26px; }
-      .form-grid { grid-template-columns:1fr; }
-      .form-grid-3 { grid-template-columns:1fr; }
-      .tab-btn { padding:8px 12px; font-size:12px; }
-      header { padding:0 14px; }
+    @media(max-width:900px) { .kpi-grid{grid-template-columns:1fr 1fr}; }
+    @media(max-width:600px) {
+      .container{padding:12px 12px 64px}
+      .kpi-grid{grid-template-columns:1fr 1fr}
+      .kpi-value{font-size:24px}
+      .tab-btn{padding:8px 12px;font-size:12px}
+      header{padding:0 14px}
     }
   </style>
 </head>
@@ -408,9 +299,9 @@
 
 <!-- Loading -->
 <div id="loadingOverlay">
-  <div class="loading-logo">建設<span style="color:var(--orange)">AI</span></div>
-  <div class="loading-spinner"></div>
-  <div class="loading-text">読み込み中...</div>
+  <div class="ld-logo">建設<span style="color:var(--orange)">AI</span></div>
+  <div class="ld-spinner"></div>
+  <div class="ld-text">データを読み込み中...</div>
 </div>
 
 <!-- Header -->
@@ -419,59 +310,33 @@
     <div class="logo-mark">建</div>
     <span>KENSETSU<span style="color:var(--orange)">AI</span></span>
   </a>
-  <div class="header-right">
+  <div class="hdr-right">
     <button class="icon-btn" id="refreshBtn" title="更新">🔄</button>
-    <span id="modeBadge" class="badge-demo">DEMO</span>
+    <button class="icon-btn" onclick="logout()" title="ログアウト">🚪</button>
   </div>
 </header>
 
 <div class="container">
+  <a href="admin.html" class="back-link">← 管理ダッシュボードへ</a>
+  <div class="page-title">👷 出勤管理・<span>給与計算</span></div>
+  <div class="page-sub">出勤記録の確認・作業員管理・月次給与集計</div>
 
-  <a href="admin.html" class="back-link">← 管理ダッシュボードへ戻る</a>
-
-  <div class="page-header">
-    <div class="page-title">👷 出勤管理・<span>給与計算</span></div>
-    <div class="page-sub">出勤報告の確認・作業員マスタ・給与計算・明細発行</div>
-  </div>
-
-  <!-- Banners -->
-  <div class="info-banner banner-demo" id="demoBanner">
-    <span>🎭</span>
-    <div>
-      <strong style="color:var(--orange)">デモモード</strong> —
-      サンプルデータを表示しています。
-      <a href="admin.html" style="color:var(--orange);text-decoration:underline;">admin.htmlの⚙️</a>からSupabase設定してください。
-    </div>
-  </div>
-  <div class="info-banner banner-ok" id="liveBanner">
-    <span>✅</span><div>Supabaseに接続済みです</div>
-  </div>
-  <div class="info-banner banner-err" id="errBanner">
-    <span>⚠️</span><div id="errMsg">エラー</div>
-  </div>
-
-  <!-- KPI -->
-  <div class="kpi-grid">
+  <!-- ── KPI（出勤管理タブのもの、常時表示） ──── -->
+  <div class="kpi-grid" id="mainKpi">
     <div class="kpi-card">
-      <div class="kpi-label">今日の出勤者数</div>
-      <div class="kpi-value" id="kpiToday">—</div>
-      <div class="kpi-sub" id="kpiTodaySub">名</div>
-      <div class="kpi-icon">🏁</div>
+      <div class="kpi-label">今月 出勤件数</div>
+      <div class="kpi-value" id="kpiCount">—</div>
+      <div class="kpi-sub" id="kpiCountSub">件</div>
+      <div class="kpi-icon">📋</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">今月 延べ出勤</div>
-      <div class="kpi-value" id="kpiNinku">—</div>
-      <div class="kpi-sub" id="kpiNinkuSub">人工</div>
-      <div class="kpi-icon">📅</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">登録作業員数</div>
-      <div class="kpi-value" id="kpiWorkers">—</div>
+      <div class="kpi-label">今月 ユニーク人数</div>
+      <div class="kpi-value" id="kpiUniq">—</div>
       <div class="kpi-sub">名</div>
       <div class="kpi-icon">👷</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">今月 労務費合計</div>
+      <div class="kpi-label">今月 人件費合計</div>
       <div class="kpi-value" id="kpiLabor">—</div>
       <div class="kpi-sub">円</div>
       <div class="kpi-icon">💴</div>
@@ -480,238 +345,179 @@
 
   <!-- Tab Nav -->
   <div class="tab-nav">
-    <button class="tab-btn active" data-tab="logs">📋 出勤一覧</button>
-    <button class="tab-btn" data-tab="workers">👷 作業員マスタ</button>
-    <button class="tab-btn" data-tab="salary">📊 給与計算</button>
-    <button class="tab-btn" data-tab="payslip">💰 給与明細</button>
+    <button class="tab-btn active" data-tab="logs">📋 出勤管理</button>
+    <button class="tab-btn" data-tab="workers">👷 作業員</button>
+    <button class="tab-btn" data-tab="salary">💰 給与計算</button>
   </div>
 
-  <!-- ============================================================
-       Tab①: 出勤一覧
-  ============================================================ -->
+  <!-- ══════════════════════════════════════════════════════
+       Tab①: 出勤管理
+  ══════════════════════════════════════════════════════ -->
   <div class="tab-panel active" id="tab-logs">
-
     <div class="card">
-      <div class="card-header">
-        <div class="card-title"><div class="dot"></div>出勤報告一覧</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <div class="fg" style="margin-bottom:0;">
-            <input type="date" id="filterDate" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;">
-          </div>
-          <button class="btn-secondary" id="clearFilterBtn">全件表示</button>
-          <a href="worker-attendance.html" class="btn-teal" target="_blank">🏗️ 出勤報告ページ</a>
+      <div class="card-hd">
+        <div class="card-title"><div class="dot"></div>出勤記録一覧</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="worker-attendance.html" class="btn-sec" target="_blank">🏗️ 出勤報告ページ</a>
+          <button class="btn-primary" id="csvBtn">⬇️ CSV出力</button>
         </div>
       </div>
-      <div class="card-body" style="padding:0;">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>日付</th>
-                <th>氏名</th>
-                <th>元請会社</th>
-                <th>現場名</th>
-                <th>作業内容</th>
-                <th>送信時刻</th>
-                <th>状況</th>
-              </tr>
-            </thead>
-            <tbody id="logsBody">
-              <tr class="empty-row"><td colspan="7">読み込み中...</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <!-- Filters -->
+      <div class="filters">
+        <input type="month" id="filterMonth" class="filter-inp" title="年月フィルター">
+        <input type="text"  id="filterName"  class="filter-inp" placeholder="作業員名で検索">
+        <button class="btn-sec" id="filterBtn">🔍 絞り込み</button>
+        <button class="btn-sec" id="clearFilterBtn">✕ リセット</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>作業員</th>
+              <th>元請会社</th>
+              <th>現場名</th>
+              <th>作業内容</th>
+              <th>時間</th>
+              <th>日当</th>
+              <th>送信時刻</th>
+            </tr>
+          </thead>
+          <tbody id="logsBody">
+            <tr class="empty-row"><td colspan="8">読み込み中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <!-- ============================================================
-       Tab②: 作業員マスタ
-  ============================================================ -->
+  <!-- ══════════════════════════════════════════════════════
+       Tab②: 作業員
+  ══════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-workers">
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title"><div class="dot"></div><span id="workerFormTitle">新規作業員を登録</span></div>
-      </div>
-      <div class="card-body">
-        <div class="form-grid" style="margin-bottom:14px;">
-          <div class="fg">
-            <label>氏名 <span style="color:var(--red)">*</span></label>
-            <input type="text" id="wName" placeholder="山田 太郎">
-          </div>
-          <div class="fg">
-            <label>職種</label>
-            <select id="wTrade">
-              <option value="土木作業員">土木作業員</option>
-              <option value="重機オペレーター">重機オペレーター</option>
-              <option value="交通誘導員">交通誘導員</option>
-              <option value="型枠大工">型枠大工</option>
-              <option value="鉄筋工">鉄筋工</option>
-              <option value="現場監督">現場監督</option>
-              <option value="その他">その他</option>
-            </select>
-          </div>
-          <div class="fg">
-            <label>日当単価（円/日）</label>
-            <input type="number" id="wRate" placeholder="20000" min="0" step="500">
-          </div>
-          <div class="fg">
-            <label>所属会社</label>
-            <input type="text" id="wAffiliation" placeholder="自社 / 〇〇建設">
-          </div>
-        </div>
-        <input type="hidden" id="wEditId">
-        <div style="display:flex;gap:10px;">
-          <button class="btn-primary" id="saveWorkerBtn">💾 登録する</button>
-          <button class="btn-secondary" id="cancelWorkerEditBtn" style="display:none;">キャンセル</button>
-        </div>
-        <div style="margin-top:12px;font-size:12px;color:var(--muted);">
-          ★ 氏名を <strong style="color:var(--text);">worker-attendance.html で入力する名前と一致</strong> させると、給与計算で自動照合されます。
-        </div>
-      </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn-primary" id="addWorkerBtn">＋ 作業員を追加</button>
     </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title"><div class="dot"></div>作業員一覧</div>
-        <div style="font-size:12px;color:var(--muted);" id="workerCountLabel"></div>
-      </div>
-      <div class="card-body" style="padding:0;">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>氏名</th><th>職種</th><th>単価/日</th><th>所属</th><th>操作</th></tr>
-            </thead>
-            <tbody id="workersBody">
-              <tr class="empty-row"><td colspan="5">読み込み中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="worker-grid" id="workerGrid">
+      <div style="color:var(--muted);font-size:13px;">読み込み中...</div>
     </div>
   </div>
 
-  <!-- ============================================================
+  <!-- ══════════════════════════════════════════════════════
        Tab③: 給与計算
-  ============================================================ -->
+  ══════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-salary">
-
     <div class="card">
-      <div class="card-header">
-        <div class="card-title"><div class="dot"></div>対象月を選択</div>
+      <div class="card-hd">
+        <div class="card-title"><div class="dot"></div>集計月を選択</div>
       </div>
-      <div class="card-body">
-        <div class="month-selector">
-          <input type="month" id="salaryMonth">
-          <button class="btn-primary" id="calcSalaryBtn">📊 集計する</button>
-        </div>
+      <div class="card-body" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <input type="month" id="salaryMonth" class="filter-inp">
+        <button class="btn-primary" id="calcSalaryBtn">📊 集計する</button>
       </div>
     </div>
 
-    <!-- KPI for salary -->
-    <div class="kpi-grid" id="salaryKpiGrid" style="display:none;">
+    <!-- Salary KPI -->
+    <div class="kpi-grid" id="salKpi" style="display:none;">
       <div class="kpi-card">
-        <div class="kpi-label">対象作業員数</div>
-        <div class="kpi-value" id="salKpiCount">—</div>
+        <div class="kpi-label">対象作業員</div>
+        <div class="kpi-value" id="salKpiW" style="color:var(--orange);">—</div>
         <div class="kpi-sub">名</div>
         <div class="kpi-icon">👷</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">月間 延べ人工</div>
-        <div class="kpi-value" id="salKpiNinku">—</div>
-        <div class="kpi-sub">人工</div>
-        <div class="kpi-icon">📅</div>
-      </div>
-      <div class="kpi-card">
         <div class="kpi-label">基本給 合計</div>
-        <div class="kpi-value" id="salKpiBase">—</div>
+        <div class="kpi-value" id="salKpiB" style="color:var(--green);">—</div>
         <div class="kpi-sub">円</div>
         <div class="kpi-icon">💴</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">支給総額</div>
-        <div class="kpi-value" id="salKpiTotal">—</div>
-        <div class="kpi-sub">円（交通費・手当含む）</div>
+        <div class="kpi-value" id="salKpiT" style="color:var(--yellow);">—</div>
+        <div class="kpi-sub">円（手当込）</div>
         <div class="kpi-icon">💰</div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header">
+      <div class="card-hd">
         <div class="card-title"><div class="dot"></div>作業員別 給与明細</div>
         <div style="font-size:12px;color:var(--muted);">交通費・手当は手動入力できます</div>
       </div>
-      <div class="card-body" style="padding:0;">
-        <div class="table-wrap">
-          <table id="salaryTable">
-            <thead>
-              <tr>
-                <th>作業員</th>
-                <th>出勤日数</th>
-                <th>単価/日</th>
-                <th>基本給</th>
-                <th>交通費（円）</th>
-                <th>手当（円）</th>
-                <th>支給合計</th>
-              </tr>
-            </thead>
-            <tbody id="salaryBody">
-              <tr class="empty-row"><td colspan="7">月を選択して集計してください</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       Tab④: 給与明細
-  ============================================================ -->
-  <div class="tab-panel" id="tab-payslip">
-
-    <div class="payslip-controls">
-      <select id="payslipWorker">
-        <option value="">— 作業員を選択 —</option>
-      </select>
-      <input type="month" id="payslipMonth" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-size:14px;font-family:'Noto Sans JP',sans-serif;">
-      <button class="btn-primary" id="genPayslipBtn">💰 明細を生成</button>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title"><div class="dot"></div>給与明細プレビュー</div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn-secondary" id="copyPayslipBtn">📋 テキストコピー</button>
-          <button class="btn-secondary" id="printPayslipBtn">🖨️ 印刷</button>
-        </div>
-      </div>
-      <div class="card-body">
-        <div id="payslipPreview">
-          <div class="payslip-empty">左上で作業員と月を選択し「明細を生成」を押してください</div>
-        </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>作業員</th>
+              <th>出勤日数</th>
+              <th>実働時間</th>
+              <th>日当/合計</th>
+              <th>交通費（円）</th>
+              <th>手当（円）</th>
+              <th>支給合計</th>
+              <th>明細・PDF</th>
+            </tr>
+          </thead>
+          <tbody id="salaryBody">
+            <tr class="empty-row"><td colspan="8">月を選択して集計してください</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
 </div><!-- /container -->
 
-<!-- Delete Worker Modal -->
-<div class="overlay" id="deleteWorkerModal">
+<!-- Worker Add/Edit Modal -->
+<div class="overlay" id="workerModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="workerModalTitle">👷 作業員を追加</div>
+      <button class="close-btn" id="closeWorkerModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="wEditId">
+      <div class="fg">
+        <label>氏名 <span style="color:var(--red)">*</span></label>
+        <input type="text" id="wName" placeholder="山田 太郎">
+      </div>
+      <div class="fg">
+        <label>所属会社</label>
+        <input type="text" id="wCompany" placeholder="〇〇建設">
+      </div>
+      <div class="fg">
+        <label>日当単価（円/日）</label>
+        <input type="number" id="wRate" placeholder="20000" min="0" step="500">
+      </div>
+      <div class="fg">
+        <label>工種別単価（JSON）</label>
+        <textarea id="wWorkRates" placeholder='{"法面工事": 25000, "重機作業": 28000}'></textarea>
+        <div class="hint">工種名と金額をJSON形式で入力。空欄でも可。</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sec" id="cancelWorkerModal">キャンセル</button>
+      <button class="btn-primary" id="saveWorkerBtn">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="overlay" id="delModal">
   <div class="modal">
     <div class="modal-hd">
       <div class="modal-title">⚠️ 作業員を削除</div>
-      <button class="close-btn" id="closeDeleteModal">✕</button>
+      <button class="close-btn" id="closeDelModal">✕</button>
     </div>
     <div class="modal-body">
       <p style="font-size:14px;line-height:1.8;">
-        <strong id="deleteWorkerName" style="color:var(--orange)"></strong> を削除しますか？<br>
-        <span style="font-size:12px;color:var(--muted);">出面記録は残りますが、給与計算での照合ができなくなります。</span>
+        <strong id="delWorkerName" style="color:var(--orange)"></strong> を削除しますか？<br>
+        <span style="font-size:12px;color:var(--muted);">出勤記録は残ります。</span>
       </p>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" id="cancelDeleteBtn">キャンセル</button>
-      <button class="btn-danger" id="confirmDeleteBtn">🗑️ 削除する</button>
+      <button class="btn-sec" id="cancelDelBtn">キャンセル</button>
+      <button class="btn-sm-del" id="confirmDelBtn" style="padding:9px 16px;font-size:13px;">🗑️ 削除する</button>
     </div>
   </div>
 </div>
@@ -720,7 +526,29 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// Util
+// Supabase
+// ══════════════════════════════════════════════════════════════
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+
+async function sb(path, opts={}) {
+  const res = await fetch(SB_URL + '/rest/v1/' + path, {
+    headers: {
+      'apikey':        SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type':  'application/json',
+      'Prefer':        opts.prefer || 'return=representation',
+      ...(opts.extraHeaders || {}),
+    },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(res.status + ' ' + await res.text());
+  const t = await res.text();
+  return t ? JSON.parse(t) : [];
+}
+
+// ══════════════════════════════════════════════════════════════
+// State
 // ══════════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 let _tt;
@@ -729,99 +557,33 @@ function toast(msg, type='', dur=3000) {
   t.className='toast show'+(type?' '+type:'');
   clearTimeout(_tt); _tt=setTimeout(()=>{t.className='toast';},dur);
 }
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmt(n) { return Number(n||0).toLocaleString(); }
 
-// ══════════════════════════════════════════════════════════════
-// Supabase
-// ══════════════════════════════════════════════════════════════
-const SK = { url:'dr_sb_url', key:'dr_sb_key' };
-const getCfg = () => ({ url:localStorage.getItem(SK.url)||'', key:localStorage.getItem(SK.key)||'' });
-
-async function sbFetch(path, opts={}) {
-  const { url, key } = getCfg();
-  if (!url || !key) return null;
-  const res = await fetch(url+'/rest/v1/'+path, {
-    headers: {
-      'apikey': key,
-      'Authorization': 'Bearer '+key,
-      'Content-Type': 'application/json',
-      'Prefer': opts.prefer||'return=representation',
-      ...(opts.extraHeaders||{}),
-    },
-    ...opts,
-  });
-  if (!res.ok) throw new Error(await res.text());
-  const text = await res.text();
-  return text ? JSON.parse(text) : [];
-}
-
-// ══════════════════════════════════════════════════════════════
-// Demo data
-// ══════════════════════════════════════════════════════════════
 const todayStr = new Date().toISOString().slice(0,10);
-const ym       = todayStr.slice(0,7);
+const ymNow    = todayStr.slice(0,7);
 
-const DEMO_WORKERS = [
-  { id:'w1', name:'山田 太郎', trade:'土木作業員',       daily_rate:22000, affiliation:'自社',    is_active:true },
-  { id:'w2', name:'鈴木 次郎', trade:'重機オペレーター',  daily_rate:28000, affiliation:'自社',    is_active:true },
-  { id:'w3', name:'佐藤 三郎', trade:'交通誘導員',       daily_rate:16000, affiliation:'○○警備', is_active:true },
-  { id:'w4', name:'田中 四郎', trade:'土木作業員',       daily_rate:21000, affiliation:'△△建設', is_active:true },
-];
-
-const DEMO_LOGS = [
-  { id:'l1', work_date:todayStr,  worker_name:'山田 太郎', company:'○○建設',   site_name:'R6-法面崩壊防止工事 福岡082', work_content:'法面工事・コンクリート吹付',  status:'present', work_hours:8.0, submitted_at:todayStr+'T07:30:00+09:00' },
-  { id:'l2', work_date:todayStr,  worker_name:'鈴木 次郎', company:'○○建設',   site_name:'R6-法面崩壊防止工事 福岡082', work_content:'重機作業（バックホウ）',     status:'present', work_hours:8.0, submitted_at:todayStr+'T07:35:00+09:00' },
-  { id:'l3', work_date:todayStr,  worker_name:'佐藤 三郎', company:'○○建設',   site_name:'R6-法面崩壊防止工事 福岡082', work_content:'交通誘導',                  status:'present', work_hours:8.0, submitted_at:todayStr+'T07:28:00+09:00' },
-  { id:'l4', work_date:ym+'-15',  worker_name:'山田 太郎', company:'△△土木',   site_name:'県道改良工事 宮崎区間C',       work_content:'土工・掘削',               status:'present', work_hours:8.0, submitted_at:ym+'-15T07:40:00+09:00' },
-  { id:'l5', work_date:ym+'-15',  worker_name:'田中 四郎', company:'△△土木',   site_name:'県道改良工事 宮崎区間C',       work_content:'土工',                    status:'present', work_hours:4.0, submitted_at:ym+'-15T07:45:00+09:00' },
-  { id:'l6', work_date:ym+'-14',  worker_name:'山田 太郎', company:'○○建設',   site_name:'R6-法面崩壊防止工事 福岡082', work_content:'法枠工',                   status:'present', work_hours:8.0, submitted_at:ym+'-14T07:32:00+09:00' },
-  { id:'l7', work_date:ym+'-14',  worker_name:'鈴木 次郎', company:'○○建設',   site_name:'R6-法面崩壊防止工事 福岡082', work_content:'重機作業',                 status:'present', work_hours:8.0, submitted_at:ym+'-14T07:36:00+09:00' },
-  { id:'l8', work_date:ym+'-14',  worker_name:'佐藤 三郎', company:'○○建設',   site_name:'R6-法面崩壊防止工事 福岡082', work_content:'交通誘導',                  status:'present', work_hours:8.0, submitted_at:ym+'-14T07:29:00+09:00' },
-];
-
-// ══════════════════════════════════════════════════════════════
-// State
-// ══════════════════════════════════════════════════════════════
-let isDemo = false;
-let workers = [], logs = [];
-let deleteTargetId = null;
-// salary adjustments: { [workerName]: { transport, allowance } }
-let salAdj = {};
+let workers = [];
+let logs    = [];
+let delTargetId = null;
+let salAdj  = {}; // { "workerName": { transport, allowance } }
 
 // ══════════════════════════════════════════════════════════════
 // Init
 // ══════════════════════════════════════════════════════════════
 (async () => {
-  $('salaryMonth').value  = ym;
-  $('payslipMonth').value = ym;
-  $('filterDate').value   = todayStr;
+  $('filterMonth').value = ymNow;
+  $('salaryMonth').value = ymNow;
 
   try {
-    const { url, key } = getCfg();
-    if (!url || !key) throw new Error('no-config');
-
     const [wRes, lRes] = await Promise.all([
-      sbFetch('workers?is_active=eq.true&order=created_at.asc'),
-      sbFetch(`attendance_logs?work_date=gte.${ym}-01&order=work_date.desc&limit=200`),
+      sb('workers?is_active=eq.true&order=name.asc'),
+      sb(`attendance_logs?work_date=gte.${ymNow}-01&order=work_date.desc&limit=500`),
     ]);
-    workers = wRes||[];
-    logs    = lRes||[];
-    isDemo = false;
-    $('modeBadge').className='badge-live'; $('modeBadge').textContent='LIVE';
-    $('liveBanner').classList.add('show');
+    workers = wRes || [];
+    logs    = lRes || [];
   } catch(e) {
-    isDemo = true;
-    workers = DEMO_WORKERS;
-    logs    = DEMO_LOGS;
-    if (e.message !== 'no-config') {
-      $('errMsg').textContent = 'Supabase接続エラー: '+e.message;
-      $('errBanner').classList.add('show');
-    } else {
-      $('demoBanner').classList.add('show');
-    }
+    toast('データ読み込みエラー: ' + e.message, 'err', 6000);
   }
 
   renderAll();
@@ -830,392 +592,397 @@ let salAdj = {};
 
 function renderAll() {
   renderKPI();
-  renderLogs();
+  renderLogs(logs);
   renderWorkers();
-  renderPayslipWorkerSelect();
 }
 
 // ══════════════════════════════════════════════════════════════
 // KPI
 // ══════════════════════════════════════════════════════════════
 function renderKPI() {
-  const thisMonth = logs.filter(l => l.work_date && l.work_date.startsWith(ym));
-  const today     = logs.filter(l => l.work_date === todayStr);
-  const ninku     = thisMonth.reduce((s,l) => s + (l.status==='half'?0.5:l.status==='present'?1:0), 0);
-
-  let labor = 0;
-  thisMonth.forEach(l => {
-    if (l.status === 'absent') return;
-    const w = matchWorker(l.worker_name);
-    if (w) labor += w.daily_rate * (l.status==='half'?0.5:1);
-  });
-
-  $('kpiToday').textContent   = today.filter(l=>l.status!=='absent').length;
-  $('kpiNinku').textContent   = ninku%1===0?ninku:ninku.toFixed(1);
-  $('kpiNinkuSub').textContent = ym.replace('-','年')+'月';
-  $('kpiWorkers').textContent = workers.length;
-  $('kpiLabor').textContent   = '¥'+fmt(labor);
+  const thisMonth = logs.filter(l => l.work_date && l.work_date.startsWith(ymNow));
+  const uniq      = new Set(thisMonth.map(l => l.worker_name || l.worker_id)).size;
+  const labor     = thisMonth.reduce((s,l) => s + Number(l.daily_rate || 0), 0);
+  $('kpiCount').textContent    = thisMonth.length;
+  $('kpiCountSub').textContent = ymNow.replace('-','年') + '月';
+  $('kpiUniq').textContent     = uniq;
+  $('kpiLabor').textContent    = '¥' + fmt(labor);
 }
 
 // ══════════════════════════════════════════════════════════════
-// Tab①: 出勤一覧
+// Tab①: 出勤管理
 // ══════════════════════════════════════════════════════════════
-function renderLogs(filterDate) {
-  let data = [...logs].sort((a,b)=>b.work_date.localeCompare(a.work_date));
-  if (filterDate) data = data.filter(l => l.work_date === filterDate);
+function renderLogs(data) {
   const tbody = $('logsBody');
-  if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">記録がありません</td></tr>';
-    return;
+  const sorted = [...data].sort((a,b) => b.work_date.localeCompare(a.work_date));
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">記録がありません</td></tr>'; return;
   }
-  tbody.innerHTML = data.map(l => {
-    const time = l.submitted_at ? new Date(l.submitted_at).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) : '—';
+  tbody.innerHTML = sorted.map(l => {
+    const time = l.submitted_at
+      ? new Date(l.submitted_at).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
+      : '—';
     return `<tr>
       <td style="font-family:'Oswald',sans-serif;color:var(--orange);white-space:nowrap;">${l.work_date}</td>
       <td><strong>${esc(l.worker_name||'—')}</strong></td>
       <td style="font-size:12px;color:var(--muted);">${esc(l.company||'—')}</td>
       <td style="font-size:12px;">${esc(l.site_name||'—')}</td>
-      <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(l.work_content||'')}">${esc(l.work_content||'—')}</td>
-      <td style="font-size:12px;color:var(--muted);">${time}</td>
-      <td><span class="status-badge status-${l.status||'present'}">${statusLabel(l.status)}</span></td>
+      <td style="font-size:12px;color:var(--muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(l.work_content||'')}">${esc(l.work_content||'—')}</td>
+      <td class="num-cell" style="color:var(--blue);">${l.work_hours||'—'}h</td>
+      <td class="num-cell" style="color:var(--yellow);">${l.daily_rate?'¥'+fmt(l.daily_rate):'—'}</td>
+      <td style="font-size:11px;color:var(--muted);">${time}</td>
     </tr>`;
   }).join('');
 }
 
-$('filterDate').addEventListener('change', () => renderLogs($('filterDate').value));
-$('clearFilterBtn').addEventListener('click', () => { $('filterDate').value=''; renderLogs(); });
+// Filter
+async function applyFilter() {
+  const month = $('filterMonth').value;
+  const name  = $('filterName').value.trim().toLowerCase();
+  let data = logs;
 
-function statusLabel(s) {
-  return s==='half'?'半日': s==='absent'?'欠勤':'出勤';
-}
-
-// ══════════════════════════════════════════════════════════════
-// Tab②: Workers CRUD
-// ══════════════════════════════════════════════════════════════
-function renderWorkers() {
-  const tbody = $('workersBody');
-  $('workerCountLabel').textContent = workers.length+'名登録';
-  if (!workers.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">作業員が登録されていません</td></tr>';
-    return;
+  if (month || name) {
+    try {
+      let q = 'attendance_logs?order=work_date.desc&limit=1000';
+      if (month) q += `&work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01`;
+      if (name)  q += `&worker_name=ilike.*${encodeURIComponent(name)}*`;
+      data = await sb(q) || [];
+    } catch(e) {
+      toast('フィルターエラー: '+e.message,'err'); return;
+    }
   }
-  tbody.innerHTML = workers.map(w => `
-    <tr>
-      <td><strong>${esc(w.name)}</strong></td>
-      <td style="font-size:12px;color:var(--muted);">${esc(w.trade)}</td>
-      <td class="num-cell" style="color:var(--yellow);">¥${fmt(w.daily_rate)}</td>
-      <td style="font-size:12px;color:var(--muted);">${esc(w.affiliation||'—')}</td>
-      <td><div class="td-actions">
-        <button class="btn-edit" onclick="editWorker('${w.id}')">✏️ 編集</button>
-        <button class="btn-danger" onclick="promptDelete('${w.id}','${esc(w.name)}')">🗑️</button>
-      </div></td>
-    </tr>`).join('');
+  renderLogs(data);
 }
 
-function renderPayslipWorkerSelect() {
-  const sel = $('payslipWorker');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— 作業員を選択 —</option>'
-    + workers.map(w=>`<option value="${esc(w.name)}">${esc(w.name)}</option>`).join('');
-  if (cur) sel.value = cur;
-}
-
-$('saveWorkerBtn').addEventListener('click', async () => {
-  const name        = $('wName').value.trim();
-  const trade       = $('wTrade').value;
-  const daily_rate  = parseInt($('wRate').value)||0;
-  const affiliation = $('wAffiliation').value.trim();
-  const editId      = $('wEditId').value;
-  if (!name) { toast('氏名を入力してください','err'); return; }
-
-  const payload = { name, trade, daily_rate, affiliation, is_active:true };
-  if (isDemo) {
-    if (editId) { const i=workers.findIndex(w=>w.id===editId); if(i>=0) workers[i]={...workers[i],...payload}; }
-    else workers.push({ id:'w'+Date.now(), ...payload });
-    resetWorkerForm(); renderAll();
-    toast(editId?'更新しました（デモ）':'登録しました（デモ）','ok'); return;
-  }
-  try {
-    if (editId) await sbFetch(`workers?id=eq.${editId}`,{method:'PATCH',body:JSON.stringify(payload)});
-    else        await sbFetch('workers',{method:'POST',body:JSON.stringify(payload)});
-    workers = await sbFetch('workers?is_active=eq.true&order=created_at.asc')||[];
-    resetWorkerForm(); renderAll();
-    toast(editId?'更新しました':'登録しました','ok');
-  } catch(e) { toast('エラー: '+e.message,'err'); }
+$('filterBtn').addEventListener('click', applyFilter);
+$('clearFilterBtn').addEventListener('click', () => {
+  $('filterMonth').value = ymNow;
+  $('filterName').value  = '';
+  renderLogs(logs);
 });
 
-function editWorker(id) {
-  const w = workers.find(x=>x.id===id);
-  if (!w) return;
-  $('wEditId').value=$w_id=w.id;
-  $('wName').value=w.name; $('wTrade').value=w.trade;
-  $('wRate').value=w.daily_rate; $('wAffiliation').value=w.affiliation||'';
-  $('workerFormTitle').textContent='作業員を編集';
-  $('saveWorkerBtn').textContent='💾 更新する';
-  $('cancelWorkerEditBtn').style.display='';
-  document.querySelector('[data-tab="workers"]').click();
-  $('wName').focus();
-}
-let $w_id = null;
-
-function resetWorkerForm() {
-  $('wEditId').value=''; $w_id=null;
-  $('wName').value=''; $('wRate').value=''; $('wAffiliation').value='';
-  $('workerFormTitle').textContent='新規作業員を登録';
-  $('saveWorkerBtn').textContent='💾 登録する';
-  $('cancelWorkerEditBtn').style.display='none';
-}
-$('cancelWorkerEditBtn').addEventListener('click', resetWorkerForm);
-
-function promptDelete(id, name) {
-  deleteTargetId=id;
-  $('deleteWorkerName').textContent=name;
-  $('deleteWorkerModal').classList.add('open');
-}
-$('closeDeleteModal').addEventListener('click',()=>$('deleteWorkerModal').classList.remove('open'));
-$('cancelDeleteBtn').addEventListener('click', ()=>$('deleteWorkerModal').classList.remove('open'));
-$('confirmDeleteBtn').addEventListener('click', async()=>{
-  $('deleteWorkerModal').classList.remove('open');
-  if (!deleteTargetId) return;
-  if (isDemo) {
-    workers=workers.filter(w=>w.id!==deleteTargetId);
-    renderAll(); toast('削除しました（デモ）','ok'); deleteTargetId=null; return;
-  }
+// CSV export
+$('csvBtn').addEventListener('click', async () => {
+  const month = $('filterMonth').value || ymNow;
+  let data;
   try {
-    await sbFetch(`workers?id=eq.${deleteTargetId}`,{method:'DELETE',prefer:''});
-    workers=await sbFetch('workers?is_active=eq.true&order=created_at.asc')||[];
-    renderAll(); toast('削除しました','ok');
-  } catch(e){ toast('エラー: '+e.message,'err'); }
-  deleteTargetId=null;
+    data = await sb(`attendance_logs?work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01&order=work_date.asc&limit=2000`) || [];
+  } catch(e) { toast('CSV取得エラー: '+e.message,'err'); return; }
+
+  const cols = ['work_date','worker_name','company','site_name','work_content','work_hours','daily_rate','status','submitted_at'];
+  const head = ['日付','作業員','元請会社','現場名','作業内容','時間','日当','状況','送信日時'];
+  const rows = [head, ...data.map(l => cols.map(c => l[c] ?? ''))];
+  const csv  = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `出勤記録_${month}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV出力しました','ok');
+});
+
+// ══════════════════════════════════════════════════════════════
+// Tab②: 作業員
+// ══════════════════════════════════════════════════════════════
+function renderWorkers() {
+  const grid = $('workerGrid');
+  if (!workers.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:13px;grid-column:1/-1;">作業員が登録されていません</div>';
+    return;
+  }
+  grid.innerHTML = workers.map(w => {
+    const ratesHtml = w.work_rates && typeof w.work_rates === 'object'
+      ? Object.entries(w.work_rates).map(([k,v])=>`${k}: ¥${fmt(v)}`).join(' / ')
+      : '';
+    return `
+      <div class="worker-card">
+        <div class="wc-name">${esc(w.name)}</div>
+        <div class="wc-meta">${esc(w.company||'所属未設定')}</div>
+        <div class="wc-rate">¥${fmt(w.daily_rate)} <span style="font-size:13px;color:var(--muted);font-family:'Noto Sans JP',sans-serif;font-weight:400;">/日</span></div>
+        ${ratesHtml ? `<div class="wc-rates">工種別: ${esc(ratesHtml)}</div>` : ''}
+        <div class="wc-actions">
+          <button class="btn-sm-edit" onclick="openEditWorker('${w.id}')">✏️ 編集</button>
+          <button class="btn-sm-del"  onclick="promptDel('${w.id}','${esc(w.name)}')">🗑️ 削除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Open add
+$('addWorkerBtn').addEventListener('click', () => {
+  $('wEditId').value = '';
+  $('wName').value = ''; $('wCompany').value = '';
+  $('wRate').value = ''; $('wWorkRates').value = '';
+  $('workerModalTitle').textContent = '👷 作業員を追加';
+  $('workerModal').classList.add('open');
+});
+
+// Open edit
+function openEditWorker(id) {
+  const w = workers.find(x => x.id === id);
+  if (!w) return;
+  $('wEditId').value     = w.id;
+  $('wName').value       = w.name;
+  $('wCompany').value    = w.company || '';
+  $('wRate').value       = w.daily_rate || '';
+  $('wWorkRates').value  = w.work_rates ? JSON.stringify(w.work_rates, null, 2) : '';
+  $('workerModalTitle').textContent = '✏️ 作業員を編集';
+  $('workerModal').classList.add('open');
+}
+
+function closeWorkerModal() { $('workerModal').classList.remove('open'); }
+$('closeWorkerModal').addEventListener('click', closeWorkerModal);
+$('cancelWorkerModal').addEventListener('click', closeWorkerModal);
+
+// Save
+$('saveWorkerBtn').addEventListener('click', async () => {
+  const name    = $('wName').value.trim();
+  const company = $('wCompany').value.trim();
+  const rate    = parseInt($('wRate').value) || 0;
+  const editId  = $('wEditId').value;
+
+  let work_rates = null;
+  const ratesTxt = $('wWorkRates').value.trim();
+  if (ratesTxt) {
+    try { work_rates = JSON.parse(ratesTxt); }
+    catch { toast('工種別単価のJSON形式が正しくありません','err'); return; }
+  }
+
+  if (!name) { toast('氏名を入力してください','err'); return; }
+
+  const payload = { name, company: company||null, daily_rate:rate, work_rates, is_active:true };
+
+  try {
+    if (editId) {
+      await sb(`workers?id=eq.${editId}`, { method:'PATCH', body:JSON.stringify(payload) });
+    } else {
+      await sb('workers', { method:'POST', body:JSON.stringify(payload) });
+    }
+    workers = await sb('workers?is_active=eq.true&order=name.asc') || [];
+    renderWorkers();
+    closeWorkerModal();
+    toast(editId ? '更新しました' : '登録しました', 'ok');
+  } catch(e) {
+    toast('保存エラー: ' + e.message, 'err');
+  }
+});
+
+// Delete
+function promptDel(id, name) {
+  delTargetId = id;
+  $('delWorkerName').textContent = name;
+  $('delModal').classList.add('open');
+}
+$('closeDelModal').addEventListener('click',  () => $('delModal').classList.remove('open'));
+$('cancelDelBtn').addEventListener('click',   () => $('delModal').classList.remove('open'));
+$('confirmDelBtn').addEventListener('click', async () => {
+  $('delModal').classList.remove('open');
+  if (!delTargetId) return;
+  try {
+    await sb(`workers?id=eq.${delTargetId}`, { method:'PATCH', prefer:'return=minimal', body:JSON.stringify({is_active:false}) });
+    workers = await sb('workers?is_active=eq.true&order=name.asc') || [];
+    renderWorkers();
+    toast('削除しました','ok');
+  } catch(e) { toast('削除エラー: '+e.message,'err'); }
+  delTargetId = null;
 });
 
 // ══════════════════════════════════════════════════════════════
 // Tab③: 給与計算
 // ══════════════════════════════════════════════════════════════
-function matchWorker(name) {
-  if (!name) return null;
-  return workers.find(w => w.name === name.trim()) || null;
-}
-
 $('calcSalaryBtn').addEventListener('click', async () => {
   const month = $('salaryMonth').value;
   if (!month) { toast('月を選択してください','err'); return; }
 
-  let monthLogs = logs;
-  if (!isDemo) {
-    try {
-      const res = await sbFetch(
-        `attendance_logs?work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01&order=work_date.asc&limit=1000`
-      );
-      monthLogs = res||[];
-    } catch(e) { toast('集計エラー: '+e.message,'err'); return; }
-  } else {
-    monthLogs = logs.filter(l=>l.work_date&&l.work_date.startsWith(month));
-  }
+  let mLogs;
+  try {
+    mLogs = await sb(
+      `attendance_logs?work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01&order=work_date.asc&limit=2000`
+    ) || [];
+  } catch(e) { toast('集計エラー: '+e.message,'err'); return; }
 
-  // Group by worker_name
-  const nameMap = {};
-  monthLogs.forEach(l => {
-    if (l.status==='absent') return;
-    const key = l.worker_name || '名前不明';
-    if (!nameMap[key]) nameMap[key]={ present:0, half:0 };
-    if (l.status==='present') nameMap[key].present++;
-    else if (l.status==='half') nameMap[key].half++;
+  // Group by worker_name (or worker_id as fallback)
+  const map = {};
+  mLogs.forEach(l => {
+    const key = l.worker_name || l.worker_id || '不明';
+    if (!map[key]) map[key] = { logs:[], totalRate:0, totalHours:0, days:0 };
+    map[key].logs.push(l);
+    map[key].totalRate  += Number(l.daily_rate || 0);
+    map[key].totalHours += Number(l.work_hours || 0);
+    map[key].days++;
   });
 
-  const entries = Object.entries(nameMap);
-  let totalBase=0, totalPay=0, totalNinku=0;
+  const entries  = Object.entries(map);
+  let totalBase  = 0, totalPay = 0;
 
   const tbody = $('salaryBody');
   if (!entries.length) {
-    tbody.innerHTML='<tr class="empty-row"><td colspan="7">この月の記録はありません</td></tr>';
-    $('salaryKpiGrid').style.display='none';
-    return;
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">この月の記録はありません</td></tr>';
+    $('salKpi').style.display = 'none'; return;
   }
 
-  tbody.innerHTML = entries.map(([name, {present,half}]) => {
-    const w = matchWorker(name);
-    const rate = w ? w.daily_rate : 0;
-    const ninku = present + half*0.5;
-    const base  = Math.round(rate * ninku);
-    const adjKey = month+'_'+name;
-    const adj = salAdj[adjKey] || { transport:0, allowance:0 };
-    totalBase  += base;
-    totalNinku += ninku;
+  tbody.innerHTML = entries.map(([name, {logs:wLogs, totalRate, totalHours, days}]) => {
+    const adj   = salAdj[month+'_'+name] || { transport:0, allowance:0 };
+    const total = totalRate + adj.transport + adj.allowance;
+    totalBase += totalRate;
     return `
-      <tr data-name="${esc(name)}" data-month="${month}">
-        <td><strong>${esc(name)}</strong>${w?`<div style="font-size:11px;color:var(--muted);">${esc(w.trade)}</div>`:''}</td>
-        <td class="num-cell" style="color:var(--green);">${present}${half?`<span style="color:var(--yellow);font-size:11px;"> +${half}半日</span>`:''}</td>
-        <td class="num-cell" style="color:var(--muted);">${rate?'¥'+fmt(rate):'<span style="color:var(--red);font-size:11px;">未登録</span>'}</td>
-        <td class="num-cell" style="color:var(--orange);font-weight:700;">¥${fmt(base)}</td>
+      <tr data-key="${month}_${esc(name)}">
+        <td><strong>${esc(name)}</strong></td>
+        <td class="num-cell" style="color:var(--green);">${days}日</td>
+        <td class="num-cell" style="color:var(--blue);">${totalHours.toFixed(1)}h</td>
+        <td class="num-cell" style="color:var(--orange);">¥${fmt(totalRate)}</td>
         <td><input class="sal-input" type="number" min="0" step="100" value="${adj.transport}" placeholder="0"
-            onchange="updateAdj('${month}','${esc(name)}','transport',this.value)"></td>
+            oninput="updateAdj('${month}','${esc(name)}','transport',this.value,this)"></td>
         <td><input class="sal-input" type="number" min="0" step="100" value="${adj.allowance}" placeholder="0"
-            onchange="updateAdj('${month}','${esc(name)}','allowance',this.value)"></td>
-        <td class="num-cell total-cell" style="color:var(--yellow);font-weight:700;">¥${fmt(base+adj.transport+adj.allowance)}</td>
+            oninput="updateAdj('${month}','${esc(name)}','allowance',this.value,this)"></td>
+        <td class="num-cell pay-total-${sanitizeKey(name)}" style="color:var(--yellow);font-weight:700;">¥${fmt(total)}</td>
+        <td><button class="btn-pdf" onclick="openPDF('${month}','${esc(name)}')">📄 明細・PDF</button></td>
       </tr>`;
   }).join('');
 
-  // Total row
-  const grandTotal = totalBase + entries.reduce((s,[k])=>{
+  totalPay = totalBase + entries.reduce((s,[k])=>{
     const adj=salAdj[month+'_'+k]||{transport:0,allowance:0};
     return s+adj.transport+adj.allowance;
   },0);
+
   tbody.innerHTML += `
-    <tr style="background:var(--card2);border-top:2px solid var(--border);">
+    <tr class="total-row">
       <td colspan="3" style="font-weight:700;">合計</td>
       <td class="num-cell" style="color:var(--orange);font-weight:700;">¥${fmt(totalBase)}</td>
       <td colspan="2"></td>
-      <td class="num-cell" style="color:var(--yellow);font-weight:700;">¥${fmt(grandTotal)}</td>
+      <td class="num-cell grand-total" style="color:var(--yellow);font-weight:700;">¥${fmt(totalPay)}</td>
+      <td></td>
     </tr>`;
 
-  // KPI
-  $('salaryKpiGrid').style.display='grid';
-  $('salKpiCount').textContent  = entries.length;
-  $('salKpiNinku').textContent  = totalNinku%1===0?totalNinku:totalNinku.toFixed(1);
-  $('salKpiBase').textContent   = '¥'+fmt(totalBase);
-  $('salKpiTotal').textContent  = '¥'+fmt(grandTotal);
+  $('salKpi').style.display = 'grid';
+  $('salKpiW').textContent = entries.length;
+  $('salKpiB').textContent = '¥' + fmt(totalBase);
+  $('salKpiT').textContent = '¥' + fmt(totalPay);
 
-  toast(`${month} の集計完了`,'ok');
+  toast(`${month} の集計が完了しました`, 'ok');
 });
 
-function updateAdj(month, name, field, val) {
+function sanitizeKey(s) { return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function updateAdj(month, name, field, val, inputEl) {
   const key = month+'_'+name;
-  if (!salAdj[key]) salAdj[key]={transport:0,allowance:0};
-  salAdj[key][field] = parseInt(val)||0;
-  // Recalc total cell for this row
-  const rows = document.querySelectorAll(`#salaryBody tr[data-name="${name}"][data-month="${month}"]`);
-  rows.forEach(row => {
-    const base = parseInt(row.querySelector('td:nth-child(4)').textContent.replace(/[¥,]/g,''))||0;
-    const tc   = row.querySelector('.total-cell');
-    if (tc) tc.textContent = '¥'+fmt(base + salAdj[key].transport + salAdj[key].allowance);
-  });
+  if (!salAdj[key]) salAdj[key] = { transport:0, allowance:0 };
+  salAdj[key][field] = parseInt(val) || 0;
+
+  // Recalculate total for this row
+  const row = inputEl.closest('tr');
+  if (!row) return;
+  const base = parseInt(row.querySelector('td:nth-child(4)').textContent.replace(/[¥,]/g,'')) || 0;
+  const adj  = salAdj[key];
+  const tc   = row.querySelector(`td.pay-total-${sanitizeKey(name)}`);
+  if (tc) tc.textContent = '¥' + fmt(base + adj.transport + adj.allowance);
 }
 
-function nextMonth(ym) {
-  const [y,m]=ym.split('-').map(Number);
-  return m===12?`${y+1}-01`:`${y}-${String(m+1).padStart(2,'0')}`;
-}
+// ── PDF 明細 ──────────────────────────────────────────────────
+async function openPDF(month, workerName) {
+  let mLogs;
+  try {
+    mLogs = await sb(
+      `attendance_logs?work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01&worker_name=eq.${encodeURIComponent(workerName)}&order=work_date.asc&limit=500`
+    ) || [];
+  } catch(e) { toast('エラー: '+e.message,'err'); return; }
 
-// ══════════════════════════════════════════════════════════════
-// Tab④: 給与明細
-// ══════════════════════════════════════════════════════════════
-$('genPayslipBtn').addEventListener('click', async () => {
-  const name  = $('payslipWorker').value;
-  const month = $('payslipMonth').value;
-  if (!name)  { toast('作業員を選択してください','err'); return; }
-  if (!month) { toast('月を選択してください','err'); return; }
-
-  const w = matchWorker(name);
-  let monthLogs = logs;
-  if (!isDemo) {
-    try {
-      const res = await sbFetch(
-        `attendance_logs?work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01&worker_name=eq.${encodeURIComponent(name)}&limit=100`
-      );
-      monthLogs = res||[];
-    } catch(e) { toast('エラー: '+e.message,'err'); return; }
-  } else {
-    monthLogs = logs.filter(l=>l.work_date&&l.work_date.startsWith(month)&&l.worker_name===name);
-  }
-
-  const present = monthLogs.filter(l=>l.status==='present').length;
-  const half    = monthLogs.filter(l=>l.status==='half').length;
-  const ninku   = present + half*0.5;
-  const rate    = w ? w.daily_rate : 0;
-  const base    = Math.round(rate * ninku);
-  const adjKey  = month+'_'+name;
-  const adj     = salAdj[adjKey]||{transport:0,allowance:0};
-  const total   = base + adj.transport + adj.allowance;
+  const totalDays  = mLogs.length;
+  const totalHours = mLogs.reduce((s,l)=>s+Number(l.work_hours||0),0);
+  const totalRate  = mLogs.reduce((s,l)=>s+Number(l.daily_rate||0),0);
+  const adj        = salAdj[month+'_'+workerName] || { transport:0, allowance:0 };
+  const grandTotal = totalRate + adj.transport + adj.allowance;
 
   const [year, mon] = month.split('-');
-  const tradeStr  = w ? ` (${w.trade})` : '';
-  const affStr    = w ? ` · ${w.affiliation||''}` : '';
+  const issued      = new Date().toLocaleDateString('ja-JP');
 
-  $('payslipPreview').innerHTML = `
-    <div class="payslip-title">給 与 明 細 書</div>
-    <div class="payslip-meta">
-      氏名：<strong style="color:var(--text);">${esc(name)}</strong>${esc(tradeStr)}<br>
-      所属：<span>${esc(w&&w.affiliation||'—')}</span><br>
-      支給月：<strong style="color:var(--text);">${year}年${parseInt(mon)}月</strong>
-    </div>
-    <hr class="payslip-divider">
-    <div class="payslip-row">
-      <span class="payslip-label">出勤日数</span>
-      <span class="payslip-val" style="color:var(--green);">${present} 日</span>
-    </div>
-    ${half?`<div class="payslip-row">
-      <span class="payslip-label">半日出勤</span>
-      <span class="payslip-val" style="color:var(--yellow);">${half} 日</span>
-    </div>`:''}
-    <div class="payslip-row">
-      <span class="payslip-label">延べ人工</span>
-      <span class="payslip-val" style="color:var(--blue);">${ninku%1===0?ninku:ninku.toFixed(1)} 人工</span>
-    </div>
-    <div class="payslip-row">
-      <span class="payslip-label">日当単価</span>
-      <span class="payslip-val">¥${fmt(rate)}</span>
-    </div>
-    <hr class="payslip-divider">
-    <div class="payslip-row">
-      <span class="payslip-label">基本給</span>
-      <span class="payslip-val">¥${fmt(base)}</span>
-    </div>
-    <div class="payslip-row">
-      <span class="payslip-label">交通費</span>
-      <span class="payslip-val">¥${fmt(adj.transport)}</span>
-    </div>
-    <div class="payslip-row">
-      <span class="payslip-label">手当</span>
-      <span class="payslip-val">¥${fmt(adj.allowance)}</span>
-    </div>
-    <div class="payslip-total-row">
-      <span>支給合計</span>
-      <span class="payslip-total-val">¥${fmt(total)}</span>
-    </div>
-    <div style="margin-top:24px;font-size:11px;color:var(--muted);line-height:1.8;">
-      発行日：${new Date().toLocaleDateString('ja-JP')}<br>
-      ※ 本明細書は ${year}年${parseInt(mon)}月分の給与明細です。
-    </div>
-  `;
-  toast('明細を生成しました','ok');
-});
+  const detailRows = mLogs.map(l => `
+    <tr>
+      <td>${l.work_date}</td>
+      <td>${esc(l.site_name||'—')}</td>
+      <td>${esc(l.work_content||'—')}</td>
+      <td>${l.work_hours||'—'}h</td>
+      <td>¥${fmt(l.daily_rate||0)}</td>
+    </tr>`).join('');
 
-// Copy payslip as text
-$('copyPayslipBtn').addEventListener('click', async () => {
-  const el = $('payslipPreview');
-  const text = el.innerText;
-  try { await navigator.clipboard.writeText(text); toast('コピーしました','ok'); }
-  catch {
-    const ta=document.createElement('textarea'); ta.value=text;
-    ta.style='position:fixed;opacity:0'; document.body.appendChild(ta);
-    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    toast('コピーしました','ok');
-  }
-});
+  const html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>給与明細書 ${workerName} ${year}年${parseInt(mon)}月</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Hiragino Sans','Yu Gothic',sans-serif; padding:32px; color:#111; font-size:14px; }
+    h1 { font-size:22px; text-align:center; letter-spacing:4px; margin-bottom:24px; font-weight:900; }
+    .meta { margin-bottom:20px; line-height:2; }
+    .meta td:first-child { color:#666; width:120px; }
+    .divider { border:none; border-top:1px solid #ccc; margin:16px 0; }
+    .summary { width:100%; border-collapse:collapse; margin-bottom:24px; }
+    .summary td { padding:8px 12px; border-bottom:1px solid #eee; }
+    .summary td:last-child { text-align:right; font-weight:700; }
+    .total-row td { border-top:2px solid #333; padding-top:12px; font-size:17px; font-weight:900; }
+    .detail-title { font-size:14px; font-weight:800; margin:20px 0 10px; color:#333; }
+    .detail { width:100%; border-collapse:collapse; font-size:12px; }
+    .detail th { background:#f4f4f4; padding:6px 10px; text-align:left; border-bottom:1px solid #ddd; }
+    .detail td { padding:6px 10px; border-bottom:1px solid #eee; }
+    .footer { margin-top:32px; font-size:11px; color:#999; text-align:right; }
+    @media print { body{padding:20px} }
+  </style>
+</head>
+<body>
+  <h1>給 与 明 細 書</h1>
+  <table class="meta">
+    <tr><td>氏名</td><td><strong>${esc(workerName)}</strong></td></tr>
+    <tr><td>支給月</td><td><strong>${year}年${parseInt(mon)}月</strong></td></tr>
+    <tr><td>発行日</td><td>${issued}</td></tr>
+  </table>
+  <hr class="divider">
+  <table class="summary">
+    <tr><td>出勤日数</td><td>${totalDays} 日</td></tr>
+    <tr><td>実働時間合計</td><td>${totalHours.toFixed(1)} h</td></tr>
+    <tr><td>基本給</td><td>¥${fmt(totalRate)}</td></tr>
+    <tr><td>交通費</td><td>¥${fmt(adj.transport)}</td></tr>
+    <tr><td>手当</td><td>¥${fmt(adj.allowance)}</td></tr>
+    <tr class="total-row"><td>支 給 合 計</td><td>¥${fmt(grandTotal)}</td></tr>
+  </table>
 
-$('printPayslipBtn').addEventListener('click', () => {
-  // Switch to payslip tab before print
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-  document.querySelector('[data-tab="payslip"]').classList.add('active');
-  $('tab-payslip').classList.add('active');
-  window.print();
-});
+  <div class="detail-title">▼ 日別作業明細</div>
+  <table class="detail">
+    <thead>
+      <tr><th>日付</th><th>現場名</th><th>作業内容</th><th>時間</th><th>日当</th></tr>
+    </thead>
+    <tbody>${detailRows}</tbody>
+  </table>
+
+  <div class="footer">建設AIシステム — 給与明細書</div>
+  <script>window.onload=function(){window.print();};<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) { toast('ポップアップをブロックされています','err'); return; }
+  win.document.write(html);
+  win.document.close();
+}
 
 // ══════════════════════════════════════════════════════════════
-// Tab navigation
+// Util
 // ══════════════════════════════════════════════════════════════
+function nextMonth(ym) {
+  const [y,m] = ym.split('-').map(Number);
+  return m===12 ? `${y+1}-01` : `${y}-${String(m+1).padStart(2,'0')}`;
+}
+
+// Tab nav
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     $('tab-'+btn.dataset.tab).classList.add('active');
   });
 });
 
-// Refresh
 $('refreshBtn').addEventListener('click', () => location.reload());
 </script>
 </body>

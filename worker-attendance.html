@@ -6,28 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>出勤報告｜建設日報システム</title>
-  <!--
-  ================================================================
-  Supabase テーブル拡張 SQL
-  ================================================================
-  -- attendance_logs に以下カラムを追加（未実施の場合のみ）
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS worker_name  text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS company      text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS site_name    text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS work_content text;
-  ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS submitted_at timestamptz DEFAULT now();
-
-  -- RLS（anon キー使用時）
-  CREATE POLICY IF NOT EXISTS "attend_insert" ON attendance_logs FOR INSERT TO anon WITH CHECK (true);
-  CREATE POLICY IF NOT EXISTS "attend_select" ON attendance_logs FOR SELECT TO anon USING (true);
-  ================================================================
-  -->
   <style>
     :root {
       --green:        #1a7a4a;
       --green-dark:   #135c38;
       --green-light:  #22a05a;
-      --green-pale:   #d1fae5;
       --bg:           #0d1f15;
       --bg2:          #152b1e;
       --card:         #1c3527;
@@ -37,39 +20,31 @@
       --muted:        #7aaa8e;
       --yellow:       #fbbf24;
       --red:          #ef4444;
-      --white:        #ffffff;
+      --blue:         #3b82f6;
     }
-
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
     html { scroll-behavior:smooth; }
     body {
       background:var(--bg); color:var(--text);
       font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
-      min-height:100vh; padding-bottom:40px;
+      min-height:100vh; padding-bottom:48px;
     }
 
     /* ── Header ─────────────────────────────────────────── */
     header {
-      background:var(--green-dark);
-      padding:16px 20px 14px;
+      background:var(--green-dark); padding:16px 20px 14px;
       display:flex; align-items:center; justify-content:space-between;
       border-bottom:3px solid var(--green-light);
       position:sticky; top:0; z-index:100;
     }
-    .h-logo {
-      display:flex; align-items:center; gap:10px;
-    }
+    .h-logo { display:flex; align-items:center; gap:10px; }
     .h-icon {
       width:40px; height:40px; background:var(--green-light);
-      border-radius:10px; display:flex; align-items:center; justify-content:center;
-      font-size:20px;
+      border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;
     }
-    .h-title { font-size:17px; font-weight:800; color:var(--white); }
-    .h-sub   { font-size:11px; color:rgba(255,255,255,.65); margin-top:1px; }
-    .h-date  {
-      text-align:right; font-size:13px; color:rgba(255,255,255,.8);
-      line-height:1.5; font-weight:600;
-    }
+    .h-title  { font-size:17px; font-weight:800; color:#fff; }
+    .h-sub    { font-size:11px; color:rgba(255,255,255,.65); margin-top:1px; }
+    .h-date   { text-align:right; font-size:13px; color:rgba(255,255,255,.8); line-height:1.5; font-weight:600; }
 
     /* ── Main ────────────────────────────────────────────── */
     main { max-width:520px; margin:0 auto; padding:20px 16px; }
@@ -78,110 +53,105 @@
     #successScreen {
       display:none; flex-direction:column; align-items:center; justify-content:center;
       min-height:60vh; text-align:center; padding:40px 20px;
-      animation:fadeUp .5s ease both;
     }
-    #successScreen.show { display:flex; }
+    #successScreen.show { display:flex; animation:fadeUp .5s ease both; }
     .success-icon { font-size:80px; margin-bottom:20px; }
-    .success-title {
-      font-size:26px; font-weight:900; color:var(--green-light);
-      margin-bottom:10px; line-height:1.3;
-    }
-    .success-sub { font-size:15px; color:var(--muted); margin-bottom:32px; line-height:1.7; }
+    .success-title { font-size:26px; font-weight:900; color:var(--green-light); margin-bottom:10px; }
+    .success-sub   { font-size:15px; color:var(--muted); margin-bottom:28px; line-height:1.7; }
     .success-info {
       background:var(--card); border:1px solid var(--border);
       border-radius:14px; padding:20px 24px; width:100%; max-width:360px;
       text-align:left; margin-bottom:28px;
     }
-    .success-info-row {
+    .si-row {
       display:flex; justify-content:space-between; align-items:flex-start;
-      padding:8px 0; border-bottom:1px solid var(--border); gap:12px;
-      font-size:14px;
+      padding:8px 0; border-bottom:1px solid var(--border); gap:12px; font-size:14px;
     }
-    .success-info-row:last-child { border-bottom:none; }
-    .success-info-label { color:var(--muted); font-size:12px; white-space:nowrap; }
-    .success-info-value { font-weight:700; text-align:right; word-break:break-word; }
+    .si-row:last-child { border-bottom:none; }
+    .si-label { color:var(--muted); font-size:12px; white-space:nowrap; flex-shrink:0; }
+    .si-val   { font-weight:700; text-align:right; word-break:break-word; }
     .btn-retry {
       background:var(--card2); color:var(--text); border:1px solid var(--border);
       padding:14px 32px; border-radius:12px; font-size:15px; font-weight:700;
-      width:100%; max-width:320px;
+      width:100%; max-width:320px; font-family:inherit; cursor:pointer;
     }
 
-    /* ── Form Screen ─────────────────────────────────────── */
+    /* ── Section Card ────────────────────────────────────── */
     #formScreen { animation:fadeUp .4s ease both; }
-
-    /* ── Section Title ───────────────────────────────────── */
-    .section-card {
+    .sec-card {
       background:var(--card); border:1px solid var(--border);
       border-radius:16px; padding:20px; margin-bottom:16px;
     }
-    .section-hd {
+    .sec-hd {
       display:flex; align-items:center; gap:8px;
-      margin-bottom:16px; padding-bottom:12px;
-      border-bottom:1px solid var(--border);
+      margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border);
     }
-    .section-ico {
+    .sec-ico {
       width:30px; height:30px; background:rgba(34,160,90,.2);
-      border-radius:8px; display:flex; align-items:center; justify-content:center;
-      font-size:15px; flex-shrink:0;
+      border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px;
     }
-    .section-title { font-size:14px; font-weight:800; }
+    .sec-title { font-size:14px; font-weight:800; }
 
-    /* ── Field Group ─────────────────────────────────────── */
+    /* ── Field ───────────────────────────────────────────── */
     .fg { margin-bottom:14px; }
     .fg:last-child { margin-bottom:0; }
     .fg label {
       display:block; font-size:12px; font-weight:800; color:var(--muted);
       margin-bottom:8px; text-transform:uppercase; letter-spacing:.6px;
     }
-    .fg input, .fg textarea {
+    .fg input, .fg select, .fg textarea {
       width:100%; background:var(--card2); border:2px solid var(--border);
       color:var(--text); padding:14px 16px; border-radius:12px;
       font-size:16px; font-family:inherit; transition:border-color .2s;
       -webkit-appearance:none; appearance:none;
     }
-    .fg input:focus, .fg textarea:focus {
-      outline:none; border-color:var(--green-light);
-    }
-    .fg input[readonly] {
-      opacity:.6; cursor:default;
-    }
-    .fg textarea { resize:vertical; min-height:96px; line-height:1.6; }
+    .fg select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237aaa8e' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; padding-right:40px; }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { outline:none; border-color:var(--green-light); }
+    .fg input[readonly] { opacity:.6; cursor:default; }
+    .fg textarea { resize:vertical; min-height:88px; line-height:1.6; }
+    .hint { font-size:11px; color:var(--muted); margin-top:5px; }
 
-    /* ── Quick Select Buttons ────────────────────────────── */
-    .quick-btns {
-      display:flex; flex-wrap:wrap; gap:7px; margin-top:10px;
+    /* ── New worker fields ───────────────────────────────── */
+    #newWorkerFields {
+      display:none; background:rgba(34,160,90,.06); border:1px solid rgba(34,160,90,.2);
+      border-radius:10px; padding:14px; margin-top:10px;
     }
-    .quick-btn {
+    #newWorkerFields .fg label { color:var(--green-light); }
+
+    /* ── Rate display ────────────────────────────────────── */
+    .rate-info {
+      background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.2);
+      border-radius:8px; padding:10px 14px; margin-top:8px;
+      font-size:13px; color:var(--yellow); display:none;
+    }
+    .rate-info.show { display:block; }
+
+    /* ── Quick Buttons ───────────────────────────────────── */
+    .quick-btns { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+    .qbtn {
       background:var(--card2); border:1px solid var(--border);
       color:var(--muted); padding:7px 13px; border-radius:20px;
-      font-size:12px; font-weight:700; transition:all .15s;
-      font-family:inherit;
+      font-size:12px; font-weight:700; transition:all .15s; font-family:inherit; cursor:pointer;
     }
-    .quick-btn:active, .quick-btn.selected {
-      background:rgba(34,160,90,.2); border-color:var(--green-light);
-      color:var(--green-light);
-    }
+    .qbtn:active { background:rgba(34,160,90,.2); border-color:var(--green-light); color:var(--green-light); }
 
     /* ── Submit ──────────────────────────────────────────── */
-    .submit-wrap { padding:0 0 8px; }
     .btn-submit {
       width:100%; background:linear-gradient(135deg,var(--green-light),var(--green-dark));
       color:#fff; border:none; padding:18px; border-radius:16px;
-      font-size:18px; font-weight:900; letter-spacing:.5px;
+      font-size:18px; font-weight:900; letter-spacing:.5px; font-family:inherit; cursor:pointer;
       box-shadow:0 4px 20px rgba(34,160,90,.4);
-      display:flex; align-items:center; justify-content:center; gap:10px;
-      transition:all .2s; font-family:inherit;
+      display:flex; align-items:center; justify-content:center; gap:10px; transition:all .2s;
     }
-    .btn-submit:active { transform:scale(.98); box-shadow:0 2px 10px rgba(34,160,90,.3); }
+    .btn-submit:active { transform:scale(.98); }
     .btn-submit:disabled { opacity:.5; pointer-events:none; }
-    .btn-submit-sub { font-size:12px; opacity:.8; font-weight:600; margin-top:3px; }
-
-    /* ── Toast / Spinner ─────────────────────────────────── */
     .spinner {
       display:none; width:22px; height:22px; border:3px solid rgba(255,255,255,.3);
       border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite;
     }
     .spinner.show { display:inline-block; }
+
+    /* ── Toast ───────────────────────────────────────────── */
     .toast {
       position:fixed; bottom:24px; left:50%;
       transform:translateX(-50%) translateY(80px);
@@ -194,25 +164,42 @@
     .toast.ok  { background:var(--green); }
     .toast.err { background:var(--red); }
 
-    /* ── Animations ──────────────────────────────────────── */
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(16px); }
-      to   { opacity:1; transform:translateY(0); }
+    /* ── Loading overlay ─────────────────────────────────── */
+    #initLoading {
+      position:fixed; inset:0; background:var(--bg);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:200; transition:opacity .4s;
     }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    #initLoading.fade { opacity:0; pointer-events:none; }
+    .init-icon  { font-size:48px; margin-bottom:16px; }
+    .init-text  { font-size:14px; color:var(--muted); }
 
-    /* ── Misc ────────────────────────────────────────────── */
-    .hint { font-size:11px; color:var(--muted); margin-top:5px; }
-    .demo-badge {
-      background:rgba(251,191,36,.15); border:1px solid rgba(251,191,36,.35);
-      color:var(--yellow); font-size:11px; font-weight:700;
-      padding:4px 10px; border-radius:6px; margin-bottom:14px;
-      display:flex; align-items:center; gap:6px;
+    /* ── Error banner ────────────────────────────────────── */
+    .err-banner {
+      background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3);
+      border-radius:10px; padding:12px 16px; margin-bottom:14px;
+      font-size:13px; color:var(--red); display:none;
     }
-    .demo-badge.hidden { display:none; }
+    .err-banner.show { display:block; }
+
+    /* ── Admin link ──────────────────────────────────────── */
+    .admin-link {
+      text-align:center; padding:20px 16px 8px;
+      font-size:12px; color:rgba(122,170,142,.4);
+    }
+    .admin-link a { color:rgba(122,170,142,.4); text-decoration:none; border-bottom:1px solid rgba(122,170,142,.15); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin   { to{transform:rotate(360deg)} }
   </style>
 </head>
 <body>
+
+<!-- Init loading -->
+<div id="initLoading">
+  <div class="init-icon">🏗️</div>
+  <div class="init-text">作業員データを読み込み中...</div>
+</div>
 
 <!-- Header -->
 <header>
@@ -234,21 +221,19 @@
     <div class="success-title">出勤を記録しました！</div>
     <div class="success-sub">お疲れ様です。本日も安全作業でお願いします。</div>
     <div class="success-info" id="successInfo"></div>
-    <button class="btn-retry" onclick="showForm()">🔄 もう一度報告する</button>
+    <button class="btn-retry" onclick="resetForm()">🔄 もう一度報告する</button>
   </div>
 
   <!-- Form Screen -->
   <div id="formScreen">
 
-    <div class="demo-badge" id="demoBadge">
-      🎭 デモモード（Supabase未設定）
-    </div>
+    <div class="err-banner" id="errBanner"></div>
 
     <!-- 基本情報 -->
-    <div class="section-card">
-      <div class="section-hd">
-        <div class="section-ico">📋</div>
-        <div class="section-title">基本情報</div>
+    <div class="sec-card">
+      <div class="sec-hd">
+        <div class="sec-ico">📋</div>
+        <div class="sec-title">基本情報</div>
       </div>
 
       <div class="fg">
@@ -257,16 +242,37 @@
       </div>
 
       <div class="fg">
-        <label>お名前 <span style="color:var(--red);">*</span></label>
-        <input type="text" id="workerName" placeholder="山田 太郎" autocomplete="name" inputmode="text">
+        <label>お名前 <span style="color:var(--red)">*</span></label>
+        <select id="workerSelect" onchange="onWorkerChange()">
+          <option value="">— 選択してください —</option>
+          <option value="__new__">＋ 新しく登録する</option>
+        </select>
       </div>
+
+      <!-- 新規登録フォーム -->
+      <div id="newWorkerFields">
+        <div class="fg">
+          <label>氏名 <span style="color:var(--red)">*</span></label>
+          <input type="text" id="newName" placeholder="山田 太郎">
+        </div>
+        <div class="fg">
+          <label>所属会社</label>
+          <input type="text" id="newCompany" placeholder="〇〇建設">
+        </div>
+        <div class="fg" style="margin-bottom:0;">
+          <label>日当（円/日）</label>
+          <input type="number" id="newRate" placeholder="20000" min="0" step="500">
+        </div>
+      </div>
+
+      <div class="rate-info" id="rateInfo"></div>
     </div>
 
     <!-- 現場情報 -->
-    <div class="section-card">
-      <div class="section-hd">
-        <div class="section-ico">🏢</div>
-        <div class="section-title">現場情報</div>
+    <div class="sec-card">
+      <div class="sec-hd">
+        <div class="sec-ico">🏢</div>
+        <div class="sec-title">現場情報</div>
       </div>
 
       <div class="fg">
@@ -277,138 +283,207 @@
 
       <div class="fg">
         <label>現場名</label>
-        <input type="text" id="siteName" placeholder="R6-法面崩壊防止工事 福岡082" list="siteList">
+        <input type="text" id="siteName" placeholder="現場名を入力" list="siteList">
         <datalist id="siteList"></datalist>
       </div>
     </div>
 
     <!-- 作業内容 -->
-    <div class="section-card">
-      <div class="section-hd">
-        <div class="section-ico">⛏️</div>
-        <div class="section-title">作業内容</div>
+    <div class="sec-card">
+      <div class="sec-hd">
+        <div class="sec-ico">⛏️</div>
+        <div class="sec-title">作業内容・時間</div>
       </div>
 
       <div class="fg">
-        <label>本日の作業内容</label>
+        <label>作業内容</label>
         <textarea id="workContent" placeholder="例：法面工事（コンクリート吹付）&#10;法枠工 約50㎡施工予定"></textarea>
-        <div class="hint">タップで入力、または下のボタンから選択</div>
-        <div class="quick-btns" id="quickBtns">
-          <button class="quick-btn" onclick="appendContent('法面工事')">法面工事</button>
-          <button class="quick-btn" onclick="appendContent('土工')">土工</button>
-          <button class="quick-btn" onclick="appendContent('吹付工')">吹付工</button>
-          <button class="quick-btn" onclick="appendContent('アンカー工')">アンカー工</button>
-          <button class="quick-btn" onclick="appendContent('法枠工')">法枠工</button>
-          <button class="quick-btn" onclick="appendContent('排水工')">排水工</button>
-          <button class="quick-btn" onclick="appendContent('型枠工')">型枠工</button>
-          <button class="quick-btn" onclick="appendContent('コンクリート打設')">コンクリート打設</button>
-          <button class="quick-btn" onclick="appendContent('鉄筋工')">鉄筋工</button>
-          <button class="quick-btn" onclick="appendContent('交通誘導')">交通誘導</button>
-          <button class="quick-btn" onclick="appendContent('重機作業')">重機作業</button>
-          <button class="quick-btn" onclick="appendContent('片付け・清掃')">片付け・清掃</button>
+        <div class="hint">下のボタンからも選択できます</div>
+        <div class="quick-btns">
+          <button class="qbtn" onclick="appendContent('法面工事')">法面工事</button>
+          <button class="qbtn" onclick="appendContent('土工')">土工</button>
+          <button class="qbtn" onclick="appendContent('吹付工')">吹付工</button>
+          <button class="qbtn" onclick="appendContent('アンカー工')">アンカー工</button>
+          <button class="qbtn" onclick="appendContent('法枠工')">法枠工</button>
+          <button class="qbtn" onclick="appendContent('排水工')">排水工</button>
+          <button class="qbtn" onclick="appendContent('型枠工')">型枠工</button>
+          <button class="qbtn" onclick="appendContent('コンクリート打設')">コンクリート打設</button>
+          <button class="qbtn" onclick="appendContent('鉄筋工')">鉄筋工</button>
+          <button class="qbtn" onclick="appendContent('交通誘導')">交通誘導</button>
+          <button class="qbtn" onclick="appendContent('重機作業')">重機作業</button>
+          <button class="qbtn" onclick="appendContent('片付け・清掃')">片付け・清掃</button>
         </div>
+      </div>
+
+      <div class="fg" style="margin-bottom:0;">
+        <label>実働時間</label>
+        <input type="number" id="workHours" value="8.0" min="0" max="24" step="0.5">
+        <div class="hint">半日の場合は 4.0</div>
       </div>
     </div>
 
     <!-- Submit -->
-    <div class="submit-wrap">
-      <button class="btn-submit" id="submitBtn" onclick="submitAttendance()">
-        <span id="submitIcon">🏁</span>
-        <div>
-          <div>出勤を報告する</div>
-          <div class="btn-submit-sub">タップして送信</div>
-        </div>
-        <div class="spinner" id="spinner"></div>
-      </button>
-    </div>
+    <button class="btn-submit" id="submitBtn" onclick="submitAttendance()">
+      <span id="submitIcon">🏁</span>
+      <div>
+        <div>出勤を報告する</div>
+        <div style="font-size:12px;opacity:.8;font-weight:600;margin-top:2px;">タップして送信</div>
+      </div>
+      <div class="spinner" id="spinner"></div>
+    </button>
 
   </div><!-- /formScreen -->
 
 </main>
 
-<div class="toast" id="toast"></div>
+<div class="admin-link">
+  <a href="login.html">管理者の方はこちら →</a>
+</div>
 
-<datalist id="contentList"></datalist>
+<div class="toast" id="toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// Constants / Util
+// Supabase config
 // ══════════════════════════════════════════════════════════════
-const LS = {
-  name:       'wa_name',
-  company:    'wa_company',
-  site:       'wa_site',
-  content:    'wa_content',
-  companies:  'wa_companies',   // JSON array
-  sites:      'wa_sites',       // JSON array
-  sbUrl:      'dr_sb_url',
-  sbKey:      'dr_sb_key',
-};
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
+async function sbFetch(path, opts = {}) {
+  const url = SB_URL + '/rest/v1/' + path;
+  const res = await fetch(url, {
+    headers: {
+      'apikey':        SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type':  'application/json',
+      'Prefer':        opts.prefer || 'return=representation',
+      ...(opts.extraHeaders || {}),
+    },
+    ...opts,
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(res.status + ' ' + body);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// ══════════════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════════════
+const LS = { company:'wa_company', site:'wa_site', content:'wa_content' };
 const today = new Date();
-const todayStr = today.toISOString().slice(0,10);
+const todayStr = today.toISOString().slice(0, 10);
 const todayLabel = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日（${'日月火水木金土'[today.getDay()]}）`;
 
-let _tt;
-function toast(msg, type='', dur=3500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' '+type : '');
-  clearTimeout(_tt); _tt = setTimeout(()=>{ t.className='toast'; }, dur);
-}
-
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function getArr(key) {
-  try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch{ return []; }
-}
-function saveArr(key, val) {
-  const arr = getArr(key);
-  if (val && !arr.includes(val)) { arr.unshift(val); if(arr.length>20) arr.pop(); }
-  localStorage.setItem(key, JSON.stringify(arr));
-}
+let workers  = [];
+let sites    = [];
+let selectedWorker = null;
 
 // ══════════════════════════════════════════════════════════════
 // Init
 // ══════════════════════════════════════════════════════════════
-(function init() {
-  // Header date
+(async () => {
   document.getElementById('headerDate').innerHTML = todayLabel.replace('（','<br>（');
   document.getElementById('workDate').value = todayLabel;
 
   // Restore last values
-  document.getElementById('workerName').value  = localStorage.getItem(LS.name)    || '';
   document.getElementById('company').value     = localStorage.getItem(LS.company) || '';
   document.getElementById('siteName').value    = localStorage.getItem(LS.site)    || '';
   document.getElementById('workContent').value = localStorage.getItem(LS.content) || '';
 
-  // Datalist
-  buildDatalist('companyList', getArr(LS.companies));
-  buildDatalist('siteList',    getArr(LS.sites));
+  try {
+    const [wRes, sRes] = await Promise.all([
+      sbFetch('workers?is_active=eq.true&order=name.asc'),
+      sbFetch('sites?order=name.asc'),
+    ]);
+    workers = wRes || [];
+    sites   = sRes || [];
 
-  // Demo badge
-  const url = localStorage.getItem(LS.sbUrl)||'';
-  const key = localStorage.getItem(LS.sbKey)||'';
-  if (url && key) document.getElementById('demoBadge').classList.add('hidden');
+    // Populate worker select
+    const sel = document.getElementById('workerSelect');
+    workers.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = w.name + (w.company ? '（' + w.company + '）' : '');
+      sel.insertBefore(opt, sel.lastChild); // before __new__
+    });
+
+    // Datalist for sites
+    const sitesDL = document.getElementById('siteList');
+    sites.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.name;
+      sitesDL.appendChild(opt);
+    });
+
+    // Company suggestions from workers
+    const companies = [...new Set(workers.map(w=>w.company).filter(Boolean))];
+    const compDL = document.getElementById('companyList');
+    companies.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      compDL.appendChild(opt);
+    });
+
+  } catch(e) {
+    showErr('データ読み込みエラー: ' + e.message);
+  }
+
+  document.getElementById('initLoading').classList.add('fade');
 })();
 
-function buildDatalist(id, arr) {
-  const dl = document.getElementById(id);
-  dl.innerHTML = arr.map(v => `<option value="${esc(v)}">`).join('');
+// ══════════════════════════════════════════════════════════════
+// Worker select change
+// ══════════════════════════════════════════════════════════════
+function onWorkerChange() {
+  const sel = document.getElementById('workerSelect');
+  const val = sel.value;
+  const newFields  = document.getElementById('newWorkerFields');
+  const rateInfo   = document.getElementById('rateInfo');
+
+  if (val === '__new__') {
+    newFields.style.display = 'block';
+    rateInfo.classList.remove('show');
+    selectedWorker = null;
+    return;
+  }
+
+  newFields.style.display = 'none';
+
+  if (!val) {
+    rateInfo.classList.remove('show');
+    selectedWorker = null;
+    return;
+  }
+
+  selectedWorker = workers.find(w => w.id === val) || null;
+  if (selectedWorker) {
+    let rateText = `日当単価: ¥${selectedWorker.daily_rate.toLocaleString()} / 日`;
+    if (selectedWorker.work_rates && typeof selectedWorker.work_rates === 'object') {
+      const extras = Object.entries(selectedWorker.work_rates)
+        .map(([k,v]) => `${k}: ¥${Number(v).toLocaleString()}`)
+        .join('　');
+      if (extras) rateText += `<br><small style="opacity:.7">工種別: ${extras}</small>`;
+    }
+    rateInfo.innerHTML = '💴 ' + rateText;
+    rateInfo.classList.add('show');
+
+    // Auto-fill company if blank
+    if (!document.getElementById('company').value && selectedWorker.company) {
+      document.getElementById('company').value = selectedWorker.company;
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
-// Quick select
+// Quick content buttons
 // ══════════════════════════════════════════════════════════════
 function appendContent(text) {
-  const ta = document.getElementById('workContent');
+  const ta  = document.getElementById('workContent');
   const cur = ta.value.trim();
-  ta.value = cur ? cur + '\n' + text : text;
-  // Highlight button briefly
-  event.target.classList.add('selected');
-  setTimeout(()=> event.target.classList.remove('selected'), 600);
+  ta.value  = cur ? cur + '\n' + text : text;
   ta.focus();
 }
 
@@ -416,82 +491,118 @@ function appendContent(text) {
 // Submit
 // ══════════════════════════════════════════════════════════════
 async function submitAttendance() {
-  const name    = document.getElementById('workerName').value.trim();
-  const company = document.getElementById('company').value.trim();
-  const site    = document.getElementById('siteName').value.trim();
-  const content = document.getElementById('workContent').value.trim();
+  const selVal    = document.getElementById('workerSelect').value;
+  const company   = document.getElementById('company').value.trim();
+  const site      = document.getElementById('siteName').value.trim();
+  const content   = document.getElementById('workContent').value.trim();
+  const hours     = parseFloat(document.getElementById('workHours').value) || 8.0;
+  const isNew     = selVal === '__new__';
 
-  if (!name) { toast('お名前を入力してください','err'); document.getElementById('workerName').focus(); return; }
+  hideErr();
 
-  const btn = document.getElementById('submitBtn');
-  const spinner = document.getElementById('spinner');
-  const icon    = document.getElementById('submitIcon');
-  btn.disabled = true;
-  spinner.classList.add('show');
-  icon.style.display = 'none';
+  // Validation
+  if (!selVal) { showErr('作業員を選択してください'); return; }
 
-  const record = {
-    work_date:    todayStr,
-    worker_name:  name,
-    company:      company,
-    site_name:    site,
-    work_content: content,
-    status:       'present',
-    work_hours:   8.0,
-    submitted_at: new Date().toISOString(),
-  };
+  let workerId   = null;
+  let workerName = '';
+  let workerComp = company;
+  let dailyRate  = 0;
 
-  const sbUrl = localStorage.getItem(LS.sbUrl)||'';
-  const sbKey = localStorage.getItem(LS.sbKey)||'';
-  let saved = false;
+  if (isNew) {
+    const name    = document.getElementById('newName').value.trim();
+    const newComp = document.getElementById('newCompany').value.trim();
+    const rate    = parseInt(document.getElementById('newRate').value) || 0;
+    if (!name) { showErr('氏名を入力してください'); return; }
 
-  if (sbUrl && sbKey) {
+    setBusy(true);
     try {
-      const res = await fetch(sbUrl + '/rest/v1/attendance_logs', {
+      const [created] = await sbFetch('workers', {
         method: 'POST',
-        headers: {
-          'apikey': sbKey,
-          'Authorization': 'Bearer ' + sbKey,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify(record),
+        body: JSON.stringify({ name, company: newComp || null, daily_rate: rate, is_active: true }),
       });
-      if (!res.ok) throw new Error(await res.text());
-      saved = true;
+      workerId   = created.id;
+      workerName = created.name;
+      workerComp = created.company || company;
+      dailyRate  = created.daily_rate;
+      workers.push(created);
     } catch(e) {
-      btn.disabled = false;
-      spinner.classList.remove('show');
-      icon.style.display = '';
-      toast('送信エラー: ' + e.message, 'err', 5000);
+      setBusy(false);
+      showErr('作業員の登録に失敗しました: ' + e.message);
       return;
     }
   } else {
-    // Demo mode — just simulate
-    await new Promise(r => setTimeout(r, 800));
-    saved = true;
+    if (!selectedWorker) { showErr('作業員を選択してください'); return; }
+    workerId   = selectedWorker.id;
+    workerName = selectedWorker.name;
+    workerComp = company || selectedWorker.company || '';
+    // Determine rate: check work_rates by content keyword, fallback to daily_rate
+    dailyRate  = resolveRate(selectedWorker, content);
+    setBusy(true);
   }
 
-  if (saved) {
-    // Save to localStorage
-    localStorage.setItem(LS.name,    name);
-    localStorage.setItem(LS.company, company);
-    localStorage.setItem(LS.site,    site);
-    localStorage.setItem(LS.content, content);
-    saveArr(LS.companies, company);
-    saveArr(LS.sites,     site);
+  const status = hours >= 8 ? 'present' : hours >= 4 ? 'half' : 'present';
 
-    showSuccess(record);
+  const record = {
+    work_date:    todayStr,
+    worker_id:    workerId,
+    worker_name:  workerName,
+    company:      workerComp || null,
+    site_name:    site || null,
+    work_content: content || null,
+    work_hours:   hours,
+    daily_rate:   dailyRate,
+    status:       status,
+    submitted_at: new Date().toISOString(),
+  };
+
+  try {
+    await sbFetch('attendance_logs', {
+      method: 'POST',
+      prefer: 'return=minimal',
+      body:   JSON.stringify(record),
+    });
+  } catch(e) {
+    setBusy(false);
+    showErr('送信エラー: ' + e.message);
+    return;
   }
 
-  btn.disabled = false;
-  spinner.classList.remove('show');
-  icon.style.display = '';
+  // Save to localStorage
+  if (company) localStorage.setItem(LS.company, company);
+  if (site)    localStorage.setItem(LS.site,    site);
+  if (content) localStorage.setItem(LS.content, content);
+
+  setBusy(false);
+  showSuccess({ ...record, worker_name: workerName });
+}
+
+function resolveRate(worker, content) {
+  if (worker.work_rates && typeof worker.work_rates === 'object' && content) {
+    for (const [trade, rate] of Object.entries(worker.work_rates)) {
+      if (content.includes(trade)) return Number(rate);
+    }
+  }
+  return worker.daily_rate || 0;
 }
 
 // ══════════════════════════════════════════════════════════════
-// Screens
+// UI helpers
 // ══════════════════════════════════════════════════════════════
+function setBusy(on) {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = on;
+  document.getElementById('spinner').classList.toggle('show', on);
+  document.getElementById('submitIcon').style.display = on ? 'none' : '';
+}
+
+function showErr(msg) {
+  const b = document.getElementById('errBanner');
+  b.textContent = '⚠️ ' + msg;
+  b.classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function hideErr() { document.getElementById('errBanner').classList.remove('show'); }
+
 function showSuccess(r) {
   document.getElementById('successInfo').innerHTML = [
     ['作業日',    r.work_date],
@@ -499,29 +610,38 @@ function showSuccess(r) {
     ['元請会社',  r.company || '—'],
     ['現場名',    r.site_name || '—'],
     ['作業内容',  r.work_content || '—'],
+    ['実働時間',  r.work_hours + ' h'],
+    ['日当単価',  r.daily_rate ? '¥' + Number(r.daily_rate).toLocaleString() : '—'],
   ].map(([k,v]) => `
-    <div class="success-info-row">
-      <span class="success-info-label">${k}</span>
-      <span class="success-info-value">${esc(v)}</span>
+    <div class="si-row">
+      <span class="si-label">${k}</span>
+      <span class="si-val">${String(v||'—').replace(/</g,'&lt;')}</span>
     </div>`).join('');
 
   document.getElementById('formScreen').style.display = 'none';
-  const ss = document.getElementById('successScreen');
-  ss.classList.add('show');
-  window.scrollTo({ top:0, behavior:'smooth' });
+  document.getElementById('successScreen').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function showForm() {
+function resetForm() {
   document.getElementById('successScreen').classList.remove('show');
   document.getElementById('formScreen').style.display = '';
-  window.scrollTo({ top:0, behavior:'smooth' });
+  document.getElementById('workerSelect').value = '';
+  document.getElementById('newWorkerFields').style.display = 'none';
+  document.getElementById('rateInfo').classList.remove('show');
+  document.getElementById('workContent').value = localStorage.getItem('wa_content') || '';
+  document.getElementById('workHours').value = '8.0';
+  selectedWorker = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Toast
+let _tt;
+function toast(msg, type='', dur=3500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(_tt); _tt = setTimeout(() => { t.className = 'toast'; }, dur);
 }
 </script>
-
-<div style="text-align:center;padding:24px 16px 8px;font-size:12px;color:rgba(122,170,142,.5);">
-  <a href="login.html" style="color:rgba(122,170,142,.5);text-decoration:none;border-bottom:1px solid rgba(122,170,142,.2);">
-    管理者の方はこちら →
-  </a>
-</div>
 </body>
 </html>
