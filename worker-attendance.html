@@ -1,877 +1,817 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>出勤報告｜建設日報システム</title>
-  <style>
-    :root {
-      --green:        #1a7a4a;
-      --green-dark:   #135c38;
-      --green-light:  #22a05a;
-      --bg:           #0d1f15;
-      --bg2:          #152b1e;
-      --card:         #1c3527;
-      --card2:        #243d2f;
-      --border:       #2d5240;
-      --text:         #e8f5ee;
-      --muted:        #7aaa8e;
-      --yellow:       #fbbf24;
-      --red:          #ef4444;
-      --blue:         #3b82f6;
-    }
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    html { scroll-behavior:smooth; }
-    body {
-      background:var(--bg); color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
-      min-height:100vh; padding-bottom:48px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作業員 日報入力</title>
+<style>
+  :root {
+    --bg: #0d1f15;
+    --bg2: #122b1c;
+    --bg3: #1a3828;
+    --green-light: #22a05a;
+    --green-mid: #16803e;
+    --green-dim: #0f5c2c;
+    --text: #e8f5ee;
+    --text-dim: #8ab89a;
+    --border: #1e4a2e;
+    --accent: #2ecc71;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 40px;
+  }
+  header {
+    background: linear-gradient(135deg, #0a1a0f 0%, var(--bg2) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 20px 16px;
+    text-align: center;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+  header p { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
-    /* ── Header ─────────────────────────────────────────── */
-    header {
-      background:var(--green-dark); padding:16px 20px 14px;
-      display:flex; align-items:center; justify-content:space-between;
-      border-bottom:3px solid var(--green-light);
-      position:sticky; top:0; z-index:100;
-    }
-    .h-logo { display:flex; align-items:center; gap:10px; }
-    .h-icon {
-      width:40px; height:40px; background:var(--green-light);
-      border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px;
-    }
-    .h-title  { font-size:17px; font-weight:800; color:#fff; }
-    .h-sub    { font-size:11px; color:rgba(255,255,255,.65); margin-top:1px; }
-    .h-date   { text-align:right; font-size:13px; color:rgba(255,255,255,.8); line-height:1.5; font-weight:600; }
+  .container { max-width: 500px; margin: 0 auto; padding: 20px 16px; }
 
-    /* ── Main ────────────────────────────────────────────── */
-    main { max-width:520px; margin:0 auto; padding:20px 16px; }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 14px;
+    background: var(--green-light);
+    border-radius: 2px;
+  }
 
-    /* ── Success Screen ──────────────────────────────────── */
-    #successScreen {
-      display:none; flex-direction:column; align-items:center; justify-content:center;
-      min-height:60vh; text-align:center; padding:40px 20px;
-    }
-    #successScreen.show { display:flex; animation:fadeUp .5s ease both; }
-    .success-icon { font-size:80px; margin-bottom:20px; }
-    .success-title { font-size:26px; font-weight:900; color:var(--green-light); margin-bottom:10px; }
-    .success-sub   { font-size:15px; color:var(--muted); margin-bottom:28px; line-height:1.7; }
-    .success-info {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:14px; padding:20px 24px; width:100%; max-width:360px;
-      text-align:left; margin-bottom:28px;
-    }
-    .si-row {
-      display:flex; justify-content:space-between; align-items:flex-start;
-      padding:8px 0; border-bottom:1px solid var(--border); gap:12px; font-size:14px;
-    }
-    .si-row:last-child { border-bottom:none; }
-    .si-label { color:var(--muted); font-size:12px; white-space:nowrap; flex-shrink:0; }
-    .si-val   { font-weight:700; text-align:right; word-break:break-word; }
-    .btn-retry {
-      background:var(--card2); color:var(--text); border:1px solid var(--border);
-      padding:14px 32px; border-radius:12px; font-size:15px; font-weight:700;
-      width:100%; max-width:320px; font-family:inherit; cursor:pointer;
-    }
+  label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 5px; }
+  label .required { color: var(--danger); margin-left: 3px; }
+  label .optional { color: var(--text-dim); font-size: 0.72rem; margin-left: 4px; }
 
-    /* ── Section Card ────────────────────────────────────── */
-    #formScreen { animation:fadeUp .4s ease both; }
-    .sec-card {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:16px; padding:20px; margin-bottom:16px;
-    }
-    .sec-hd {
-      display:flex; align-items:center; gap:8px;
-      margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border);
-    }
-    .sec-ico {
-      width:30px; height:30px; background:rgba(34,160,90,.2);
-      border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px;
-    }
-    .sec-title { font-size:14px; font-weight:800; }
+  select, input[type="text"], input[type="date"], input[type="number"], input[type="time"], textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    -webkit-appearance: none;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--green-light); }
+  select option { background: var(--bg3); }
 
-    /* ── Field ───────────────────────────────────────────── */
-    .fg { margin-bottom:14px; }
-    .fg:last-child { margin-bottom:0; }
-    .fg label {
-      display:block; font-size:12px; font-weight:800; color:var(--muted);
-      margin-bottom:8px; text-transform:uppercase; letter-spacing:.6px;
-    }
-    .fg input, .fg select, .fg textarea {
-      width:100%; background:var(--card2); border:2px solid var(--border);
-      color:var(--text); padding:14px 16px; border-radius:12px;
-      font-size:16px; font-family:inherit; transition:border-color .2s;
-      -webkit-appearance:none; appearance:none;
-    }
-    .fg select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237aaa8e' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; padding-right:40px; }
-    .fg input:focus, .fg select:focus, .fg textarea:focus { outline:none; border-color:var(--green-light); }
-    .fg input[readonly] { opacity:.6; cursor:default; }
-    .fg textarea { resize:vertical; min-height:88px; line-height:1.6; }
-    .hint { font-size:11px; color:var(--muted); margin-top:5px; }
+  .form-row { margin-bottom: 14px; }
 
-    /* ── New worker fields ───────────────────────────────── */
-    #newWorkerFields {
-      display:none; background:rgba(34,160,90,.06); border:1px solid rgba(34,160,90,.2);
-      border-radius:10px; padding:14px; margin-top:10px;
-    }
-    #newWorkerFields .fg label { color:var(--green-light); }
+  .new-worker-area {
+    display: none;
+    background: var(--bg3);
+    border: 1px solid var(--green-dim);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 10px;
+  }
+  .new-worker-area.open { display: block; }
+  .new-worker-area .form-row:last-child { margin-bottom: 0; }
 
-    /* ── Rate display ────────────────────────────────────── */
-    .rate-info {
-      background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.2);
-      border-radius:8px; padding:10px 14px; margin-top:8px;
-      font-size:13px; color:var(--yellow); display:none;
-    }
-    .rate-info.show { display:block; }
+  .rate-preview {
+    background: var(--bg3);
+    border: 1px solid var(--green-dim);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 10px;
+    display: none;
+  }
+  .rate-preview.show { display: block; }
+  .rate-preview .base-rate {
+    font-size: 1.1rem; font-weight: 700; color: var(--accent);
+  }
+  .rate-preview .rate-note { font-size: 0.75rem; color: var(--warn); margin-top: 4px; }
+  .rate-list { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .rate-badge {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 0.75rem; color: var(--text-dim);
+  }
+  .rate-badge.active { border-color: var(--accent); color: var(--accent); background: rgba(46,204,113,0.1); }
 
-    /* ── Status toggle ───────────────────────────────────── */
-    .status-toggle { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
-    .status-radio-btn { display:none; }
-    .status-label-btn {
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:4px; padding:14px 8px; border-radius:12px; border:2px solid var(--border);
-      background:var(--card2); color:var(--muted); cursor:pointer;
-      transition:all .2s; font-size:13px; font-weight:800; text-align:center; line-height:1.3;
-    }
-    .status-label-btn span { font-size:22px; }
-    .status-radio-btn:checked + .status-label-btn.l-present {
-      background:rgba(34,160,90,.15); border-color:var(--green-light); color:var(--green-light);
-      box-shadow:0 0 0 3px rgba(34,160,90,.1);
-    }
-    .status-radio-btn:checked + .status-label-btn.l-absent {
-      background:rgba(239,68,68,.12); border-color:var(--red); color:var(--red);
-      box-shadow:0 0 0 3px rgba(239,68,68,.08);
-    }
-    .status-radio-btn:checked + .status-label-btn.l-late {
-      background:rgba(251,191,36,.1); border-color:var(--yellow); color:var(--yellow);
-      box-shadow:0 0 0 3px rgba(251,191,36,.07);
-    }
+  /* ステータス選択 */
+  .status-tabs {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 4px;
+  }
+  .status-tab {
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 6px;
+    text-align: center; cursor: pointer;
+    font-size: 0.82rem; transition: all 0.2s;
+    background: var(--bg3);
+    color: var(--text-dim);
+  }
+  .status-tab .icon { font-size: 1.2rem; display: block; margin-bottom: 3px; }
+  .status-tab.selected-present { border-color: var(--accent); color: var(--accent); background: rgba(46,204,113,0.1); }
+  .status-tab.selected-absent { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.1); }
+  .status-tab.selected-late { border-color: var(--warn); color: var(--warn); background: rgba(245,158,11,0.1); }
 
-    /* ── Conditional sections ────────────────────────────── */
-    .cond-section { display:none; }
-    .cond-section.show { display:block; }
+  /* 条件表示エリア */
+  .conditional-area { display: none; margin-top: 12px; }
+  .conditional-area.show { display: block; }
 
-    /* ── Photo upload ────────────────────────────────────── */
-    .photo-upload-area {
-      border:2px dashed var(--border); border-radius:12px; padding:20px;
-      text-align:center; cursor:pointer; transition:border-color .2s;
-    }
-    .photo-upload-area:hover { border-color:var(--green-light); }
-    .photo-icon { font-size:32px; margin-bottom:8px; }
-    .photo-label { font-size:13px; color:var(--muted); }
-    .photo-preview { display:none; margin-top:12px; }
-    .photo-preview img { max-width:100%; border-radius:8px; max-height:200px; object-fit:cover; }
-    .photo-preview .photo-name { font-size:11px; color:var(--muted); margin-top:6px; }
+  /* 遅刻入力 */
+  .late-input-area {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 8px; padding: 12px;
+  }
+  .late-input-area label { color: var(--warn); }
 
-    /* ── Quick Buttons ───────────────────────────────────── */
-    .quick-btns { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
-    .qbtn {
-      background:var(--card2); border:1px solid var(--border);
-      color:var(--muted); padding:7px 13px; border-radius:20px;
-      font-size:12px; font-weight:700; transition:all .15s; font-family:inherit; cursor:pointer;
-    }
-    .qbtn:active { background:rgba(34,160,90,.2); border-color:var(--green-light); color:var(--green-light); }
+  /* 欠勤入力 */
+  .absent-input-area {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px; padding: 12px;
+  }
+  .absent-input-area label { color: #fca5a5; }
 
-    /* ── Submit ──────────────────────────────────────────── */
-    .btn-submit {
-      width:100%; background:linear-gradient(135deg,var(--green-light),var(--green-dark));
-      color:#fff; border:none; padding:18px; border-radius:16px;
-      font-size:18px; font-weight:900; letter-spacing:.5px; font-family:inherit; cursor:pointer;
-      box-shadow:0 4px 20px rgba(34,160,90,.4);
-      display:flex; align-items:center; justify-content:center; gap:10px; transition:all .2s;
-    }
-    .btn-submit:active { transform:scale(.98); }
-    .btn-submit:disabled { opacity:.5; pointer-events:none; }
-    .spinner {
-      display:none; width:22px; height:22px; border:3px solid rgba(255,255,255,.3);
-      border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite;
-    }
-    .spinner.show { display:inline-block; }
+  /* メーター写真 */
+  .photo-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px; padding: 16px;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+  .photo-upload-area:hover { border-color: var(--green-light); }
+  .photo-upload-area input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .photo-upload-area .upload-icon { font-size: 2rem; margin-bottom: 6px; }
+  .photo-upload-area p { font-size: 0.8rem; color: var(--text-dim); }
+  .photo-preview {
+    margin-top: 10px; display: none;
+    position: relative;
+  }
+  .photo-preview img {
+    width: 100%; max-height: 200px; object-fit: cover;
+    border-radius: 8px; border: 1px solid var(--border);
+  }
+  .photo-preview .remove-photo {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(0,0,0,0.7); border: none; color: white;
+    border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
+    font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+  }
 
-    /* ── Toast ───────────────────────────────────────────── */
-    .toast {
-      position:fixed; bottom:24px; left:50%;
-      transform:translateX(-50%) translateY(80px);
-      padding:12px 24px; border-radius:100px; font-size:14px; font-weight:700;
-      color:#fff; background:#1c3527; z-index:400;
-      transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.5);
-    }
-    .toast.show { transform:translateX(-50%) translateY(0); }
-    .toast.ok  { background:var(--green); }
-    .toast.err { background:var(--red); }
+  /* ボタン */
+  .btn {
+    width: 100%; padding: 14px;
+    border-radius: var(--radius); border: none;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--green-light), var(--green-mid));
+    color: white;
+  }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: var(--bg3); color: var(--text-dim);
+    border: 1px solid var(--border); margin-top: 8px;
+    font-size: 0.85rem; padding: 10px;
+  }
 
-    /* ── Loading overlay ─────────────────────────────────── */
-    #initLoading {
-      position:fixed; inset:0; background:var(--bg);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      z-index:200; transition:opacity .4s;
-    }
-    #initLoading.fade { opacity:0; pointer-events:none; }
-    .init-icon  { font-size:48px; margin-bottom:16px; }
-    .init-text  { font-size:14px; color:var(--muted); }
+  /* 成功画面 */
+  #successScreen {
+    display: none;
+    text-align: center; padding: 40px 20px;
+  }
+  #successScreen.show { display: block; }
+  .success-icon { font-size: 4rem; margin-bottom: 16px; }
+  .success-title { font-size: 1.4rem; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .success-detail {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin: 16px 0;
+    text-align: left;
+  }
+  .success-detail .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  .success-detail .row:last-child { border-bottom: none; }
+  .success-detail .val { font-weight: 600; color: var(--accent); }
+  .success-absent .val { color: var(--danger); }
+  .success-late .val { color: var(--warn); }
 
-    /* ── Error banner ────────────────────────────────────── */
-    .err-banner {
-      background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3);
-      border-radius:10px; padding:12px 16px; margin-bottom:14px;
-      font-size:13px; color:var(--red); display:none;
-    }
-    .err-banner.show { display:block; }
+  /* フォーム */
+  #mainForm { display: block; }
 
-    /* ── Admin link ──────────────────────────────────────── */
-    .admin-link {
-      text-align:center; padding:20px 16px 8px;
-      font-size:12px; color:rgba(122,170,142,.4);
-    }
-    .admin-link a { color:rgba(122,170,142,.4); text-decoration:none; border-bottom:1px solid rgba(122,170,142,.15); }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white; border-radius: 50%;
+    animation: spin 0.6s linear infinite; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-    @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes spin   { to{transform:rotate(360deg)} }
-  </style>
+  .error-msg {
+    color: var(--danger); font-size: 0.8rem;
+    margin-top: 6px; display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* 日時表示 */
+  .date-display {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 0.95rem; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .date-display span { color: var(--text-dim); font-size: 0.8rem; }
+</style>
 </head>
 <body>
 
-<!-- Init loading -->
-<div id="initLoading">
-  <div class="init-icon">🏗️</div>
-  <div class="init-text">作業員データを読み込み中...</div>
-</div>
-
-<!-- Header -->
 <header>
-  <div class="h-logo">
-    <div class="h-icon">🏗️</div>
-    <div>
-      <div class="h-title">出勤報告</div>
-      <div class="h-sub">毎朝の出勤をここから報告</div>
-    </div>
-  </div>
-  <div class="h-date" id="headerDate"></div>
+  <h1>🏗️ 建設日報システム</h1>
+  <p id="todayHeader"></p>
 </header>
 
-<main>
+<div class="container">
+  <!-- メインフォーム -->
+  <div id="mainForm">
 
-  <!-- Success Screen -->
-  <div id="successScreen">
-    <div class="success-icon">✅</div>
-    <div class="success-title">出勤を記録しました！</div>
-    <div class="success-sub">お疲れ様です。本日も安全作業でお願いします。</div>
-    <div class="success-info" id="successInfo"></div>
-    <button class="btn-retry" onclick="resetForm()">🔄 もう一度報告する</button>
-  </div>
-
-  <!-- Form Screen -->
-  <div id="formScreen">
-
-    <div class="err-banner" id="errBanner"></div>
-
-    <!-- 基本情報 -->
-    <div class="sec-card">
-      <div class="sec-hd">
-        <div class="sec-ico">📋</div>
-        <div class="sec-title">基本情報</div>
-      </div>
-
-      <div class="fg">
-        <label>作業日</label>
-        <input type="text" id="workDate" readonly>
-      </div>
-
-      <div class="fg">
-        <label>お名前 <span style="color:var(--red)">*</span></label>
-        <select id="workerSelect" onchange="onWorkerChange()">
-          <option value="">— 選択してください —</option>
-          <option value="__new__">＋ 新しく登録する</option>
+    <!-- 作業員選択 -->
+    <div class="card">
+      <div class="card-title">作業員</div>
+      <div class="form-row">
+        <label>氏名を選択 <span class="required">*</span></label>
+        <select id="workerSelect">
+          <option value="">-- 読み込み中... --</option>
         </select>
       </div>
-
       <!-- 新規登録フォーム -->
-      <div id="newWorkerFields">
-        <div class="fg">
-          <label>氏名 <span style="color:var(--red)">*</span></label>
-          <input type="text" id="newName" placeholder="山田 太郎">
+      <div class="new-worker-area" id="newWorkerArea">
+        <div class="form-row">
+          <label>氏名 <span class="required">*</span></label>
+          <input type="text" id="newName" placeholder="例: 山田 太郎">
         </div>
-        <div class="fg">
-          <label>所属会社</label>
-          <input type="text" id="newCompany" placeholder="〇〇建設">
+        <div class="form-row">
+          <label>会社名 <span class="required">*</span></label>
+          <input type="text" id="newCompany" placeholder="例: 株式会社○○建設">
         </div>
-        <div class="fg" style="margin-bottom:0;">
-          <label>日当（円/日）</label>
-          <input type="number" id="newRate" placeholder="20000" min="0" step="500">
+        <div class="form-row">
+          <label>基本日当 (円) <span class="required">*</span></label>
+          <input type="number" id="newRate" value="15000" min="0" step="500">
         </div>
+        <button class="btn btn-secondary" id="registerWorkerBtn" onclick="registerWorker()">＋ 登録する</button>
       </div>
-
-      <div class="rate-info" id="rateInfo"></div>
-    </div>
-
-    <!-- ステータス選択 -->
-    <div class="sec-card">
-      <div class="sec-hd">
-        <div class="sec-ico">📌</div>
-        <div class="sec-title">本日のステータス</div>
-      </div>
-      <div class="fg" style="margin-bottom:0;">
-        <div class="status-toggle">
-          <input type="radio" class="status-radio-btn" name="reportStatus" id="sPres" value="present" checked onchange="onStatusChange()">
-          <label for="sPres" class="status-label-btn l-present"><span>✅</span>出勤</label>
-
-          <input type="radio" class="status-radio-btn" name="reportStatus" id="sLate" value="late" onchange="onStatusChange()">
-          <label for="sLate" class="status-label-btn l-late"><span>⏰</span>遅刻</label>
-
-          <input type="radio" class="status-radio-btn" name="reportStatus" id="sAbsent" value="absent" onchange="onStatusChange()">
-          <label for="sAbsent" class="status-label-btn l-absent"><span>❌</span>欠勤</label>
-        </div>
+      <!-- 単価プレビュー -->
+      <div class="rate-preview" id="ratePreview">
+        <div class="base-rate" id="baseRateText"></div>
+        <div class="rate-note" id="rateMatchNote"></div>
+        <div class="rate-list" id="rateList"></div>
       </div>
     </div>
 
-    <!-- 遅刻フィールド（遅刻選択時のみ表示） -->
-    <div class="sec-card cond-section" id="lateSection">
-      <div class="sec-hd">
-        <div class="sec-ico">⏰</div>
-        <div class="sec-title">遅刻詳細</div>
+    <!-- 報告日 -->
+    <div class="card">
+      <div class="card-title">報告日</div>
+      <div class="form-row">
+        <div class="date-display" id="workDateDisplay">
+          <span>📅</span> <span id="dateText"></span>
+        </div>
+        <input type="date" id="workDate" style="display:none">
       </div>
-      <div class="fg">
-        <label>遅刻到着予定時刻</label>
-        <input type="time" id="lateTime" placeholder="09:30">
-      </div>
-      <div class="fg" style="margin-bottom:0;">
-        <label>遅刻理由</label>
-        <textarea id="lateReason" placeholder="例：電車遅延、体調不良等" style="min-height:72px;"></textarea>
-      </div>
-    </div>
-
-    <!-- 欠勤フィールド（欠勤選択時のみ表示） -->
-    <div class="sec-card cond-section" id="absentSection">
-      <div class="sec-hd">
-        <div class="sec-ico">❌</div>
-        <div class="sec-title">欠勤詳細</div>
-      </div>
-      <div class="fg">
-        <label>欠勤理由</label>
-        <select id="absentReason">
-          <option value="">— 選択してください —</option>
-          <option value="病気・体調不良">病気・体調不良</option>
-          <option value="私用・所用">私用・所用</option>
-          <option value="家族の都合">家族の都合</option>
-          <option value="交通機関の乱れ">交通機関の乱れ</option>
-          <option value="天候・災害">天候・災害</option>
-          <option value="その他">その他</option>
-        </select>
-      </div>
-      <div class="fg" style="margin-bottom:0;">
-        <label>補足・備考</label>
-        <textarea id="absentNote" placeholder="詳細があれば入力してください" style="min-height:72px;"></textarea>
+      <div style="margin-top:8px">
+        <button class="btn btn-secondary" onclick="toggleDateEdit()" id="dateEditBtn" style="font-size:0.75rem; padding:6px">
+          📝 日付を変更する
+        </button>
       </div>
     </div>
 
-    <!-- 現場情報 -->
-    <div class="sec-card" id="siteSection">
-      <div class="sec-hd">
-        <div class="sec-ico">🏢</div>
-        <div class="sec-title">現場情報</div>
+    <!-- 出勤ステータス -->
+    <div class="card">
+      <div class="card-title">本日の状況</div>
+      <div class="status-tabs">
+        <div class="status-tab selected-present" id="tab-present" onclick="selectStatus('present')">
+          <span class="icon">✅</span>出勤
+        </div>
+        <div class="status-tab" id="tab-absent" onclick="selectStatus('absent')">
+          <span class="icon">🏠</span>欠勤
+        </div>
+        <div class="status-tab" id="tab-late" onclick="selectStatus('late')">
+          <span class="icon">⏰</span>遅刻
+        </div>
       </div>
 
-      <div class="fg">
-        <label>元請会社名</label>
-        <input type="text" id="company" placeholder="〇〇建設株式会社" list="companyList" autocomplete="organization">
-        <datalist id="companyList"></datalist>
+      <!-- 欠勤の場合 -->
+      <div class="conditional-area" id="absentArea">
+        <div class="absent-input-area">
+          <div class="form-row" style="margin-bottom:0">
+            <label>欠勤理由 <span class="optional">(任意)</span></label>
+            <select id="absentReason">
+              <option value="">-- 選択 --</option>
+              <option value="当日欠勤">当日欠勤</option>
+              <option value="有給">有給休暇</option>
+              <option value="体調不良">体調不良</option>
+              <option value="家族の事情">家族の事情</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin-top:10px; margin-bottom:0">
+            <label>備考 <span class="optional">(任意)</span></label>
+            <input type="text" id="absentNote" placeholder="詳細があれば記入">
+          </div>
+        </div>
       </div>
 
-      <div class="fg">
-        <label>現場名</label>
-        <input type="text" id="siteName" placeholder="現場名を入力" list="siteList">
+      <!-- 遅刻の場合 -->
+      <div class="conditional-area" id="lateArea">
+        <div class="late-input-area">
+          <div class="form-row" style="margin-bottom:0">
+            <label>出勤時刻 <span class="required">*</span></label>
+            <input type="time" id="lateTime" value="09:00">
+          </div>
+          <div class="form-row" style="margin-top:10px; margin-bottom:0">
+            <label>遅刻理由 <span class="optional">(任意)</span></label>
+            <input type="text" id="lateReason" placeholder="例: 電車遅延、体調不良など">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 現場・作業内容（出勤・遅刻の場合のみ） -->
+    <div class="card" id="workDetailCard">
+      <div class="card-title">現場・作業内容</div>
+      <div class="form-row">
+        <label>現場名 <span class="required">*</span></label>
+        <input type="text" id="siteName" list="siteList" placeholder="現場名を入力または選択">
         <datalist id="siteList"></datalist>
       </div>
-    </div>
-
-    <!-- 作業内容 -->
-    <div class="sec-card">
-      <div class="sec-hd">
-        <div class="sec-ico">⛏️</div>
-        <div class="sec-title">作業内容・時間</div>
+      <div class="form-row">
+        <label>作業内容 <span class="required">*</span></label>
+        <input type="text" id="workContent" placeholder="例: 法面吹付工事、鉄筋組立など" oninput="matchWorkRate()">
       </div>
-
-      <div class="fg">
-        <label>作業内容</label>
-        <textarea id="workContent" placeholder="例：法面工事（コンクリート吹付）&#10;法枠工 約50㎡施工予定"></textarea>
-        <div class="hint">下のボタンからも選択できます</div>
-        <div class="quick-btns">
-          <button class="qbtn" onclick="appendContent('法面工事')">法面工事</button>
-          <button class="qbtn" onclick="appendContent('土工')">土工</button>
-          <button class="qbtn" onclick="appendContent('吹付工')">吹付工</button>
-          <button class="qbtn" onclick="appendContent('アンカー工')">アンカー工</button>
-          <button class="qbtn" onclick="appendContent('法枠工')">法枠工</button>
-          <button class="qbtn" onclick="appendContent('排水工')">排水工</button>
-          <button class="qbtn" onclick="appendContent('型枠工')">型枠工</button>
-          <button class="qbtn" onclick="appendContent('コンクリート打設')">コンクリート打設</button>
-          <button class="qbtn" onclick="appendContent('鉄筋工')">鉄筋工</button>
-          <button class="qbtn" onclick="appendContent('交通誘導')">交通誘導</button>
-          <button class="qbtn" onclick="appendContent('重機作業')">重機作業</button>
-          <button class="qbtn" onclick="appendContent('片付け・清掃')">片付け・清掃</button>
-        </div>
-      </div>
-
-      <div class="fg" style="margin-bottom:0;">
-        <label>実働時間</label>
-        <input type="number" id="workHours" value="8.0" min="0" max="24" step="0.5">
-        <div class="hint">半日の場合は 4.0</div>
+      <div class="form-row">
+        <label>勤務時間 (h)</label>
+        <input type="number" id="workHours" value="8.0" min="0.5" max="24" step="0.5">
       </div>
     </div>
 
-    <!-- メーター写真 -->
-    <div class="sec-card" id="photoSection">
-      <div class="sec-hd">
-        <div class="sec-ico">📷</div>
-        <div class="sec-title">メーター写真（任意）</div>
-      </div>
-      <div class="photo-upload-area" onclick="document.getElementById('meterPhoto').click()">
-        <input type="file" id="meterPhoto" accept="image/*" capture="environment" onchange="onPhotoSelect(this)">
-        <div class="photo-icon">📸</div>
-        <div class="photo-label">タップしてカメラで撮影<br><small style="font-size:10px;">または写真を選択（任意）</small></div>
+    <!-- 車メーター写真（任意） -->
+    <div class="card">
+      <div class="card-title">車メーター写真 <span style="font-size:0.7rem; color:var(--text-dim); font-weight:400; text-transform:none;">(任意)</span></div>
+      <div class="photo-upload-area" id="photoArea">
+        <input type="file" id="meterPhoto" accept="image/*" capture="environment" onchange="previewPhoto(event)">
+        <div class="upload-icon">📷</div>
+        <p>タップして写真を撮影 / 選択</p>
+        <p style="font-size:0.7rem; margin-top:4px; color:var(--text-dim)">走行メーター・出発前の車両確認など</p>
       </div>
       <div class="photo-preview" id="photoPreview">
-        <img id="photoThumb" src="" alt="メーター写真">
-        <div class="photo-name" id="photoName"></div>
-        <button onclick="clearPhoto()" style="margin-top:8px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;">✕ 写真を削除</button>
+        <img id="photoImg" src="" alt="メーター写真">
+        <button class="remove-photo" onclick="removePhoto()">✕</button>
       </div>
-      <div class="hint" style="margin-top:8px;">重機・設備のメーター記録写真をアップロードできます</div>
     </div>
 
-    <!-- Submit -->
-    <button class="btn-submit" id="submitBtn" onclick="submitAttendance()">
-      <span id="submitIcon">🏁</span>
-      <div>
-        <div>出勤を報告する</div>
-        <div style="font-size:12px;opacity:.8;font-weight:600;margin-top:2px;">タップして送信</div>
-      </div>
-      <div class="spinner" id="spinner"></div>
+    <div class="error-msg" id="errorMsg"></div>
+
+    <button class="btn btn-primary" id="submitBtn" onclick="submitReport()">
+      📤 報告を送信する
     </button>
+  </div>
 
-  </div><!-- /formScreen -->
-
-</main>
-
-<div class="admin-link">
-  <a href="login.html">管理者の方はこちら →</a>
+  <!-- 成功画面 -->
+  <div id="successScreen">
+    <div class="success-icon" id="successIcon">✅</div>
+    <div class="success-title" id="successTitle">報告を送信しました！</div>
+    <p style="color:var(--text-dim); font-size:0.85rem">お疲れ様です</p>
+    <div class="success-detail" id="successDetail"></div>
+    <button class="btn btn-secondary" onclick="resetForm()">🔄 別の報告を送信</button>
+  </div>
 </div>
 
-<div class="toast" id="toast"></div>
-
 <script>
-// ══════════════════════════════════════════════════════════════
-// Supabase config
-// ══════════════════════════════════════════════════════════════
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
-async function sbFetch(path, opts = {}) {
-  const url = SB_URL + '/rest/v1/' + path;
-  const res = await fetch(url, {
-    headers: {
-      'apikey':        SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
-      'Content-Type':  'application/json',
-      'Prefer':        opts.prefer || 'return=representation',
-      ...(opts.extraHeaders || {}),
-    },
-    ...opts,
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(res.status + ' ' + body);
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : [];
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Prefer': 'return=representation'
+};
+
+let workers = [];
+let selectedWorker = null;
+let currentStatus = 'present';
+let photoBase64 = null;
+
+// 初期化
+window.onload = async () => {
+  const today = new Date();
+  const ymd = today.toISOString().split('T')[0];
+  document.getElementById('workDate').value = ymd;
+  document.getElementById('dateText').textContent = formatDateJP(ymd);
+  document.getElementById('todayHeader').textContent = formatDateJP(ymd) + ' (' + ['日','月','火','水','木','金','土'][today.getDay()] + ')';
+  await loadWorkers();
+  await loadSites();
+};
+
+function formatDateJP(ymd) {
+  const d = new Date(ymd + 'T00:00:00');
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// State
-// ══════════════════════════════════════════════════════════════
-const LS = { company:'wa_company', site:'wa_site', content:'wa_content' };
-const today = new Date();
-const todayStr = today.toISOString().slice(0, 10);
-const todayLabel = `${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日（${'日月火水木金土'[today.getDay()]}）`;
-
-let workers  = [];
-let sites    = [];
-let selectedWorker = null;
-
-// ══════════════════════════════════════════════════════════════
-// Init
-// ══════════════════════════════════════════════════════════════
-(async () => {
-  document.getElementById('headerDate').innerHTML = todayLabel.replace('（','<br>（');
-  document.getElementById('workDate').value = todayLabel;
-
-  // Restore last values
-  document.getElementById('company').value     = localStorage.getItem(LS.company) || '';
-  document.getElementById('siteName').value    = localStorage.getItem(LS.site)    || '';
-  document.getElementById('workContent').value = localStorage.getItem(LS.content) || '';
-
+async function loadWorkers() {
   try {
-    const [wRes, sRes] = await Promise.all([
-      sbFetch('workers?is_active=eq.true&order=name.asc'),
-      sbFetch('sites?order=name.asc'),
-    ]);
-    workers = wRes || [];
-    sites   = sRes || [];
-
-    // Populate worker select
+    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true&order=name`, { headers: HEADERS });
+    workers = await res.json();
     const sel = document.getElementById('workerSelect');
+    sel.innerHTML = '<option value="">-- 作業員を選択 --</option>';
     workers.forEach(w => {
       const opt = document.createElement('option');
       opt.value = w.id;
-      opt.textContent = w.name + (w.company ? '（' + w.company + '）' : '');
-      sel.insertBefore(opt, sel.lastChild); // before __new__
+      opt.textContent = `${w.name}（${w.company}）`;
+      sel.appendChild(opt);
     });
+    const newOpt = document.createElement('option');
+    newOpt.value = '__new__';
+    newOpt.textContent = '＋ 新しく登録する';
+    sel.appendChild(newOpt);
+    sel.onchange = onWorkerChange;
+  } catch(e) { showError('作業員データの読み込みに失敗しました'); }
+}
 
-    // Datalist for sites
-    const sitesDL = document.getElementById('siteList');
+async function loadSites() {
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/sites?select=name&order=name`, { headers: HEADERS });
+    const sites = await res.json();
+    const dl = document.getElementById('siteList');
     sites.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.name;
-      sitesDL.appendChild(opt);
+      dl.appendChild(opt);
     });
+  } catch(e) {}
+}
 
-    // Company suggestions from workers
-    const companies = [...new Set(workers.map(w=>w.company).filter(Boolean))];
-    const compDL = document.getElementById('companyList');
-    companies.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c;
-      compDL.appendChild(opt);
-    });
-
-  } catch(e) {
-    showErr('データ読み込みエラー: ' + e.message);
-  }
-
-  document.getElementById('initLoading').classList.add('fade');
-})();
-
-// ══════════════════════════════════════════════════════════════
-// Worker select change
-// ══════════════════════════════════════════════════════════════
 function onWorkerChange() {
-  const sel = document.getElementById('workerSelect');
-  const val = sel.value;
-  const newFields  = document.getElementById('newWorkerFields');
-  const rateInfo   = document.getElementById('rateInfo');
-
+  const val = document.getElementById('workerSelect').value;
+  const newArea = document.getElementById('newWorkerArea');
+  const preview = document.getElementById('ratePreview');
   if (val === '__new__') {
-    newFields.style.display = 'block';
-    rateInfo.classList.remove('show');
+    newArea.classList.add('open');
+    preview.classList.remove('show');
     selectedWorker = null;
-    return;
-  }
-
-  newFields.style.display = 'none';
-
-  if (!val) {
-    rateInfo.classList.remove('show');
+  } else if (val) {
+    newArea.classList.remove('open');
+    selectedWorker = workers.find(w => w.id === val);
+    showRatePreview();
+  } else {
+    newArea.classList.remove('open');
+    preview.classList.remove('show');
     selectedWorker = null;
-    return;
-  }
-
-  selectedWorker = workers.find(w => w.id === val) || null;
-  if (selectedWorker) {
-    let rateText = `日当単価: ¥${selectedWorker.daily_rate.toLocaleString()} / 日`;
-    if (selectedWorker.work_rates && typeof selectedWorker.work_rates === 'object') {
-      const extras = Object.entries(selectedWorker.work_rates)
-        .map(([k,v]) => `${k}: ¥${Number(v).toLocaleString()}`)
-        .join('　');
-      if (extras) rateText += `<br><small style="opacity:.7">工種別: ${extras}</small>`;
-    }
-    rateInfo.innerHTML = '💴 ' + rateText;
-    rateInfo.classList.add('show');
-
-    // Auto-fill company if blank
-    if (!document.getElementById('company').value && selectedWorker.company) {
-      document.getElementById('company').value = selectedWorker.company;
-    }
   }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Status toggle
-// ══════════════════════════════════════════════════════════════
-function onStatusChange() {
-  const status = document.querySelector('input[name="reportStatus"]:checked').value;
-  const lateEl    = document.getElementById('lateSection');
-  const absentEl  = document.getElementById('absentSection');
-  const siteEl    = document.getElementById('siteSection');
-  const photoEl   = document.getElementById('photoSection');
-  const submitBtn = document.getElementById('submitBtn');
-
-  lateEl.classList.toggle('show',   status === 'late');
-  absentEl.classList.toggle('show', status === 'absent');
-  // Hide site/work/photo sections when absent (not at work)
-  siteEl.style.display  = status === 'absent' ? 'none' : '';
-  photoEl.style.display = status === 'absent' ? 'none' : '';
-
-  // Update submit button label
-  const labels = { present: '出勤を報告する', late: '遅刻を報告する', absent: '欠勤を報告する' };
-  submitBtn.querySelector('div > div:first-child').textContent = labels[status] || '報告する';
+function showRatePreview(matchedKey) {
+  if (!selectedWorker) return;
+  const preview = document.getElementById('ratePreview');
+  preview.classList.add('show');
+  document.getElementById('baseRateText').textContent = `基本日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
+  const rateList = document.getElementById('rateList');
+  const rates = selectedWorker.work_rates || {};
+  rateList.innerHTML = '';
+  if (Object.keys(rates).length > 0) {
+    Object.entries(rates).forEach(([k, v]) => {
+      const badge = document.createElement('span');
+      badge.className = 'rate-badge' + (k === matchedKey ? ' active' : '');
+      badge.textContent = `${k}: ¥${Number(v).toLocaleString()}`;
+      rateList.appendChild(badge);
+    });
+  }
+  const note = document.getElementById('rateMatchNote');
+  if (matchedKey) {
+    const rate = rates[matchedKey];
+    note.textContent = `✅ "${matchedKey}" の単価 ¥${Number(rate).toLocaleString()} を適用`;
+    document.getElementById('baseRateText').textContent = `適用日当: ¥${Number(rate).toLocaleString()}`;
+  } else {
+    note.textContent = '';
+    document.getElementById('baseRateText').textContent = `基本日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
+  }
 }
 
-// ══════════════════════════════════════════════════════════════
-// Photo select / clear
-// ══════════════════════════════════════════════════════════════
-let _photoFile = null;
+function matchWorkRate() {
+  if (!selectedWorker) return;
+  const content = document.getElementById('workContent').value;
+  const rates = selectedWorker.work_rates || {};
+  let matched = null;
+  Object.keys(rates).forEach(k => {
+    if (content.includes(k)) matched = k;
+  });
+  showRatePreview(matched);
+}
 
-function onPhotoSelect(input) {
-  const file = input.files[0];
+function getAppliedRate() {
+  if (!selectedWorker) return 15000;
+  const content = document.getElementById('workContent').value;
+  const rates = selectedWorker.work_rates || {};
+  for (const [k, v] of Object.entries(rates)) {
+    if (content.includes(k)) return Number(v);
+  }
+  return selectedWorker.daily_rate;
+}
+
+async function registerWorker() {
+  const name = document.getElementById('newName').value.trim();
+  const company = document.getElementById('newCompany').value.trim();
+  const rate = parseInt(document.getElementById('newRate').value);
+  if (!name || !company) return showError('氏名と会社名は必須です');
+  const btn = document.getElementById('registerWorkerBtn');
+  btn.disabled = true; btn.textContent = '登録中...';
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/workers`, {
+      method: 'POST', headers: HEADERS,
+      body: JSON.stringify({ name, company, daily_rate: rate, is_active: true, work_rates: {} })
+    });
+    const data = await res.json();
+    const newW = data[0];
+    workers.push(newW);
+    const sel = document.getElementById('workerSelect');
+    const opt = document.createElement('option');
+    opt.value = newW.id; opt.textContent = `${newW.name}（${newW.company}）`;
+    sel.insertBefore(opt, sel.lastElementChild);
+    sel.value = newW.id;
+    selectedWorker = newW;
+    document.getElementById('newWorkerArea').classList.remove('open');
+    showRatePreview();
+  } catch(e) { showError('登録に失敗しました'); }
+  btn.disabled = false; btn.textContent = '＋ 登録する';
+}
+
+function selectStatus(status) {
+  currentStatus = status;
+  ['present','absent','late'].forEach(s => {
+    document.getElementById(`tab-${s}`).className = 'status-tab';
+  });
+  document.getElementById(`tab-${status}`).className = `status-tab selected-${status}`;
+  document.getElementById('absentArea').classList.toggle('show', status === 'absent');
+  document.getElementById('lateArea').classList.toggle('show', status === 'late');
+  document.getElementById('workDetailCard').style.display = (status === 'absent') ? 'none' : 'block';
+}
+
+function toggleDateEdit() {
+  const input = document.getElementById('workDate');
+  const display = document.getElementById('workDateDisplay');
+  const btn = document.getElementById('dateEditBtn');
+  if (input.style.display === 'none') {
+    input.style.display = 'block';
+    display.style.display = 'none';
+    btn.textContent = '✓ 確定';
+    input.onchange = () => {
+      document.getElementById('dateText').textContent = formatDateJP(input.value);
+    };
+  } else {
+    input.style.display = 'none';
+    display.style.display = 'flex';
+    btn.textContent = '📝 日付を変更する';
+  }
+}
+
+function previewPhoto(e) {
+  const file = e.target.files[0];
   if (!file) return;
-  _photoFile = file;
   const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('photoThumb').src = e.target.result;
-    document.getElementById('photoName').textContent = file.name;
+  reader.onload = (ev) => {
+    photoBase64 = ev.target.result;
+    document.getElementById('photoImg').src = photoBase64;
     document.getElementById('photoPreview').style.display = 'block';
+    document.querySelector('.photo-upload-area .upload-icon').textContent = '✅';
+    document.querySelector('.photo-upload-area p').textContent = '写真選択済み';
   };
   reader.readAsDataURL(file);
 }
 
-function clearPhoto() {
-  _photoFile = null;
+function removePhoto() {
+  photoBase64 = null;
   document.getElementById('meterPhoto').value = '';
-  document.getElementById('photoThumb').src = '';
-  document.getElementById('photoName').textContent = '';
   document.getElementById('photoPreview').style.display = 'none';
+  document.querySelector('.photo-upload-area .upload-icon').textContent = '📷';
+  document.querySelector('.photo-upload-area p').textContent = 'タップして写真を撮影 / 選択';
 }
 
-async function uploadPhoto(file) {
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const fname = `${todayStr}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-  const res = await fetch(`${SB_URL}/storage/v1/object/meter-photos/${fname}`, {
-    method: 'POST',
-    headers: {
-      'apikey':        SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
-      'Content-Type':  file.type || 'image/jpeg',
-    },
-    body: file,
-  });
-  if (!res.ok) throw new Error('photo ' + res.status);
-  return `${SB_URL}/storage/v1/object/public/meter-photos/${fname}`;
-}
+async function submitReport() {
+  hideError();
+  const workerId = document.getElementById('workerSelect').value;
+  if (!workerId || workerId === '__new__') return showError('作業員を選択してください');
+  const workDate = document.getElementById('workDate').value;
+  const btn = document.getElementById('submitBtn');
 
-// ══════════════════════════════════════════════════════════════
-// Quick content buttons
-// ══════════════════════════════════════════════════════════════
-function appendContent(text) {
-  const ta  = document.getElementById('workContent');
-  const cur = ta.value.trim();
-  ta.value  = cur ? cur + '\n' + text : text;
-  ta.focus();
-}
-
-// ══════════════════════════════════════════════════════════════
-// Submit
-// ══════════════════════════════════════════════════════════════
-async function submitAttendance() {
-  const selVal  = document.getElementById('workerSelect').value;
-  const company = document.getElementById('company').value.trim();
-  const site    = document.getElementById('siteName').value.trim();
-  const content = document.getElementById('workContent').value.trim();
-  const hours   = parseFloat(document.getElementById('workHours').value) || 8.0;
-  const isNew   = selVal === '__new__';
-  const status  = document.querySelector('input[name="reportStatus"]:checked').value;
-
-  hideErr();
-
-  if (!selVal) { showErr('作業員を選択してください'); return; }
-
-  let workerId   = null;
-  let workerName = '';
-  let workerComp = company;
-  let dailyRate  = 0;
-
-  if (isNew) {
-    const name    = document.getElementById('newName').value.trim();
-    const newComp = document.getElementById('newCompany').value.trim();
-    const rate    = parseInt(document.getElementById('newRate').value) || 0;
-    if (!name) { showErr('氏名を入力してください'); return; }
-
-    setBusy(true);
+  // 欠勤の場合
+  if (currentStatus === 'absent') {
+    const absentReason = document.getElementById('absentReason').value;
+    const absentNote = document.getElementById('absentNote').value.trim();
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>送信中...';
     try {
-      const [created] = await sbFetch('workers', {
-        method: 'POST',
-        body: JSON.stringify({ name, company: newComp || null, daily_rate: rate, is_active: true }),
+      const payload = {
+        work_date: workDate,
+        worker_id: workerId,
+        worker_name: selectedWorker.name,
+        company: selectedWorker.company,
+        site_name: '',
+        work_content: '',
+        work_hours: 0,
+        daily_rate: 0,
+        status: 'absent',
+        absent_reason: absentReason || null,
+        absent_note: absentNote || null,
+        late_time: null,
+        late_reason: null,
+        meter_photo_url: photoBase64 || null
+      };
+      await postLog(payload);
+      showSuccess({
+        type: 'absent',
+        name: selectedWorker.name,
+        date: formatDateJP(workDate),
+        reason: absentReason || '未記入',
+        note: absentNote || ''
       });
-      workerId   = created.id;
-      workerName = created.name;
-      workerComp = created.company || company;
-      dailyRate  = created.daily_rate;
-      workers.push(created);
-    } catch(e) {
-      setBusy(false);
-      showErr('作業員の登録に失敗しました: ' + e.message);
-      return;
-    }
-  } else {
-    if (!selectedWorker) { showErr('作業員を選択してください'); return; }
-    workerId   = selectedWorker.id;
-    workerName = selectedWorker.name;
-    workerComp = company || selectedWorker.company || '';
-    dailyRate  = resolveRate(selectedWorker, content);
-    setBusy(true);
-  }
-
-  // Photo upload (best-effort — don't fail submission on error)
-  let photoUrl = null;
-  if (_photoFile && status !== 'absent') {
-    try { photoUrl = await uploadPhoto(_photoFile); }
-    catch(e) { toast('⚠️ 写真のアップロードに失敗しました', 'err'); }
-  }
-
-  // Build record
-  const record = {
-    work_date:    todayStr,
-    worker_id:    workerId,
-    worker_name:  workerName,
-    company:      workerComp || null,
-    site_name:    status !== 'absent' ? (site || null) : null,
-    work_content: status !== 'absent' ? (content || null) : null,
-    work_hours:   status !== 'absent' ? hours : 0,
-    daily_rate:   dailyRate,
-    status:       status,
-    submitted_at: new Date().toISOString(),
-    // New columns
-    late_time:    status === 'late'   ? (document.getElementById('lateTime').value || null)   : null,
-    late_reason:  status === 'late'   ? (document.getElementById('lateReason').value.trim() || null) : null,
-    absent_reason: status === 'absent' ? (document.getElementById('absentReason').value || null) : null,
-    absent_note:   status === 'absent' ? (document.getElementById('absentNote').value.trim() || null) : null,
-    meter_photo_url: photoUrl,
-  };
-
-  try {
-    await sbFetch('attendance_logs', {
-      method: 'POST',
-      prefer: 'return=minimal',
-      body:   JSON.stringify(record),
-    });
-  } catch(e) {
-    setBusy(false);
-    showErr('送信エラー: ' + e.message);
+    } catch(e) { showError('送信に失敗しました: ' + e.message); }
+    btn.disabled = false; btn.innerHTML = '📤 報告を送信する';
     return;
   }
 
-  if (status !== 'absent') {
-    if (company) localStorage.setItem(LS.company, company);
-    if (site)    localStorage.setItem(LS.site,    site);
-    if (content) localStorage.setItem(LS.content, content);
+  // 出勤・遅刻
+  const siteName = document.getElementById('siteName').value.trim();
+  const workContent = document.getElementById('workContent').value.trim();
+  if (!siteName) return showError('現場名を入力してください');
+  if (!workContent) return showError('作業内容を入力してください');
+
+  let lateTime = null, lateReason = null;
+  if (currentStatus === 'late') {
+    lateTime = document.getElementById('lateTime').value;
+    lateReason = document.getElementById('lateReason').value.trim() || null;
+    if (!lateTime) return showError('出勤時刻を入力してください');
   }
 
-  setBusy(false);
-  showSuccess({ ...record, worker_name: workerName });
+  const appliedRate = getAppliedRate();
+  const workHours = parseFloat(document.getElementById('workHours').value) || 8.0;
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>送信中...';
+  try {
+    const payload = {
+      work_date: workDate,
+      worker_id: workerId,
+      worker_name: selectedWorker.name,
+      company: selectedWorker.company,
+      site_name: siteName,
+      work_content: workContent,
+      work_hours: workHours,
+      daily_rate: appliedRate,
+      status: currentStatus,
+      absent_reason: null,
+      absent_note: null,
+      late_time: lateTime,
+      late_reason: lateReason,
+      meter_photo_url: photoBase64 || null
+    };
+    await postLog(payload);
+
+    // 新しい現場名をsitesに自動追加（存在しない場合）
+    await addSiteIfNew(siteName, selectedWorker.company);
+
+    showSuccess({
+      type: currentStatus,
+      name: selectedWorker.name,
+      date: formatDateJP(workDate),
+      site: siteName,
+      content: workContent,
+      rate: appliedRate,
+      hours: workHours,
+      lateTime
+    });
+  } catch(e) { showError('送信に失敗しました: ' + e.message); }
+  btn.disabled = false; btn.innerHTML = '📤 報告を送信する';
 }
 
-function resolveRate(worker, content) {
-  if (worker.work_rates && typeof worker.work_rates === 'object' && content) {
-    for (const [trade, rate] of Object.entries(worker.work_rates)) {
-      if (content.includes(trade)) return Number(rate);
+async function postLog(payload) {
+  const res = await fetch(`${SB_URL}/rest/v1/attendance_logs`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'DB error');
+  }
+}
+
+async function addSiteIfNew(name, company) {
+  try {
+    const check = await fetch(`${SB_URL}/rest/v1/sites?name=eq.${encodeURIComponent(name)}`, { headers: HEADERS });
+    const existing = await check.json();
+    if (existing.length === 0) {
+      await fetch(`${SB_URL}/rest/v1/sites`, {
+        method: 'POST', headers: { ...HEADERS, Prefer: 'return=minimal' },
+        body: JSON.stringify({ name, company })
+      });
     }
-  }
-  return worker.daily_rate || 0;
+  } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════════════
-// UI helpers
-// ══════════════════════════════════════════════════════════════
-function setBusy(on) {
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = on;
-  document.getElementById('spinner').classList.toggle('show', on);
-  document.getElementById('submitIcon').style.display = on ? 'none' : '';
-}
-
-function showErr(msg) {
-  const b = document.getElementById('errBanner');
-  b.textContent = '⚠️ ' + msg;
-  b.classList.add('show');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function hideErr() { document.getElementById('errBanner').classList.remove('show'); }
-
-function showSuccess(r) {
-  const statusLabel = { present: '✅ 出勤', late: '⏰ 遅刻', absent: '❌ 欠勤' }[r.status] || r.status;
-  const rows = [
-    ['作業日',   r.work_date],
-    ['氏名',     r.worker_name],
-    ['ステータス', statusLabel],
-  ];
-  if (r.status === 'late') {
-    if (r.late_time)   rows.push(['遅刻到着予定', r.late_time]);
-    if (r.late_reason) rows.push(['遅刻理由',     r.late_reason]);
+function showSuccess(info) {
+  document.getElementById('mainForm').style.display = 'none';
+  const screen = document.getElementById('successScreen');
+  screen.classList.add('show');
+  let icon, title, rows;
+  if (info.type === 'absent') {
+    icon = '🏠'; title = '欠勤報告を送信しました';
+    rows = [
+      { label: '氏名', val: info.name },
+      { label: '日付', val: info.date },
+      { label: '欠勤理由', val: info.reason },
+      info.note ? { label: '備考', val: info.note } : null
+    ].filter(Boolean);
+    screen.className = 'show success-absent';
+  } else if (info.type === 'late') {
+    icon = '⏰'; title = '遅刻報告を送信しました';
+    rows = [
+      { label: '氏名', val: info.name },
+      { label: '日付', val: info.date },
+      { label: '出勤時刻', val: info.lateTime },
+      { label: '現場', val: info.site },
+      { label: '作業内容', val: info.content },
+      { label: '適用日当', val: `¥${info.rate.toLocaleString()}` }
+    ];
+    screen.className = 'show success-late';
+  } else {
+    icon = '✅'; title = '出勤報告を送信しました！';
+    rows = [
+      { label: '氏名', val: info.name },
+      { label: '日付', val: info.date },
+      { label: '現場', val: info.site },
+      { label: '作業内容', val: info.content },
+      { label: '勤務時間', val: `${info.hours}h` },
+      { label: '適用日当', val: `¥${info.rate.toLocaleString()}` }
+    ];
+    screen.className = 'show';
   }
-  if (r.status === 'absent') {
-    if (r.absent_reason) rows.push(['欠勤理由', r.absent_reason]);
-    if (r.absent_note)   rows.push(['補足',     r.absent_note]);
-  }
-  if (r.status !== 'absent') {
-    rows.push(['元請会社',  r.company     || '—']);
-    rows.push(['現場名',    r.site_name   || '—']);
-    rows.push(['作業内容',  r.work_content|| '—']);
-    rows.push(['実働時間',  r.work_hours  + ' h']);
-    rows.push(['日当単価',  r.daily_rate  ? '¥' + Number(r.daily_rate).toLocaleString() : '—']);
-  }
-  const infoEl = document.getElementById('successInfo');
-  infoEl.innerHTML = rows.map(([k,v]) => `
-    <div class="si-row">
-      <span class="si-label">${k}</span>
-      <span class="si-val">${String(v||'—').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</span>
-    </div>`).join('');
-
-  if (r.meter_photo_url) {
-    const photoRow = document.createElement('div');
-    photoRow.className = 'si-row';
-    photoRow.innerHTML = '<span class="si-label">メーター写真</span>';
-    const img = document.createElement('img');
-    img.src = r.meter_photo_url;
-    img.style.cssText = 'max-width:100%;border-radius:6px;margin-top:4px;';
-    const valEl = document.createElement('span');
-    valEl.className = 'si-val';
-    valEl.appendChild(img);
-    photoRow.appendChild(valEl);
-    infoEl.appendChild(photoRow);
-  }
-
-  document.getElementById('formScreen').style.display = 'none';
-  document.getElementById('successScreen').classList.add('show');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('successIcon').textContent = icon;
+  document.getElementById('successTitle').textContent = title;
+  const det = document.getElementById('successDetail');
+  det.innerHTML = rows.map(r => `<div class="row"><span>${r.label}</span><span class="val">${r.val}</span></div>`).join('');
 }
 
 function resetForm() {
+  document.getElementById('mainForm').style.display = 'block';
   document.getElementById('successScreen').classList.remove('show');
-  document.getElementById('formScreen').style.display = '';
+  document.getElementById('successScreen').className = '';
   document.getElementById('workerSelect').value = '';
-  document.getElementById('newWorkerFields').style.display = 'none';
-  document.getElementById('rateInfo').classList.remove('show');
-  document.getElementById('workContent').value = localStorage.getItem('wa_content') || '';
+  document.getElementById('ratePreview').classList.remove('show');
+  document.getElementById('newWorkerArea').classList.remove('open');
+  document.getElementById('siteName').value = '';
+  document.getElementById('workContent').value = '';
   document.getElementById('workHours').value = '8.0';
-  // Reset status to present
-  document.getElementById('sPres').checked = true;
-  onStatusChange();
-  // Reset conditional fields
-  document.getElementById('lateTime').value   = '';
-  document.getElementById('lateReason').value = '';
-  document.getElementById('absentReason').value = '';
-  document.getElementById('absentNote').value   = '';
-  clearPhoto();
+  selectStatus('present');
+  removePhoto();
   selectedWorker = null;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  hideError();
 }
 
-// Toast
-let _tt;
-function toast(msg, type='', dur=3500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'toast show' + (type ? ' '+type : '');
-  clearTimeout(_tt); _tt = setTimeout(() => { t.className = 'toast'; }, dur);
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('show');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('show');
 }
 </script>
 </body>
