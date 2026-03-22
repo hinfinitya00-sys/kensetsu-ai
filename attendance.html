@@ -172,9 +172,16 @@
     }
     .btn-pdf:hover { background:rgba(168,85,247,.22); }
 
+    /* ── Status badges ───────────────────────────────────── */
+    .badge { display:inline-block; padding:3px 9px; border-radius:100px; font-size:10px; font-weight:700; white-space:nowrap; letter-spacing:.3px; }
+    .badge-present { background:rgba(34,197,94,.15); color:var(--green); }
+    .badge-late    { background:rgba(245,158,11,.15); color:var(--yellow); }
+    .badge-absent  { background:rgba(239,68,68,.12); color:var(--red); }
+    .photo-thumb { width:38px; height:38px; border-radius:5px; object-fit:cover; vertical-align:middle; cursor:pointer; border:1px solid var(--border); }
+
     /* ── Table ───────────────────────────────────────────── */
     .table-wrap { overflow-x:auto; }
-    table { width:100%; border-collapse:collapse; min-width:560px; }
+    table { width:100%; border-collapse:collapse; min-width:640px; }
     thead th {
       background:var(--card2); padding:10px 14px; text-align:left;
       font-size:11px; font-weight:700; color:var(--muted);
@@ -374,17 +381,19 @@
           <thead>
             <tr>
               <th>日付</th>
+              <th>状況</th>
               <th>作業員</th>
               <th>元請会社</th>
               <th>現場名</th>
-              <th>作業内容</th>
+              <th>内容・詳細</th>
               <th>時間</th>
               <th>日当</th>
+              <th>📷</th>
               <th>送信時刻</th>
             </tr>
           </thead>
           <tbody id="logsBody">
-            <tr class="empty-row"><td colspan="8">読み込み中...</td></tr>
+            <tr class="empty-row"><td colspan="10">読み込み中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -616,20 +625,45 @@ function renderLogs(data) {
   const tbody = $('logsBody');
   const sorted = [...data].sort((a,b) => b.work_date.localeCompare(a.work_date));
   if (!sorted.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">記録がありません</td></tr>'; return;
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="10">記録がありません</td></tr>'; return;
   }
   tbody.innerHTML = sorted.map(l => {
     const time = l.submitted_at
       ? new Date(l.submitted_at).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
       : '—';
+    const statusMap = { present:'✅ 出勤', late:'⏰ 遅刻', absent:'❌ 欠勤', half:'🔆 半日' };
+    const statusClass = { present:'badge-present', late:'badge-late', absent:'badge-absent', half:'badge-present' };
+    const st = l.status || 'present';
+    const badge = `<span class="badge ${statusClass[st]||'badge-present'}">${statusMap[st]||esc(st)}</span>`;
+
+    // Build detail cell based on status
+    let detail = '';
+    if (st === 'absent') {
+      detail = [l.absent_reason, l.absent_note].filter(Boolean).map(esc).join('<br>') || '—';
+    } else if (st === 'late') {
+      const parts = [];
+      if (l.late_time)   parts.push('⏰ ' + esc(l.late_time));
+      if (l.late_reason) parts.push(esc(l.late_reason));
+      if (l.work_content) parts.push(esc(l.work_content));
+      detail = parts.join('<br>') || '—';
+    } else {
+      detail = esc(l.work_content||'—');
+    }
+
+    const photoCell = l.meter_photo_url
+      ? `<img class="photo-thumb" src="${esc(l.meter_photo_url)}" onclick="window.open('${esc(l.meter_photo_url)}','_blank')" title="メーター写真">`
+      : '—';
+
     return `<tr>
       <td style="font-family:'Oswald',sans-serif;color:var(--orange);white-space:nowrap;">${l.work_date}</td>
+      <td>${badge}</td>
       <td><strong>${esc(l.worker_name||'—')}</strong></td>
       <td style="font-size:12px;color:var(--muted);">${esc(l.company||'—')}</td>
       <td style="font-size:12px;">${esc(l.site_name||'—')}</td>
-      <td style="font-size:12px;color:var(--muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(l.work_content||'')}">${esc(l.work_content||'—')}</td>
-      <td class="num-cell" style="color:var(--blue);">${l.work_hours||'—'}h</td>
+      <td style="font-size:12px;color:var(--muted);max-width:160px;">${detail}</td>
+      <td class="num-cell" style="color:var(--blue);">${st==='absent'?'—':(l.work_hours||'—')+'h'}</td>
       <td class="num-cell" style="color:var(--yellow);">${l.daily_rate?'¥'+fmt(l.daily_rate):'—'}</td>
+      <td>${photoCell}</td>
       <td style="font-size:11px;color:var(--muted);">${time}</td>
     </tr>`;
   }).join('');
@@ -669,8 +703,8 @@ $('csvBtn').addEventListener('click', async () => {
     data = await sb(`attendance_logs?work_date=gte.${month}-01&work_date=lt.${nextMonth(month)}-01&order=work_date.asc&limit=2000`) || [];
   } catch(e) { toast('CSV取得エラー: '+e.message,'err'); return; }
 
-  const cols = ['work_date','worker_name','company','site_name','work_content','work_hours','daily_rate','status','submitted_at'];
-  const head = ['日付','作業員','元請会社','現場名','作業内容','時間','日当','状況','送信日時'];
+  const cols = ['work_date','status','worker_name','company','site_name','work_content','work_hours','daily_rate','late_time','late_reason','absent_reason','absent_note','meter_photo_url','submitted_at'];
+  const head = ['日付','状況','作業員','元請会社','現場名','作業内容','時間','日当','遅刻時刻','遅刻理由','欠勤理由','欠勤備考','メーター写真URL','送信日時'];
   const rows = [head, ...data.map(l => cols.map(c => l[c] ?? ''))];
   const csv  = '\uFEFF' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });

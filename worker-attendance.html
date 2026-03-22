@@ -126,6 +126,45 @@
     }
     .rate-info.show { display:block; }
 
+    /* ── Status toggle ───────────────────────────────────── */
+    .status-toggle { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+    .status-radio-btn { display:none; }
+    .status-label-btn {
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:4px; padding:14px 8px; border-radius:12px; border:2px solid var(--border);
+      background:var(--card2); color:var(--muted); cursor:pointer;
+      transition:all .2s; font-size:13px; font-weight:800; text-align:center; line-height:1.3;
+    }
+    .status-label-btn span { font-size:22px; }
+    .status-radio-btn:checked + .status-label-btn.l-present {
+      background:rgba(34,160,90,.15); border-color:var(--green-light); color:var(--green-light);
+      box-shadow:0 0 0 3px rgba(34,160,90,.1);
+    }
+    .status-radio-btn:checked + .status-label-btn.l-absent {
+      background:rgba(239,68,68,.12); border-color:var(--red); color:var(--red);
+      box-shadow:0 0 0 3px rgba(239,68,68,.08);
+    }
+    .status-radio-btn:checked + .status-label-btn.l-late {
+      background:rgba(251,191,36,.1); border-color:var(--yellow); color:var(--yellow);
+      box-shadow:0 0 0 3px rgba(251,191,36,.07);
+    }
+
+    /* ── Conditional sections ────────────────────────────── */
+    .cond-section { display:none; }
+    .cond-section.show { display:block; }
+
+    /* ── Photo upload ────────────────────────────────────── */
+    .photo-upload-area {
+      border:2px dashed var(--border); border-radius:12px; padding:20px;
+      text-align:center; cursor:pointer; transition:border-color .2s;
+    }
+    .photo-upload-area:hover { border-color:var(--green-light); }
+    .photo-icon { font-size:32px; margin-bottom:8px; }
+    .photo-label { font-size:13px; color:var(--muted); }
+    .photo-preview { display:none; margin-top:12px; }
+    .photo-preview img { max-width:100%; border-radius:8px; max-height:200px; object-fit:cover; }
+    .photo-preview .photo-name { font-size:11px; color:var(--muted); margin-top:6px; }
+
     /* ── Quick Buttons ───────────────────────────────────── */
     .quick-btns { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
     .qbtn {
@@ -268,8 +307,68 @@
       <div class="rate-info" id="rateInfo"></div>
     </div>
 
-    <!-- 現場情報 -->
+    <!-- ステータス選択 -->
     <div class="sec-card">
+      <div class="sec-hd">
+        <div class="sec-ico">📌</div>
+        <div class="sec-title">本日のステータス</div>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <div class="status-toggle">
+          <input type="radio" class="status-radio-btn" name="reportStatus" id="sPres" value="present" checked onchange="onStatusChange()">
+          <label for="sPres" class="status-label-btn l-present"><span>✅</span>出勤</label>
+
+          <input type="radio" class="status-radio-btn" name="reportStatus" id="sLate" value="late" onchange="onStatusChange()">
+          <label for="sLate" class="status-label-btn l-late"><span>⏰</span>遅刻</label>
+
+          <input type="radio" class="status-radio-btn" name="reportStatus" id="sAbsent" value="absent" onchange="onStatusChange()">
+          <label for="sAbsent" class="status-label-btn l-absent"><span>❌</span>欠勤</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 遅刻フィールド（遅刻選択時のみ表示） -->
+    <div class="sec-card cond-section" id="lateSection">
+      <div class="sec-hd">
+        <div class="sec-ico">⏰</div>
+        <div class="sec-title">遅刻詳細</div>
+      </div>
+      <div class="fg">
+        <label>遅刻到着予定時刻</label>
+        <input type="time" id="lateTime" placeholder="09:30">
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label>遅刻理由</label>
+        <textarea id="lateReason" placeholder="例：電車遅延、体調不良等" style="min-height:72px;"></textarea>
+      </div>
+    </div>
+
+    <!-- 欠勤フィールド（欠勤選択時のみ表示） -->
+    <div class="sec-card cond-section" id="absentSection">
+      <div class="sec-hd">
+        <div class="sec-ico">❌</div>
+        <div class="sec-title">欠勤詳細</div>
+      </div>
+      <div class="fg">
+        <label>欠勤理由</label>
+        <select id="absentReason">
+          <option value="">— 選択してください —</option>
+          <option value="病気・体調不良">病気・体調不良</option>
+          <option value="私用・所用">私用・所用</option>
+          <option value="家族の都合">家族の都合</option>
+          <option value="交通機関の乱れ">交通機関の乱れ</option>
+          <option value="天候・災害">天候・災害</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label>補足・備考</label>
+        <textarea id="absentNote" placeholder="詳細があれば入力してください" style="min-height:72px;"></textarea>
+      </div>
+    </div>
+
+    <!-- 現場情報 -->
+    <div class="sec-card" id="siteSection">
       <div class="sec-hd">
         <div class="sec-ico">🏢</div>
         <div class="sec-title">現場情報</div>
@@ -320,6 +419,25 @@
         <input type="number" id="workHours" value="8.0" min="0" max="24" step="0.5">
         <div class="hint">半日の場合は 4.0</div>
       </div>
+    </div>
+
+    <!-- メーター写真 -->
+    <div class="sec-card" id="photoSection">
+      <div class="sec-hd">
+        <div class="sec-ico">📷</div>
+        <div class="sec-title">メーター写真（任意）</div>
+      </div>
+      <div class="photo-upload-area" onclick="document.getElementById('meterPhoto').click()">
+        <input type="file" id="meterPhoto" accept="image/*" capture="environment" onchange="onPhotoSelect(this)">
+        <div class="photo-icon">📸</div>
+        <div class="photo-label">タップしてカメラで撮影<br><small style="font-size:10px;">または写真を選択（任意）</small></div>
+      </div>
+      <div class="photo-preview" id="photoPreview">
+        <img id="photoThumb" src="" alt="メーター写真">
+        <div class="photo-name" id="photoName"></div>
+        <button onclick="clearPhoto()" style="margin-top:8px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;">✕ 写真を削除</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">重機・設備のメーター記録写真をアップロードできます</div>
     </div>
 
     <!-- Submit -->
@@ -478,6 +596,70 @@ function onWorkerChange() {
 }
 
 // ══════════════════════════════════════════════════════════════
+// Status toggle
+// ══════════════════════════════════════════════════════════════
+function onStatusChange() {
+  const status = document.querySelector('input[name="reportStatus"]:checked').value;
+  const lateEl    = document.getElementById('lateSection');
+  const absentEl  = document.getElementById('absentSection');
+  const siteEl    = document.getElementById('siteSection');
+  const photoEl   = document.getElementById('photoSection');
+  const submitBtn = document.getElementById('submitBtn');
+
+  lateEl.classList.toggle('show',   status === 'late');
+  absentEl.classList.toggle('show', status === 'absent');
+  // Hide site/work/photo sections when absent (not at work)
+  siteEl.style.display  = status === 'absent' ? 'none' : '';
+  photoEl.style.display = status === 'absent' ? 'none' : '';
+
+  // Update submit button label
+  const labels = { present: '出勤を報告する', late: '遅刻を報告する', absent: '欠勤を報告する' };
+  submitBtn.querySelector('div > div:first-child').textContent = labels[status] || '報告する';
+}
+
+// ══════════════════════════════════════════════════════════════
+// Photo select / clear
+// ══════════════════════════════════════════════════════════════
+let _photoFile = null;
+
+function onPhotoSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _photoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photoThumb').src = e.target.result;
+    document.getElementById('photoName').textContent = file.name;
+    document.getElementById('photoPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto() {
+  _photoFile = null;
+  document.getElementById('meterPhoto').value = '';
+  document.getElementById('photoThumb').src = '';
+  document.getElementById('photoName').textContent = '';
+  document.getElementById('photoPreview').style.display = 'none';
+}
+
+async function uploadPhoto(file) {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const fname = `${todayStr}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const res = await fetch(`${SB_URL}/storage/v1/object/meter-photos/${fname}`, {
+    method: 'POST',
+    headers: {
+      'apikey':        SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type':  file.type || 'image/jpeg',
+    },
+    body: file,
+  });
+  if (!res.ok) throw new Error('photo ' + res.status);
+  return `${SB_URL}/storage/v1/object/public/meter-photos/${fname}`;
+}
+
+// ══════════════════════════════════════════════════════════════
 // Quick content buttons
 // ══════════════════════════════════════════════════════════════
 function appendContent(text) {
@@ -491,16 +673,16 @@ function appendContent(text) {
 // Submit
 // ══════════════════════════════════════════════════════════════
 async function submitAttendance() {
-  const selVal    = document.getElementById('workerSelect').value;
-  const company   = document.getElementById('company').value.trim();
-  const site      = document.getElementById('siteName').value.trim();
-  const content   = document.getElementById('workContent').value.trim();
-  const hours     = parseFloat(document.getElementById('workHours').value) || 8.0;
-  const isNew     = selVal === '__new__';
+  const selVal  = document.getElementById('workerSelect').value;
+  const company = document.getElementById('company').value.trim();
+  const site    = document.getElementById('siteName').value.trim();
+  const content = document.getElementById('workContent').value.trim();
+  const hours   = parseFloat(document.getElementById('workHours').value) || 8.0;
+  const isNew   = selVal === '__new__';
+  const status  = document.querySelector('input[name="reportStatus"]:checked').value;
 
   hideErr();
 
-  // Validation
   if (!selVal) { showErr('作業員を選択してください'); return; }
 
   let workerId   = null;
@@ -535,24 +717,35 @@ async function submitAttendance() {
     workerId   = selectedWorker.id;
     workerName = selectedWorker.name;
     workerComp = company || selectedWorker.company || '';
-    // Determine rate: check work_rates by content keyword, fallback to daily_rate
     dailyRate  = resolveRate(selectedWorker, content);
     setBusy(true);
   }
 
-  const status = hours >= 8 ? 'present' : hours >= 4 ? 'half' : 'present';
+  // Photo upload (best-effort — don't fail submission on error)
+  let photoUrl = null;
+  if (_photoFile && status !== 'absent') {
+    try { photoUrl = await uploadPhoto(_photoFile); }
+    catch(e) { toast('⚠️ 写真のアップロードに失敗しました', 'err'); }
+  }
 
+  // Build record
   const record = {
     work_date:    todayStr,
     worker_id:    workerId,
     worker_name:  workerName,
     company:      workerComp || null,
-    site_name:    site || null,
-    work_content: content || null,
-    work_hours:   hours,
+    site_name:    status !== 'absent' ? (site || null) : null,
+    work_content: status !== 'absent' ? (content || null) : null,
+    work_hours:   status !== 'absent' ? hours : 0,
     daily_rate:   dailyRate,
     status:       status,
     submitted_at: new Date().toISOString(),
+    // New columns
+    late_time:    status === 'late'   ? (document.getElementById('lateTime').value || null)   : null,
+    late_reason:  status === 'late'   ? (document.getElementById('lateReason').value.trim() || null) : null,
+    absent_reason: status === 'absent' ? (document.getElementById('absentReason').value || null) : null,
+    absent_note:   status === 'absent' ? (document.getElementById('absentNote').value.trim() || null) : null,
+    meter_photo_url: photoUrl,
   };
 
   try {
@@ -567,10 +760,11 @@ async function submitAttendance() {
     return;
   }
 
-  // Save to localStorage
-  if (company) localStorage.setItem(LS.company, company);
-  if (site)    localStorage.setItem(LS.site,    site);
-  if (content) localStorage.setItem(LS.content, content);
+  if (status !== 'absent') {
+    if (company) localStorage.setItem(LS.company, company);
+    if (site)    localStorage.setItem(LS.site,    site);
+    if (content) localStorage.setItem(LS.content, content);
+  }
 
   setBusy(false);
   showSuccess({ ...record, worker_name: workerName });
@@ -604,19 +798,47 @@ function showErr(msg) {
 function hideErr() { document.getElementById('errBanner').classList.remove('show'); }
 
 function showSuccess(r) {
-  document.getElementById('successInfo').innerHTML = [
-    ['作業日',    r.work_date],
-    ['氏名',      r.worker_name],
-    ['元請会社',  r.company || '—'],
-    ['現場名',    r.site_name || '—'],
-    ['作業内容',  r.work_content || '—'],
-    ['実働時間',  r.work_hours + ' h'],
-    ['日当単価',  r.daily_rate ? '¥' + Number(r.daily_rate).toLocaleString() : '—'],
-  ].map(([k,v]) => `
+  const statusLabel = { present: '✅ 出勤', late: '⏰ 遅刻', absent: '❌ 欠勤' }[r.status] || r.status;
+  const rows = [
+    ['作業日',   r.work_date],
+    ['氏名',     r.worker_name],
+    ['ステータス', statusLabel],
+  ];
+  if (r.status === 'late') {
+    if (r.late_time)   rows.push(['遅刻到着予定', r.late_time]);
+    if (r.late_reason) rows.push(['遅刻理由',     r.late_reason]);
+  }
+  if (r.status === 'absent') {
+    if (r.absent_reason) rows.push(['欠勤理由', r.absent_reason]);
+    if (r.absent_note)   rows.push(['補足',     r.absent_note]);
+  }
+  if (r.status !== 'absent') {
+    rows.push(['元請会社',  r.company     || '—']);
+    rows.push(['現場名',    r.site_name   || '—']);
+    rows.push(['作業内容',  r.work_content|| '—']);
+    rows.push(['実働時間',  r.work_hours  + ' h']);
+    rows.push(['日当単価',  r.daily_rate  ? '¥' + Number(r.daily_rate).toLocaleString() : '—']);
+  }
+  const infoEl = document.getElementById('successInfo');
+  infoEl.innerHTML = rows.map(([k,v]) => `
     <div class="si-row">
       <span class="si-label">${k}</span>
-      <span class="si-val">${String(v||'—').replace(/</g,'&lt;')}</span>
+      <span class="si-val">${String(v||'—').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</span>
     </div>`).join('');
+
+  if (r.meter_photo_url) {
+    const photoRow = document.createElement('div');
+    photoRow.className = 'si-row';
+    photoRow.innerHTML = '<span class="si-label">メーター写真</span>';
+    const img = document.createElement('img');
+    img.src = r.meter_photo_url;
+    img.style.cssText = 'max-width:100%;border-radius:6px;margin-top:4px;';
+    const valEl = document.createElement('span');
+    valEl.className = 'si-val';
+    valEl.appendChild(img);
+    photoRow.appendChild(valEl);
+    infoEl.appendChild(photoRow);
+  }
 
   document.getElementById('formScreen').style.display = 'none';
   document.getElementById('successScreen').classList.add('show');
@@ -631,6 +853,15 @@ function resetForm() {
   document.getElementById('rateInfo').classList.remove('show');
   document.getElementById('workContent').value = localStorage.getItem('wa_content') || '';
   document.getElementById('workHours').value = '8.0';
+  // Reset status to present
+  document.getElementById('sPres').checked = true;
+  onStatusChange();
+  // Reset conditional fields
+  document.getElementById('lateTime').value   = '';
+  document.getElementById('lateReason').value = '';
+  document.getElementById('absentReason').value = '';
+  document.getElementById('absentNote').value   = '';
+  clearPhoto();
   selectedWorker = null;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
