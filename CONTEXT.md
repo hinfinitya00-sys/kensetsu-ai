@@ -6,7 +6,7 @@
 
 ## プロジェクト概要
 
-**プロジェクト名:** 建設業 工事日報 自動作成システム
+**プロジェクト名:** 建設AI 現場管理システム
 **リポジトリ:** `hinfinitya00-sys/kensetsu-nippou`
 **メインファイル:** `/Users/sonodaayato/kensetsu-nippou/daily-report.html`（シングルHTMLファイル）
 **対象ユーザー:** 土木・法面工事の現場監督（現場でスマホから使う想定）

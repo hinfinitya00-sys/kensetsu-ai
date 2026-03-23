@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理ダッシュボード｜建設日報システム</title>
+  <title>建設AI 現場管理システム</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -155,6 +155,117 @@
     @keyframes shimmer {
       0%,100% { opacity:.4; } 50% { opacity:.8; }
     }
+
+    /* ── Attendance Today Summary ───────────────────────── */
+    .att-summary-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .att-kpi {
+      background:var(--card2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px 16px;
+    }
+    .att-kpi-label {
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    .att-kpi-value {
+      font-family:'Oswald',sans-serif;
+      font-size:28px;
+      font-weight:700;
+      line-height:1;
+      color:var(--orange);
+    }
+    .att-kpi:nth-child(2) .att-kpi-value { color:var(--green); }
+    .att-kpi:nth-child(3) .att-kpi-value { color:var(--blue); }
+    .att-kpi:nth-child(4) .att-kpi-value { color:var(--yellow); }
+    .att-kpi:nth-child(5) .att-kpi-value { color:var(--purple); }
+    .att-kpi:nth-child(6) .att-kpi-value { color:var(--muted); }
+
+    .att-latest-title {
+      font-size:13px;
+      font-weight:900;
+      color:var(--muted);
+      letter-spacing:.5px;
+      margin-bottom:10px;
+      text-transform:uppercase;
+    }
+    .att-latest-list {
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .att-latest-item {
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      background:var(--card2);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px 12px;
+    }
+    .att-latest-date {
+      min-width:100px;
+      font-family:'Oswald',sans-serif;
+      font-weight:700;
+      color:var(--orange);
+      white-space:nowrap;
+    }
+    .att-latest-name {
+      font-size:13px;
+      font-weight:900;
+      margin-bottom:4px;
+    }
+    .att-latest-meta {
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px 10px;
+      align-items:center;
+    }
+    .att-latest-hours {
+      margin-left:auto;
+      font-family:'Oswald',sans-serif;
+      font-weight:700;
+      color:var(--text);
+      white-space:nowrap;
+      font-size:14px;
+      padding-top:2px;
+    }
+    .att-empty {
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      padding:14px 0;
+      border:1px dashed var(--border);
+      border-radius:12px;
+    }
+
+    .att-badge {
+      display:inline-block;
+      padding:2px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      border:1px solid rgba(255,107,0,.35);
+      background:rgba(255,107,0,.12);
+      color:var(--orange);
+      white-space:nowrap;
+    }
+    .att-badge.present { border-color:rgba(34,197,94,.35); background:rgba(34,197,94,.12); color:var(--green); }
+    .att-badge.vacation { border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.12); color:var(--yellow); }
+    .att-badge.late { border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.12); color:var(--yellow); }
+    .att-badge.early_leave { border-color:rgba(168,85,247,.35); background:rgba(168,85,247,.12); color:var(--purple); }
+    .att-badge.absent { border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:var(--red); }
+    .att-badge.direct_in { border-color:rgba(59,130,246,.35); background:rgba(59,130,246,.12); color:var(--blue); }
+    .att-badge.direct_out { border-color:rgba(59,130,246,.35); background:rgba(59,130,246,.12); color:var(--blue); }
 
     /* ── Main Grid ───────────────────────────────────────── */
     .main-grid {
@@ -463,6 +574,10 @@
     <a href="invoice.html" class="cta-primary" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 14px rgba(124,58,237,.35);">📄 請求書を作成</a>
     <a href="schedule.html" class="cta-primary" style="background:linear-gradient(135deg,#22C55E,#16a34a);box-shadow:0 4px 14px rgba(34,197,94,.35);">📊 工程表</a>
     <a href="safety.html" class="cta-primary" style="background:linear-gradient(135deg,#EF4444,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.35);">🏗️ 安全書類</a>
+    <a href="attendance.html" class="cta-primary" style="background:linear-gradient(135deg,#14B8A6,#0d9488);box-shadow:0 4px 14px rgba(20,184,166,.35);">👷 出勤管理</a>
+    <a href="worker-attendance.html" class="cta-primary" style="background:linear-gradient(135deg,#22a05a,#135c38);box-shadow:0 4px 14px rgba(34,160,90,.35);">🏗️ 出勤報告（作業員）</a>
+    <a href="attendance-admin.html" class="cta-primary" style="background:linear-gradient(135deg,#14B8A6,#0d9488);box-shadow:0 4px 14px rgba(20,184,166,.35);">👷 出面管理</a>
+    <a href="attendance-entry.html" class="cta-primary" style="background:linear-gradient(135deg,#22a05a,#135c38);box-shadow:0 4px 14px rgba(34,160,90,.35);">📲 出面送信</a>
   </div>
 
   <!-- KPI Cards -->
@@ -490,6 +605,49 @@
       <div class="kpi-value" id="kpi4" style="font-size:22px;line-height:1.2;padding-top:4px;"><span class="kpi-loading"></span></div>
       <div class="kpi-sub" id="kpi4sub">集計中...</div>
       <div class="kpi-icon">📅</div>
+    </div>
+  </div>
+
+  <!-- Today Attendance Summary -->
+  <div class="card" id="attendanceTodayCard">
+    <div class="card-header">
+      <div class="card-title"><div class="dot"></div>本日の出面状況</div>
+      <span class="card-badge" id="attBadge">読み込み中</span>
+    </div>
+    <div class="card-body">
+      <div class="att-summary-grid">
+        <div class="att-kpi">
+          <div class="att-kpi-label">本日の出勤人数</div>
+          <div class="att-kpi-value" id="attKpiPresent"><span class="kpi-loading"></span></div>
+        </div>
+        <div class="att-kpi">
+          <div class="att-kpi-label">本日の休暇人数</div>
+          <div class="att-kpi-value" id="attKpiVacation"><span class="kpi-loading"></span></div>
+        </div>
+        <div class="att-kpi">
+          <div class="att-kpi-label">本日の遅刻人数</div>
+          <div class="att-kpi-value" id="attKpiLate"><span class="kpi-loading"></span></div>
+        </div>
+        <div class="att-kpi">
+          <div class="att-kpi-label">本日の早退人数</div>
+          <div class="att-kpi-value" id="attKpiEarlyLeave"><span class="kpi-loading"></span></div>
+        </div>
+        <div class="att-kpi">
+          <div class="att-kpi-label">本日の登録件数</div>
+          <div class="att-kpi-value" id="attKpiRegistered"><span class="kpi-loading"></span></div>
+        </div>
+        <div class="att-kpi">
+          <div class="att-kpi-label">本日の現場数</div>
+          <div class="att-kpi-value" id="attKpiSites"><span class="kpi-loading"></span></div>
+        </div>
+      </div>
+
+      <div class="att-latest">
+        <div class="att-latest-title">直近の出面送信一覧（5件）</div>
+        <div class="att-latest-list" id="attLatestList">
+          <div class="att-empty">読み込み中...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -653,6 +811,91 @@ const DEMO_PROJECTS = [
   { id:'p4', name:'排水路整備工事 大分014',         location:'大分県臼杵市',   work_type:'排水工',   status:'進行中' },
   { id:'p5', name:'急傾斜地対策工事 鹿児島',        location:'鹿児島県薩摩川内市', work_type:'法面工事', status:'完了' },
 ];
+
+const DEMO_ATTENDANCE_ENTRIES = (() => {
+  const now = Date.now();
+  const agoIso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
+  return [
+    {
+      id: 'a1',
+      work_date: today,
+      worker_name: '山田 太郎',
+      status: 'present',
+      work_hours: 8,
+      company: '○○建設株式会社',
+      site_name: '福岡082 法面整備 現場',
+      work_content: '法面整形・法枠コンクリート打設',
+      meter_photo_url: null,
+      notes: null,
+      submitted_at: agoIso(120),
+    },
+    {
+      id: 'a2',
+      work_date: today,
+      worker_name: '佐藤 健',
+      status: 'late',
+      work_hours: 6,
+      company: '○○建設株式会社',
+      site_name: '宮崎区間C 路盤整備 現場',
+      work_content: '路盤工・転圧作業',
+      meter_photo_url: null,
+      notes: null,
+      submitted_at: agoIso(95),
+    },
+    {
+      id: 'a3',
+      work_date: today,
+      worker_name: '鈴木 一郎',
+      status: 'vacation',
+      work_hours: 0,
+      company: '○○建設株式会社',
+      site_name: '福岡082 法面整備 現場',
+      work_content: '休暇（現場対応なし）',
+      meter_photo_url: null,
+      notes: '有給休暇',
+      submitted_at: agoIso(70),
+    },
+    {
+      id: 'a4',
+      work_date: today,
+      worker_name: '高橋 次郎',
+      status: 'early_leave',
+      work_hours: 5,
+      company: '△△工業株式会社',
+      site_name: '大分014 排水路 現場',
+      work_content: '排水溝整備・遣り方補助',
+      meter_photo_url: null,
+      notes: '体調不良のため早退',
+      submitted_at: agoIso(45),
+    },
+    {
+      id: 'a5',
+      work_date: today,
+      worker_name: '田中 花子',
+      status: 'absent',
+      work_hours: 0,
+      company: '△△工業株式会社',
+      site_name: '大分014 排水路 現場',
+      work_content: '欠勤（現場対応なし）',
+      meter_photo_url: null,
+      notes: null,
+      submitted_at: agoIso(30),
+    },
+  ];
+})();
+
+function getDemoAttendanceEntries() {
+  const raw = localStorage.getItem('demo_attendance_entries_v1');
+  if (!raw) return DEMO_ATTENDANCE_ENTRIES.slice();
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr) || !arr.length) return DEMO_ATTENDANCE_ENTRIES.slice();
+    arr.sort((a, b) => String(b.submitted_at || '').localeCompare(String(a.submitted_at || '')));
+    return arr;
+  } catch {
+    return DEMO_ATTENDANCE_ENTRIES.slice();
+  }
+}
 
 // ── Supabase Fetch ─────────────────────────────────────────
 async function sbFetch(path) {
@@ -888,12 +1131,100 @@ function setPageSub(logs, projects) {
 // ── escHtml ────────────────────────────────────────────────
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+// ── Attendance Status (Dashboard) ──────────────────────────
+function attendanceStatusLabel(status) {
+  const s = status || '';
+  if (s === 'present') return '出勤';
+  if (s === 'vacation') return '休暇';
+  if (s === 'late') return '遅刻';
+  if (s === 'early_leave') return '早退';
+  if (s === 'absent') return '欠勤';
+  if (s === 'direct_in') return '直行';
+  if (s === 'direct_out') return '直帰';
+  return s || '—';
+}
+
+function attendanceStatusBadgeHtml(status) {
+  const s = status || '';
+  const cls =
+    s === 'present' ? 'present' :
+    s === 'vacation' ? 'vacation' :
+    s === 'late' ? 'late' :
+    s === 'early_leave' ? 'early_leave' :
+    s === 'absent' ? 'absent' :
+    s === 'direct_in' ? 'direct_in' :
+    s === 'direct_out' ? 'direct_out' : '';
+  const label = attendanceStatusLabel(s);
+  return cls ? `<span class="att-badge ${cls}">${escHtml(label)}</span>` : `<span class="att-badge">${escHtml(label)}</span>`;
+}
+
+function renderAttendanceToday(entries, errMsg='') {
+  const list = Array.isArray(entries) ? entries : [];
+  const todayEntries = list.filter(e => e.work_date === today);
+
+  const setVal = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+
+  if (errMsg) {
+    $('attBadge').textContent = '取得失敗';
+    ['attKpiPresent','attKpiVacation','attKpiLate','attKpiEarlyLeave','attKpiRegistered','attKpiSites']
+      .forEach(id => setVal(id, '-'));
+    $('attLatestList').innerHTML = `<div class="att-empty">${escHtml(errMsg)}</div>`;
+    return;
+  }
+
+  const presentCount = todayEntries.filter(e => e.status === 'present' || e.status === 'direct_in').length;
+  const vacationCount = todayEntries.filter(e => e.status === 'vacation' || e.status === 'absent').length; // 休暇/欠勤をまとめて表示
+  const lateCount = todayEntries.filter(e => e.status === 'late').length;
+  const earlyLeaveCount = todayEntries.filter(e => e.status === 'early_leave').length;
+  const registeredCount = todayEntries.length;
+  const sitesCount = new Set(todayEntries.map(e => e.site_name).filter(Boolean)).size;
+
+  $('attBadge').textContent = registeredCount ? `${registeredCount}件` : '0件';
+  setVal('attKpiPresent', presentCount);
+  setVal('attKpiVacation', vacationCount);
+  setVal('attKpiLate', lateCount);
+  setVal('attKpiEarlyLeave', earlyLeaveCount);
+  setVal('attKpiRegistered', registeredCount);
+  setVal('attKpiSites', sitesCount);
+
+  const latest = todayEntries
+    .slice()
+    .sort((a, b) => String(b.submitted_at || '').localeCompare(String(a.submitted_at || '')))
+    .slice(0, 5);
+
+  $('attLatestList').innerHTML = latest.length
+    ? latest.map(e => {
+      const worker = escHtml(e.worker_name || '');
+      const site = escHtml(e.site_name || '');
+      const hoursVal = (e.work_hours === 0 || e.work_hours) ? `${e.work_hours}H` : '-';
+      return `
+        <div class="att-latest-item">
+          <div class="att-latest-date">${fmtDate(e.work_date)}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="att-latest-name">${worker}</div>
+            <div class="att-latest-meta">
+              ${attendanceStatusBadgeHtml(e.status)}
+              <span>現場: ${site}</span>
+            </div>
+          </div>
+          <div class="att-latest-hours">${escHtml(hoursVal)}</div>
+        </div>
+      `;
+    }).join('')
+    : `<div class="att-empty">データがありません</div>`;
+}
+
 // ── Load Dashboard ─────────────────────────────────────────
 let _isDemo = false;
 
 async function loadDashboard() {
   $('loadingText').textContent = 'Supabaseに接続中...';
   const { url, key } = getCfg();
+
+  _isDemo = false;
+  $('demoBanner').classList.remove('show');
+  $('rlsBanner').classList.remove('show');
+  $('liveBanner').classList.remove('show');
 
   let logs, projects;
 
@@ -939,6 +1270,21 @@ async function loadDashboard() {
   renderLogsTable(logs);
   renderProjects(projects);
   setPageSub(logs, projects);
+
+  // 出面サマリー（取得失敗してもダッシュボード表示は継続）
+  let attendanceEntries = [];
+  let attendanceErrMsg = '';
+  if (_isDemo) {
+    attendanceEntries = getDemoAttendanceEntries();
+  } else {
+    try {
+      attendanceEntries = await sbFetch(`attendance_logs?select=*&work_date=eq.${today}&order=submitted_at.desc&limit=500`);
+    } catch (err) {
+      console.warn('[Dashboard][Attendance] fetch failed:', err.message);
+      attendanceErrMsg = err.message || '出面情報の取得に失敗しました';
+    }
+  }
+  renderAttendanceToday(attendanceEntries, attendanceErrMsg);
 }
 
 // ── Refresh Button ─────────────────────────────────────────
