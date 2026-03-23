@@ -122,7 +122,7 @@
 
   /* ステータス選択 */
   .status-tabs {
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 8px; margin-bottom: 4px;
   }
   .status-tab {
@@ -136,6 +136,7 @@
   .status-tab .icon { font-size: 1.2rem; display: block; margin-bottom: 3px; }
   .status-tab.selected-present { border-color: var(--accent); color: var(--accent); background: rgba(46,204,113,0.1); }
   .status-tab.selected-absent { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.1); }
+  .status-tab.selected-vacation { border-color: var(--green-light); color: var(--green-light); background: rgba(34,160,90,0.12); }
   .status-tab.selected-late { border-color: var(--warn); color: var(--warn); background: rgba(245,158,11,0.1); }
 
   /* 条件表示エリア */
@@ -321,6 +322,9 @@
         </div>
         <div class="status-tab" id="tab-absent" onclick="selectStatus('absent')">
           <span class="icon">🏠</span>欠勤
+        </div>
+        <div class="status-tab" id="tab-vacation" onclick="selectStatus('vacation')">
+          <span class="icon">🌿</span>休暇
         </div>
         <div class="status-tab" id="tab-late" onclick="selectStatus('late')">
           <span class="icon">⏰</span>遅刻
@@ -574,13 +578,20 @@ async function registerWorker() {
 
 function selectStatus(status) {
   currentStatus = status;
-  ['present','absent','late'].forEach(s => {
+  ['present','absent','vacation','late'].forEach(s => {
     document.getElementById(`tab-${s}`).className = 'status-tab';
   });
   document.getElementById(`tab-${status}`).className = `status-tab selected-${status}`;
-  document.getElementById('absentArea').classList.toggle('show', status === 'absent');
+  const isAbsentOrVacation = status === 'absent' || status === 'vacation';
+  document.getElementById('absentArea').classList.toggle('show', isAbsentOrVacation);
   document.getElementById('lateArea').classList.toggle('show', status === 'late');
-  document.getElementById('workDetailCard').style.display = (status === 'absent') ? 'none' : 'block';
+  document.getElementById('workDetailCard').style.display = isAbsentOrVacation ? 'none' : 'block';
+
+  // 休暇時は、初期値として「有給」を選んでおく（未入力時のみ）
+  if (status === 'vacation') {
+    const sel = document.getElementById('absentReason');
+    if (sel && (!sel.value || sel.value === '')) sel.value = '有給';
+  }
 }
 
 function toggleDateEdit() {
@@ -630,10 +641,15 @@ async function submitReport() {
   const workDate = document.getElementById('workDate').value;
   const btn = document.getElementById('submitBtn');
 
-  // 欠勤の場合
-  if (currentStatus === 'absent') {
+  // 欠勤 / 休暇の場合
+  if (currentStatus === 'absent' || currentStatus === 'vacation') {
     const absentReason = document.getElementById('absentReason').value;
     const absentNote = document.getElementById('absentNote').value.trim();
+    const absentReasonLabel =
+      document.getElementById('absentReason')?.selectedOptions?.[0]?.textContent
+      || absentReason
+      || '';
+    const isVacation = currentStatus === 'vacation';
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>送信中...';
     try {
@@ -646,8 +662,8 @@ async function submitReport() {
         work_content: '',
         work_hours: 0,
         daily_rate: 0,
-        status: 'absent',
-        absent_reason: absentReason || null,
+        status: isVacation ? 'vacation' : 'absent',
+        absent_reason: isVacation ? '休暇' : (absentReason || null),
         absent_note: absentNote || null,
         late_time: null,
         late_reason: null,
@@ -655,10 +671,10 @@ async function submitReport() {
       };
       await postLog(payload);
       showSuccess({
-        type: 'absent',
+        type: isVacation ? 'vacation' : 'absent',
         name: selectedWorker.name,
         date: formatDateJP(workDate),
-        reason: absentReason || '未記入',
+        reason: isVacation ? (absentReasonLabel || '休暇') : (absentReason || '未記入'),
         note: absentNote || ''
       });
     } catch(e) { showError('送信に失敗しました: ' + e.message); }
@@ -759,6 +775,15 @@ function showSuccess(info) {
       info.note ? { label: '備考', val: info.note } : null
     ].filter(Boolean);
     screen.className = 'show success-absent';
+  } else if (info.type === 'vacation') {
+    icon = '🌿'; title = '休暇報告を送信しました';
+    rows = [
+      { label: '氏名', val: info.name },
+      { label: '日付', val: info.date },
+      { label: '休暇理由', val: info.reason },
+      info.note ? { label: '備考', val: info.note } : null
+    ].filter(Boolean);
+    screen.className = 'show success-vacation';
   } else if (info.type === 'late') {
     icon = '⏰'; title = '遅刻報告を送信しました';
     rows = [
