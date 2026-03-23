@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理ダッシュボード｜建設日報システム</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="auth.js"></script>
-  <script>checkAuth();</script>
   <style>
     :root {
       --orange:       #FF6B00;
@@ -420,7 +418,6 @@
     <span class="header-company" id="headerCompany"></span>
     <button class="icon-btn" id="refreshBtn" title="データを更新">🔄</button>
     <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
-    <button class="icon-btn" onclick="logout()" title="ログアウト" style="font-size:16px;">🚪</button>
     <span id="modeBadge" class="badge-demo">DEMO</span>
   </div>
 </header>
@@ -466,7 +463,6 @@
     <a href="invoice.html" class="cta-primary" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);box-shadow:0 4px 14px rgba(124,58,237,.35);">📄 請求書を作成</a>
     <a href="schedule.html" class="cta-primary" style="background:linear-gradient(135deg,#22C55E,#16a34a);box-shadow:0 4px 14px rgba(34,197,94,.35);">📊 工程表</a>
     <a href="safety.html" class="cta-primary" style="background:linear-gradient(135deg,#EF4444,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.35);">🏗️ 安全書類</a>
-    <a href="attendance.html" class="cta-primary" style="background:linear-gradient(135deg,#14B8A6,#0d9488);box-shadow:0 4px 14px rgba(20,184,166,.35);">👷 出勤・出面</a>
   </div>
 
   <!-- KPI Cards -->
