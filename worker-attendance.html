@@ -371,6 +371,11 @@
     <div class="card" id="workDetailCard">
       <div class="card-title">現場・作業内容</div>
       <div class="form-row">
+        <label>現場会社名（元請会社） <span class="required">*</span></label>
+        <input type="text" id="siteCompany" list="companyList" placeholder="例: ○○建設株式会社">
+        <datalist id="companyList"></datalist>
+      </div>
+      <div class="form-row">
         <label>現場名 <span class="required">*</span></label>
         <input type="text" id="siteName" list="siteList" placeholder="現場名を入力または選択">
         <datalist id="siteList"></datalist>
@@ -466,6 +471,17 @@ async function loadWorkers() {
     newOpt.textContent = '＋ 新しく登録する';
     sel.appendChild(newOpt);
     sel.onchange = onWorkerChange;
+
+    // 現場会社名の候補を会社名リストから生成
+    const dl = document.getElementById('companyList');
+    if (dl) {
+      const companies = [...new Set(workers.map(w => w.company).filter(Boolean))];
+      companies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        dl.appendChild(opt);
+      });
+    }
   } catch(e) { showError('作業員データの読み込みに失敗しました'); }
 }
 
@@ -582,16 +598,12 @@ function selectStatus(status) {
     document.getElementById(`tab-${s}`).className = 'status-tab';
   });
   document.getElementById(`tab-${status}`).className = `status-tab selected-${status}`;
-  const isAbsentOrVacation = status === 'absent' || status === 'vacation';
-  document.getElementById('absentArea').classList.toggle('show', isAbsentOrVacation);
+  // 欠勤のみ理由欄を表示。休暇は理由入力不要
+  document.getElementById('absentArea').classList.toggle('show', status === 'absent');
   document.getElementById('lateArea').classList.toggle('show', status === 'late');
-  document.getElementById('workDetailCard').style.display = isAbsentOrVacation ? 'none' : 'block';
-
-  // 休暇時は、初期値として「有給」を選んでおく（未入力時のみ）
-  if (status === 'vacation') {
-    const sel = document.getElementById('absentReason');
-    if (sel && (!sel.value || sel.value === '')) sel.value = '有給';
-  }
+  // 欠勤・休暇は現場情報カードを非表示
+  document.getElementById('workDetailCard').style.display =
+    (status === 'absent' || status === 'vacation') ? 'none' : 'block';
 }
 
 function toggleDateEdit() {
@@ -641,40 +653,61 @@ async function submitReport() {
   const workDate = document.getElementById('workDate').value;
   const btn = document.getElementById('submitBtn');
 
-  // 欠勤 / 休暇の場合
-  if (currentStatus === 'absent' || currentStatus === 'vacation') {
-    const absentReason = document.getElementById('absentReason').value;
-    const absentNote = document.getElementById('absentNote').value.trim();
-    const absentReasonLabel =
-      document.getElementById('absentReason')?.selectedOptions?.[0]?.textContent
-      || absentReason
-      || '';
-    const isVacation = currentStatus === 'vacation';
+  // 休暇の場合（理由入力不要、そのまま送信）
+  if (currentStatus === 'vacation') {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>送信中...';
     try {
-      const payload = {
+      await postLog({
         work_date: workDate,
         worker_id: workerId,
         worker_name: selectedWorker.name,
         company: selectedWorker.company,
-        site_name: '',
-        work_content: '',
+        site_name: null,
+        work_content: null,
         work_hours: 0,
         daily_rate: 0,
-        status: isVacation ? 'vacation' : 'absent',
-        absent_reason: isVacation ? '休暇' : (absentReason || null),
+        status: 'vacation',
+        absent_reason: '休暇',
+        absent_note: null,
+        late_time: null,
+        late_reason: null,
+        meter_photo_url: null
+      });
+      showSuccess({ type: 'vacation', name: selectedWorker.name, date: formatDateJP(workDate) });
+    } catch(e) { showError('送信に失敗しました: ' + e.message); }
+    btn.disabled = false; btn.innerHTML = '📤 報告を送信する';
+    return;
+  }
+
+  // 欠勤の場合（理由・備考あり）
+  if (currentStatus === 'absent') {
+    const absentReason = document.getElementById('absentReason').value;
+    const absentNote = document.getElementById('absentNote').value.trim();
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>送信中...';
+    try {
+      await postLog({
+        work_date: workDate,
+        worker_id: workerId,
+        worker_name: selectedWorker.name,
+        company: selectedWorker.company,
+        site_name: null,
+        work_content: null,
+        work_hours: 0,
+        daily_rate: 0,
+        status: 'absent',
+        absent_reason: absentReason || null,
         absent_note: absentNote || null,
         late_time: null,
         late_reason: null,
         meter_photo_url: photoBase64 || null
-      };
-      await postLog(payload);
+      });
       showSuccess({
-        type: isVacation ? 'vacation' : 'absent',
+        type: 'absent',
         name: selectedWorker.name,
         date: formatDateJP(workDate),
-        reason: isVacation ? (absentReasonLabel || '休暇') : (absentReason || '未記入'),
+        reason: absentReason || '未記入',
         note: absentNote || ''
       });
     } catch(e) { showError('送信に失敗しました: ' + e.message); }
@@ -683,9 +716,11 @@ async function submitReport() {
   }
 
   // 出勤・遅刻
-  const siteName = document.getElementById('siteName').value.trim();
+  const siteCompany = document.getElementById('siteCompany').value.trim();
+  const siteName    = document.getElementById('siteName').value.trim();
   const workContent = document.getElementById('workContent').value.trim();
-  if (!siteName) return showError('現場名を入力してください');
+  if (!siteCompany) return showError('現場会社名を入力してください');
+  if (!siteName)    return showError('現場名を入力してください');
   if (!workContent) return showError('作業内容を入力してください');
 
   let lateTime = null, lateReason = null;
@@ -705,7 +740,7 @@ async function submitReport() {
       work_date: workDate,
       worker_id: workerId,
       worker_name: selectedWorker.name,
-      company: selectedWorker.company,
+      company: siteCompany,
       site_name: siteName,
       work_content: workContent,
       work_hours: workHours,
