@@ -669,7 +669,6 @@ async function submitReport() {
         daily_rate: 0,
         status: 'vacation',
         absent_reason: '休暇',
-        absent_note: null,
         late_time: null,
         late_reason: null,
         meter_photo_url: null
@@ -684,6 +683,8 @@ async function submitReport() {
   if (currentStatus === 'absent') {
     const absentReason = document.getElementById('absentReason').value;
     const absentNote = document.getElementById('absentNote').value.trim();
+    // absent_note カラムが存在しないため、理由と備考を結合してabsent_reasonに格納
+    const combinedReason = [absentReason, absentNote].filter(Boolean).join(' - ') || null;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>送信中...';
     try {
@@ -697,8 +698,7 @@ async function submitReport() {
         work_hours: 0,
         daily_rate: 0,
         status: 'absent',
-        absent_reason: absentReason || null,
-        absent_note: absentNote || null,
+        absent_reason: combinedReason,
         late_time: null,
         late_reason: null,
         meter_photo_url: photoBase64 || null
@@ -747,7 +747,6 @@ async function submitReport() {
       daily_rate: appliedRate,
       status: currentStatus,
       absent_reason: null,
-      absent_note: null,
       late_time: lateTime,
       late_reason: lateReason,
       meter_photo_url: photoBase64 || null
@@ -815,9 +814,8 @@ function showSuccess(info) {
     rows = [
       { label: '氏名', val: info.name },
       { label: '日付', val: info.date },
-      { label: '休暇理由', val: info.reason },
-      info.note ? { label: '備考', val: info.note } : null
-    ].filter(Boolean);
+      { label: 'ステータス', val: '休暇' }
+    ];
     screen.className = 'show success-vacation';
   } else if (info.type === 'late') {
     icon = '⏰'; title = '遅刻報告を送信しました';
