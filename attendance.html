@@ -373,6 +373,16 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
 </div>
 
 <script>
+// Supabaseデフォルト設定（初回アクセス時に自動設定）
+if (!localStorage.getItem('dr_sb_url')) {
+  localStorage.setItem('dr_sb_url', 'https://bjohdzcoziezdkqcebhe.supabase.co');
+}
+if (!localStorage.getItem('dr_sb_key')) {
+  localStorage.setItem('dr_sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU');
+}
+if (!localStorage.getItem('dr_cak')) {
+  localStorage.setItem('dr_cak', 'TEST-API-KEY-12345');
+}
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Prefer': 'return=representation' };
