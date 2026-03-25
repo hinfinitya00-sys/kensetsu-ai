@@ -167,6 +167,69 @@ CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices (invoice_date D
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
 -- ────────────────────────────────────────────────────────────
+-- ────────────────────────────────────────────────────────────
+-- 8. workers — 作業員マスタ
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS workers (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        text        NOT NULL,
+  company     text        NOT NULL,
+  daily_rate  integer     NOT NULL DEFAULT 15000,
+  work_rates  jsonb       NOT NULL DEFAULT '{}',  -- {"作業種別": 単価, ...}
+  is_active   boolean     NOT NULL DEFAULT true,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workers_name      ON workers (name);
+CREATE INDEX IF NOT EXISTS idx_workers_is_active ON workers (is_active);
+
+ALTER TABLE workers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "workers_anon_all" ON workers FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- ────────────────────────────────────────────────────────────
+-- 9. sites — 現場マスタ
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS sites (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       text        NOT NULL UNIQUE,
+  company    text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE sites ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "sites_anon_all" ON sites FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- ────────────────────────────────────────────────────────────
+-- 10. attendance_logs — 出勤報告ログ
+--     ※ absent_note カラムは存在しません。備考は absent_reason に結合して保存します。
+-- ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS attendance_logs (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  work_date        date        NOT NULL,
+  worker_id        uuid        REFERENCES workers (id) ON DELETE SET NULL,
+  worker_name      text        NOT NULL,
+  company          text,                         -- 現場会社名（元請）
+  site_name        text,
+  work_content     text,
+  work_hours       numeric(5,2) DEFAULT 8.0,
+  daily_rate       integer      DEFAULT 0,
+  status           text        NOT NULL DEFAULT 'present',
+                                                 -- present / absent / vacation / late
+  absent_reason    text,                         -- 欠勤理由（備考も結合して格納）
+  late_time        text,                         -- HH:MM 形式
+  late_reason      text,
+  meter_photo_url  text,
+  submitted_at     timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_attendance_logs_work_date    ON attendance_logs (work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_attendance_logs_worker_name  ON attendance_logs (worker_name);
+CREATE INDEX IF NOT EXISTS idx_attendance_logs_status       ON attendance_logs (status);
+CREATE INDEX IF NOT EXISTS idx_attendance_logs_submitted_at ON attendance_logs (submitted_at DESC);
+
+ALTER TABLE attendance_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "attendance_anon_all" ON attendance_logs FOR ALL TO anon USING (true) WITH CHECK (true);
+
 -- サンプルデータ（テスト用 — 本番では削除してください）
 -- API キー "TEST-API-KEY-12345" の SHA-256 ハッシュ
 -- ────────────────────────────────────────────────────────────

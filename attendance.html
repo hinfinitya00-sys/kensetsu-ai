@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>建設日報 管理画面</title>
-<script>
-// auth.js checkAuth() 相当（シンプル実装）
-function checkAuth() {
-  const session = sessionStorage.getItem('admin_auth');
-  if (!session) {
-    const pw = prompt('管理者パスワードを入力してください:');
-    if (pw !== 'admin1234') {
-      alert('認証失敗');
-      document.body.innerHTML = '<p style="color:white;text-align:center;padding:40px">認証が必要です</p>';
-      return false;
-    }
-    sessionStorage.setItem('admin_auth', '1');
-  }
-  return true;
-}
-checkAuth();
-</script>
 <style>
 :root {
   --navy: #0f172a;
@@ -238,7 +221,7 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
     <button class="tab-btn" onclick="switchTab('salary')">💰 給与計算</button>
   </nav>
   <div class="header-right">
-    <button class="logout-btn" onclick="logout()">ログアウト</button>
+    <a href="admin.html" style="color:var(--text-dim);font-size:0.8rem;text-decoration:none;">← ホーム</a>
   </div>
 </header>
 
@@ -425,10 +408,6 @@ function switchTab(name) {
   event.target.classList.add('active');
 }
 
-function logout() {
-  sessionStorage.removeItem('admin_auth');
-  location.reload();
-}
 
 // ========== 出勤管理 ==========
 async function loadAttendance() {
