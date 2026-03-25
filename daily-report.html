@@ -484,7 +484,7 @@
     .db-save-main:active { transform:scale(.97); }
     .db-save-main:disabled { background:#94a3b8; box-shadow:none; cursor:not-allowed; }
 
-    /* ── Photo Upload ────────────────────────────────── */
+    /* 📷 写真アップロード機能（一時無効化・将来復活予定）
     .photo-drop {
       border:2px dashed var(--border); border-radius:12px; padding:24px 16px;
       text-align:center; cursor:pointer; transition:all .2s;
@@ -526,6 +526,7 @@
     @media(max-width:480px){
       .photo-previews { grid-template-columns:repeat(3,1fr); }
     }
+    */
   </style>
 </head>
 <body>
@@ -838,13 +839,12 @@
       </div>
     </div>
 
-    <!-- ⑦ 現場写真 -->
+<!-- 📷 写真アップロード機能（一時無効化・将来復活予定）
     <div class="card" id="photoCard">
       <div class="card-hd">
         <div class="card-ico">📷</div>
         <span class="card-title">現場写真（最大5枚）</span>
       </div>
-
       <div class="photo-drop" id="photoDrop">
         <div class="photo-drop-icon">📁</div>
         <div class="photo-drop-text">
@@ -853,10 +853,10 @@
         </div>
         <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
       </div>
-
       <div class="photo-previews" id="photoPreviews"></div>
       <div class="photo-status" id="photoStatus"></div>
     </div>
+-->
 
     <!-- iOS HTTPS案内 -->
     <div class="card ios-card" id="iosHttpsCard">
@@ -1610,10 +1610,11 @@ function showReport(text,data,logId){
   }else{
     console.warn('[showReport] log_idなし: DB保存未完了の可能性があります');
   }
-  // 現場写真アップロード（選択済みの場合）
+  /* 📷 写真アップロード機能（一時無効化・将来復活予定）
   if(photoFiles.length > 0){
     setTimeout(()=>uploadPhotosToSupabase(logId||null, data.workDate||null), 500);
   }
+  */
 }
 
 function populateEditFields(data){
@@ -2167,18 +2168,15 @@ $('dbSaveBtn').addEventListener('click',async()=>{
   btn.innerHTML='<span>🗄️</span><span>DBに保存（UPDATE）</span>';
 });
 
-// ── Photo Upload ──────────────────────────────────────────
-let photoFiles = [];  // File objects selected by user
+/* 📷 写真アップロード機能（一時無効化・将来復活予定）
+let photoFiles = [];
 
 const photoDrop    = $('photoDrop');
 const photoInput   = $('photoInput');
 const photoPreviews= $('photoPreviews');
 const photoStatus  = $('photoStatus');
 
-// Click to open file picker
 photoDrop.addEventListener('click', () => photoInput.click());
-
-// Drag & drop
 photoDrop.addEventListener('dragover', e => { e.preventDefault(); photoDrop.classList.add('dragging'); });
 photoDrop.addEventListener('dragleave', () => photoDrop.classList.remove('dragging'));
 photoDrop.addEventListener('drop', e => {
@@ -2233,73 +2231,34 @@ async function uploadPhotosToSupabase(logId, workDate) {
   }
   photoStatus.textContent = `写真をアップロード中... (0/${photoFiles.length})`;
   photoStatus.className = 'photo-status uploading';
-
   let successCount = 0;
   const dateStr = (workDate || new Date().toISOString().slice(0,10)).replace(/-/g,'');
-
   for (let i = 0; i < photoFiles.length; i++) {
     const file = photoFiles[i];
     const ext  = file.name.split('.').pop() || 'jpg';
     const path = `${dateStr}/${logId || 'nolog'}_${i+1}.${ext}`;
-
     try {
-      // Upload to Supabase Storage bucket "site-photos"
       const uploadRes = await fetch(
         `${s.supabaseUrl}/storage/v1/object/site-photos/${path}`,
-        {
-          method: 'POST',
-          headers: {
-            'apikey':        s.supabaseAnonKey,
-            'Authorization': `Bearer ${s.supabaseAnonKey}`,
-            'Content-Type':  file.type,
-            'x-upsert':      'true',
-          },
-          body: file,
-        }
+        { method: 'POST', headers: { 'apikey': s.supabaseAnonKey, 'Authorization': `Bearer ${s.supabaseAnonKey}`, 'Content-Type': file.type, 'x-upsert': 'true' }, body: file }
       );
-      if (!uploadRes.ok) {
-        const e = await uploadRes.json().catch(() => ({}));
-        throw new Error(e.message || `Storage ${uploadRes.status}`);
-      }
-
+      if (!uploadRes.ok) { const e = await uploadRes.json().catch(() => ({})); throw new Error(e.message || `Storage ${uploadRes.status}`); }
       const publicUrl = `${s.supabaseUrl}/storage/v1/object/public/site-photos/${path}`;
-
-      // Insert into site_photos table
       const insertRes = await fetch(`${s.supabaseUrl}/rest/v1/site_photos`, {
         method: 'POST',
-        headers: {
-          'apikey':        s.supabaseAnonKey,
-          'Authorization': `Bearer ${s.supabaseAnonKey}`,
-          'Content-Type':  'application/json',
-          'Prefer':        'return=minimal',
-        },
-        body: JSON.stringify({
-          log_id:    logId   || null,
-          photo_url: publicUrl,
-          caption:   file.name,
-          taken_at:  workDate || null,
-          ...(s.supabaseCompanyId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.supabaseCompanyId)
-            ? { company_id: s.supabaseCompanyId } : {}),
-        }),
+        headers: { 'apikey': s.supabaseAnonKey, 'Authorization': `Bearer ${s.supabaseAnonKey}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ log_id: logId||null, photo_url: publicUrl, caption: file.name, taken_at: workDate||null, ...(s.supabaseCompanyId ? { company_id: s.supabaseCompanyId } : {}) }),
       });
-
       if (insertRes.ok) successCount++;
-      else console.warn('[photo] site_photos INSERT failed:', insertRes.status);
-
       photoStatus.textContent = `写真をアップロード中... (${successCount}/${photoFiles.length})`;
-    } catch (e) {
-      console.error('[photo] upload error:', e.message);
-    }
+    } catch (e) { console.error('[photo] upload error:', e.message); }
   }
-
-  if (successCount === photoFiles.length) {
-    photoStatus.textContent = `✅ ${successCount}枚の写真をアップロードしました`;
-    photoStatus.className = 'photo-status done';
-  } else {
-    photoStatus.textContent = `⚠️ ${successCount}/${photoFiles.length}枚アップロード完了（一部失敗）`;
-    photoStatus.className = 'photo-status err';
-  }
+  photoStatus.textContent = successCount === photoFiles.length
+    ? `✅ ${successCount}枚の写真をアップロードしました`
+    : `⚠️ ${successCount}/${photoFiles.length}枚アップロード完了（一部失敗）`;
+  photoStatus.className = successCount === photoFiles.length ? 'photo-status done' : 'photo-status err';
 }
+*/
 
 // ── Init ──────────────────────────────────────────────────
 checkKey();

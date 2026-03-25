@@ -159,7 +159,7 @@
   }
   .absent-input-area label { color: #fca5a5; }
 
-  /* メーター写真 */
+  /* 📷 写真アップロード機能（一時無効化・将来復活予定）
   .photo-upload-area {
     border: 2px dashed var(--border);
     border-radius: 8px; padding: 16px;
@@ -187,6 +187,7 @@
     border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
     font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
   }
+  */
 
   /* ボタン */
   .btn {
@@ -390,7 +391,7 @@
       </div>
     </div>
 
-    <!-- 車メーター写真（任意） -->
+<!-- 📷 写真アップロード機能（一時無効化・将来復活予定）
     <div class="card">
       <div class="card-title">車メーター写真 <span style="font-size:0.7rem; color:var(--text-dim); font-weight:400; text-transform:none;">(任意)</span></div>
       <div class="photo-upload-area" id="photoArea">
@@ -404,6 +405,7 @@
         <button class="remove-photo" onclick="removePhoto()">✕</button>
       </div>
     </div>
+-->
 
     <div class="error-msg" id="errorMsg"></div>
 
@@ -446,7 +448,7 @@ const HEADERS = {
 let workers = [];
 let selectedWorker = null;
 let currentStatus = 'present';
-let photoBase64 = null;
+// 📷 写真アップロード機能（一時無効化） let photoBase64 = null;
 
 // 初期化
 window.onload = async () => {
@@ -634,6 +636,7 @@ function toggleDateEdit() {
   }
 }
 
+/* 📷 写真アップロード機能（一時無効化・将来復活予定）
 function previewPhoto(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -655,6 +658,7 @@ function removePhoto() {
   document.querySelector('.photo-upload-area .upload-icon').textContent = '📷';
   document.querySelector('.photo-upload-area p').textContent = 'タップして写真を撮影 / 選択';
 }
+*/
 
 async function submitReport() {
   hideError();
@@ -711,7 +715,7 @@ async function submitReport() {
         absent_reason: combinedReason,
         late_time: null,
         late_reason: null,
-        meter_photo_url: photoBase64 || null
+        meter_photo_url: null /* 📷 photoBase64 || null */
       });
       showSuccess({
         type: 'absent',
@@ -759,7 +763,7 @@ async function submitReport() {
       absent_reason: null,
       late_time: lateTime,
       late_reason: lateReason,
-      meter_photo_url: photoBase64 || null
+      meter_photo_url: null /* 📷 photoBase64 || null */
     };
     await postLog(payload);
 
@@ -867,7 +871,7 @@ function resetForm() {
   document.getElementById('workContent').value = '';
   document.getElementById('workHours').value = '8.0';
   selectStatus('present');
-  removePhoto();
+  // removePhoto(); // 📷 写真アップロード機能（一時無効化）
   selectedWorker = null;
   hideError();
 }
