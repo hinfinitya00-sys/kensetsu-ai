@@ -5,21 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理者ログイン｜建設AIシステム</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="auth.js"></script>
+  <script src="js/auth.js"></script>
   <script>
-    // すでにログイン済みなら管理画面へ
+    // すでにログイン済みなら元のページ（または管理画面）へ
     (function () {
-      try {
-        const raw = localStorage.getItem('ks_auth_session');
-        if (raw) {
-          const s = JSON.parse(raw);
-          if (s.expires && Date.now() < s.expires) {
-            const params = new URLSearchParams(location.search);
-            const ret = params.get('return') || 'admin.html';
-            location.replace(ret);
-          }
-        }
-      } catch {}
+      const s = KS_AUTH.getSession();
+      if (s) {
+        const params = new URLSearchParams(location.search);
+        const ret = params.get('return') || 'admin.html';
+        location.replace(decodeURIComponent(ret));
+      }
     })();
   </script>
   <style>
@@ -211,37 +206,47 @@
 
 <script>
 (function () {
-  // セッション切れで来た場合の通知
   const params = new URLSearchParams(location.search);
+
+  // セッション切れで来た場合の通知
   if (params.get('return')) {
     document.getElementById('notice').classList.add('show');
   }
 
-  window.doLogin = function () {
+  window.doLogin = async function () {
     const pw  = document.getElementById('pwInput').value;
     const err = document.getElementById('errorMsg');
     const inp = document.getElementById('pwInput');
+    const btn = document.querySelector('.btn-login');
 
     err.classList.remove('show');
     inp.classList.remove('error-input');
 
     if (!pw) {
-      err.textContent = '❌ パスワードを入力してください';
+      err.textContent = '❌ APIキーを入力してください';
       err.classList.add('show');
       inp.focus();
       return;
     }
 
-    if (login(pw)) {
+    // ローディング表示
+    btn.disabled = true;
+    btn.innerHTML = '⏳ 認証中...';
+
+    const result = await KS_AUTH.login(pw);
+
+    btn.disabled = false;
+    btn.innerHTML = '🔑 ログイン';
+
+    if (result.ok) {
       const ret = params.get('return') || 'admin.html';
       location.replace(decodeURIComponent(ret));
     } else {
-      err.textContent = '❌ パスワードが違います';
+      err.textContent = '❌ ' + result.error;
       err.classList.add('show');
       inp.classList.add('error-input');
       inp.value = '';
       inp.focus();
-      // Shake animation
       inp.style.animation = 'shake .3s ease';
       setTimeout(() => { inp.style.animation = ''; }, 300);
     }
