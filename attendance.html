@@ -438,10 +438,15 @@ async function loadAttendance() {
 
   try {
     const res = await fetch(url, { headers: H });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.message || errBody.error || `HTTP ${res.status}`);
+    }
     attendanceData = await res.json();
     renderAttendance(attendanceData);
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">読み込みエラー</td></tr>';
+    console.error('[attendance] loadAttendance error:', e.message, e);
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state">読み込みエラー: ${e.message}</td></tr>`;
   }
 }
 

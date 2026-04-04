@@ -1281,18 +1281,25 @@ async function loadDashboard() {
   renderProjects(projects);
   setPageSub(logs, projects);
 
-  // 出面サマリー（取得失敗してもダッシュボード表示は継続）
+  // 出面サマリー（daily_logs の成否に関わらず常に実データを試みる）
   let attendanceEntries = [];
   let attendanceErrMsg = '';
-  if (_isDemo) {
-    attendanceEntries = getDemoAttendanceEntries();
-  } else {
+  const { url: _attUrl, key: _attKey } = getCfg();
+  if (_attUrl && _attKey) {
     try {
-      attendanceEntries = await sbFetch(`attendance_logs?select=*&work_date=eq.${today}&order=submitted_at.desc&limit=500`);
+      // カラム: work_date, worker_name, company, site_name, work_content,
+      //         work_hours, daily_rate, status, absent_reason, late_time, submitted_at
+      attendanceEntries = await sbFetch(
+        `attendance_logs?select=work_date,worker_name,company,site_name,work_content,work_hours,daily_rate,status,absent_reason,late_time,submitted_at` +
+        `&work_date=eq.${today}&order=submitted_at.desc&limit=500`
+      );
     } catch (err) {
-      console.warn('[Dashboard][Attendance] fetch failed:', err.message);
+      console.error('[Dashboard][Attendance] fetch failed:', err.message, err);
       attendanceErrMsg = err.message || '出面情報の取得に失敗しました';
+      // Supabase接続はあるがエラーの場合：空リストのまま（デモデータで上書きしない）
     }
+  } else {
+    attendanceEntries = getDemoAttendanceEntries();
   }
   renderAttendanceToday(attendanceEntries, attendanceErrMsg);
 }
