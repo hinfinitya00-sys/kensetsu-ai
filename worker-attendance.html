@@ -389,6 +389,10 @@
         <label>勤務時間 (h)</label>
         <input type="number" id="workHours" value="8.0" min="0.5" max="24" step="0.5">
       </div>
+      <div class="form-row">
+        <label>日当（円）</label>
+        <input type="number" id="dailyRateInput" value="15000" min="0" step="500">
+      </div>
     </div>
 
 <!-- 📷 写真アップロード機能（一時無効化・将来復活予定）
@@ -521,6 +525,9 @@ function onWorkerChange() {
   } else if (val) {
     newArea.classList.remove('open');
     selectedWorker = workers.find(w => w.id === val);
+    if (selectedWorker && selectedWorker.daily_rate) {
+      document.getElementById('dailyRateInput').value = selectedWorker.daily_rate;
+    }
     showRatePreview();
   } else {
     newArea.classList.remove('open');
@@ -680,7 +687,7 @@ async function submitReport() {
         site_name: null,
         work_content: null,
         work_hours: 0,
-        daily_rate: 0,
+        daily_rate: parseInt(document.getElementById('dailyRateInput').value) || 0,
         status: 'vacation',
         absent_reason: '休暇',
         late_time: null,
@@ -710,7 +717,7 @@ async function submitReport() {
         site_name: null,
         work_content: null,
         work_hours: 0,
-        daily_rate: 0,
+        daily_rate: parseInt(document.getElementById('dailyRateInput').value) || 0,
         status: 'absent',
         absent_reason: combinedReason,
         late_time: null,
@@ -758,7 +765,7 @@ async function submitReport() {
       site_name: siteName,
       work_content: workContent,
       work_hours: workHours,
-      daily_rate: appliedRate,
+      daily_rate: parseInt(document.getElementById('dailyRateInput').value) || appliedRate,
       status: currentStatus,
       absent_reason: null,
       late_time: lateTime,
@@ -870,6 +877,7 @@ function resetForm() {
   document.getElementById('siteName').value = '';
   document.getElementById('workContent').value = '';
   document.getElementById('workHours').value = '8.0';
+  document.getElementById('dailyRateInput').value = '15000';
   selectStatus('present');
   // removePhoto(); // 📷 写真アップロード機能（一時無効化）
   selectedWorker = null;
