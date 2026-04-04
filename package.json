@@ -1,5 +1,5 @@
 {
-  "name": "kensetsu-nippou",
+  "name": "kensetsu-ai",
   "version": "1.2.0",
   "description": "建設業 工事日報 自動作成システム（Netlify Functions + Supabase）",
   "private": true,

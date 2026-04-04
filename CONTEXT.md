@@ -7,8 +7,8 @@
 ## プロジェクト概要
 
 **プロジェクト名:** 建設AI 現場管理システム
-**リポジトリ:** `hinfinitya00-sys/kensetsu-nippou`
-**メインファイル:** `/Users/sonodaayato/kensetsu-nippou/daily-report.html`（シングルHTMLファイル）
+**リポジトリ:** `hinfinitya00-sys/kensetsu-ai`
+**メインファイル:** `/Users/sonodaayato/kensetsu-ai/daily-report.html`（シングルHTMLファイル）
 **対象ユーザー:** 土木・法面工事の現場監督（現場でスマホから使う想定）
 
 ---
@@ -100,7 +100,7 @@ daily-report.html（シングルファイル・外部依存なし）
 ## ファイル構成
 
 ```
-kensetsu-nippou/
+kensetsu-ai/
 ├── daily-report.html   # メインアプリ（全機能集約）
 ├── README.md           # プロジェクト説明
 ├── CONTEXT.md          # このファイル（Claude引き継ぎ書）
@@ -114,13 +114,13 @@ kensetsu-nippou/
 
 | 種別 | URL |
 |------|-----|
-| GitHubリポジトリ | https://github.com/hinfinitya00-sys/kensetsu-nippou |
-| GitHub Pages（iPhone音声入力用） | https://hinfinitya00-sys.github.io/kensetsu-nippou/daily-report.html |
+| GitHubリポジトリ | https://github.com/hinfinitya00-sys/kensetsu-ai |
+| GitHub Pages（iPhone音声入力用） | https://hinfinitya00-sys.github.io/kensetsu-ai/daily-report.html |
 
 ## 作業再開時のコマンド
 
 ```bash
-cd /Users/sonodaayato/kensetsu-nippou
+cd /Users/sonodaayato/kensetsu-ai
 open daily-report.html              # ブラウザで確認
 python3 -m http.server 8080         # ローカルサーバー（iPhoneテスト用）
 

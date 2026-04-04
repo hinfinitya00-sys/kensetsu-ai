@@ -46,7 +46,7 @@ python3 -m http.server 8080
 ## ファイル構成
 
 ```
-kensetsu-nippou/
+kensetsu-ai/
 ├── daily-report.html   # メインアプリ（全機能をこの1ファイルに集約）
 ├── README.md
 ├── CONTEXT.md          # Claude向け引き継ぎ書
