@@ -1,18 +1,18 @@
 /**
- * js/auth.js — 建設AI マルチテナント認証モジュール
+ * js/auth.js — 建設AI Supabase Auth 認証モジュール (v2)
  *
- * 使い方:
- *   保護ページの <head> 先頭に以下を追加するだけ:
- *     <script src="js/auth.js"></script>
- *     <script>KS_AUTH.checkAuth();</script>
+ * 使い方（保護ページの <head> 先頭）:
+ *   <script src="js/auth.js"></script>
+ *   <script>KS_AUTH.checkAuth();</script>
  *
  * API:
- *   KS_AUTH.login(apiKey)   → Promise<{ok, session, error}>  ログイン
- *   KS_AUTH.logout()        → void                           ログアウト
- *   KS_AUTH.checkAuth()     → session | null                 未認証なら login.html へリダイレクト
- *   KS_AUTH.getSession()    → session | null                 現在のセッションを返す
+ *   KS_AUTH.checkAuth()      → Promise<session|null>  未認証なら login.html へ
+ *   KS_AUTH.getSession()     → object|null            キャッシュ済み会社情報
+ *   KS_AUTH.getCompanyId()   → string|null
+ *   KS_AUTH.getCompanyName() → string|null
+ *   KS_AUTH.logout()         → Promise<void>
  *
- * Supabase 設定キー（admin.html の localStorage キーと共通）:
+ * Supabase 設定（localStorage）:
  *   dr_sb_url  ... Supabase Project URL
  *   dr_sb_key  ... Supabase anon key
  */
@@ -20,164 +20,214 @@
 'use strict';
 
 const KS_AUTH = (() => {
-  // ─── 定数 ───────────────────────────────────────────────────
-  const SESSION_KEY = 'ks_auth_session';
-  const TTL_MS      = 24 * 60 * 60 * 1000; // セッション有効期間: 24時間
+
+  /* ── 定数 ─────────────────────────────────────── */
   const SB_URL_KEY  = 'dr_sb_url';
   const SB_KEY_KEY  = 'dr_sb_key';
+  const COMPANY_KEY = 'ks_company';
+  const CDN_URL     = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
-  // ─── Supabase 設定取得 ───────────────────────────────────────
-  function _sbCfg() {
-    return {
-      url: localStorage.getItem(SB_URL_KEY) || '',
-      key: localStorage.getItem(SB_KEY_KEY) || '',
-    };
+  /* ── Supabase クライアント生成 ─────────────────── */
+  function _client() {
+    const url = localStorage.getItem(SB_URL_KEY);
+    const key = localStorage.getItem(SB_KEY_KEY);
+    if (!url || !key) return null;
+    if (typeof window.supabase === 'undefined') return null;
+    return window.supabase.createClient(url, key);
   }
 
-  // ─── SHA-256 ハッシュ (Web Crypto API) ──────────────────────
-  async function _sha256(text) {
-    const buf = await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(text)
-    );
-    return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+  /* ── CDN 非同期ロード ──────────────────────────── */
+  function _loadCDN() {
+    return new Promise((resolve, reject) => {
+      if (typeof window.supabase !== 'undefined') { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = CDN_URL;
+      s.onload  = resolve;
+      s.onerror = () => reject(new Error('Supabase CDN load failed'));
+      document.head.appendChild(s);
+    });
   }
 
-  // ─── login.html への相対パスを解決 ───────────────────────────
-  function _loginUrl(returnPath) {
-    // 同一ディレクトリの login.html を参照（GitHub Pages / ローカル両対応）
+  /* ── ローカルセッション存在チェック（同期・高速）── */
+  function _hasLocalSession() {
+    const url = localStorage.getItem(SB_URL_KEY);
+    if (!url) return false;
+    const m = url.match(/https?:\/\/([^.]+)\.supabase\.co/);
+    if (!m) return false;
+    const ref = m[1];
+    const raw = localStorage.getItem(`sb-${ref}-auth-token`);
+    if (!raw) return false;
+    try {
+      const d = JSON.parse(raw);
+      if (!d) return false;
+      const token = d.access_token || d.session?.access_token;
+      if (!token) return false;
+      const exp = d.expires_at || d.session?.expires_at;
+      return !exp || exp * 1000 > Date.now();
+    } catch { return false; }
+  }
+
+  /* ── login.html への遷移 URL ──────────────────── */
+  function _loginUrl() {
     const base = location.pathname.replace(/\/[^/]*$/, '/');
-    const ret  = encodeURIComponent(returnPath || location.pathname + location.search);
+    const ret  = encodeURIComponent(location.pathname + location.search);
     return base + 'login.html?return=' + ret;
   }
 
-  // ─── セッション取得 ──────────────────────────────────────────
-  function getSession() {
+  /* ── HTML エスケープ ─────────────────────────── */
+  function _esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ── 会社情報をキャッシュ ──────────────────────── */
+  async function _ensureCompany(client, userId) {
+    if (localStorage.getItem(COMPANY_KEY)) return;
     try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (!raw) return null;
-      const s = JSON.parse(raw);
-      if (!s || !s.expires) return null;
-      if (Date.now() >= s.expires) {
-        localStorage.removeItem(SESSION_KEY);
-        return null;
+      // FK join (user_companies → companies)
+      const { data, error } = await client
+        .from('user_companies')
+        .select('company_id, companies(id, name)')
+        .eq('user_id', userId)
+        .single();
+
+      if (!error && data && data.companies) {
+        localStorage.setItem(COMPANY_KEY, JSON.stringify({
+          id:   data.company_id,
+          name: data.companies.name,
+        }));
+        return;
       }
-      return s;
-    } catch {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
+
+      // FK join が使えない場合: 2クエリでフォールバック
+      const { data: uc } = await client
+        .from('user_companies')
+        .select('company_id')
+        .eq('user_id', userId)
+        .single();
+      if (!uc) return;
+
+      const { data: co } = await client
+        .from('companies')
+        .select('id, name')
+        .eq('id', uc.company_id)
+        .single();
+      if (co) {
+        localStorage.setItem(COMPANY_KEY, JSON.stringify({ id: co.id, name: co.name }));
+      }
+    } catch (e) {
+      console.error('[KS_AUTH] _ensureCompany:', e);
     }
   }
 
-  // ─── 認証チェック（保護ページの先頭で呼ぶ）─────────────────
-  function checkAuth() {
-    const s = getSession();
-    if (!s) {
+  /* ── ページ右上に会社名 + ログアウトボタンを挿入 ─ */
+  function _injectBar() {
+    if (document.getElementById('ks-auth-bar')) return;
+    const name = getCompanyName() || '未設定';
+    const bar  = document.createElement('div');
+    bar.id = 'ks-auth-bar';
+    bar.style.cssText = [
+      'position:fixed', 'top:0', 'right:0', 'z-index:99999',
+      'background:rgba(11,20,38,.9)', 'backdrop-filter:blur(10px)',
+      '-webkit-backdrop-filter:blur(10px)',
+      'padding:7px 14px', 'display:flex', 'align-items:center', 'gap:12px',
+      'font-size:12px', "font-family:'Noto Sans JP',sans-serif", 'color:#E8EDF8',
+      'border-bottom-left-radius:10px',
+      'border:1px solid #2A3D6B', 'border-top:none', 'border-right:none',
+    ].join(';');
+    bar.innerHTML =
+      '<span style="color:#7A8CAE;font-size:14px">🏢</span>' +
+      `<span style="font-weight:700;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(name)}</span>` +
+      '<button id="ks-logout-btn" style="' +
+        'background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);' +
+        'color:#FCA5A5;padding:3px 10px;border-radius:6px;font-size:11px;' +
+        'cursor:pointer;font-family:inherit;' +
+      '">ログアウト</button>';
+
+    const attach = () => {
+      if (!document.body) return;
+      document.body.appendChild(bar);
+      document.getElementById('ks-logout-btn')
+        .addEventListener('click', () => KS_AUTH.logout());
+    };
+    document.readyState === 'loading'
+      ? document.addEventListener('DOMContentLoaded', attach)
+      : attach();
+  }
+
+  /* ══════════════════════════════════════════════
+     公開 API
+  ══════════════════════════════════════════════ */
+
+  /**
+   * 認証チェック — 保護ページの <head> で呼ぶ。
+   * 非ログインなら login.html へリダイレクト。
+   * ログイン済みなら右上に会社名バーを挿入して session を返す。
+   */
+  async function checkAuth() {
+    // ① body を非表示（ちらつき防止）— await より前なので同期実行
+    const hide = document.createElement('style');
+    hide.id = 'ks-auth-loading';
+    hide.textContent = 'body{visibility:hidden!important}';
+    (document.head || document.documentElement).appendChild(hide);
+
+    const show = () => {
+      const el = document.getElementById('ks-auth-loading');
+      if (el) el.remove();
+    };
+
+    // ② 高速ローカルチェック（同期）
+    if (!_hasLocalSession()) {
       location.replace(_loginUrl());
       return null;
     }
-    return s;
-  }
 
-  // ─── ログアウト ──────────────────────────────────────────────
-  function logout() {
-    localStorage.removeItem(SESSION_KEY);
-    location.replace(_loginUrl());
-  }
-
-  // ─── ログイン（Supabase API キー認証）───────────────────────
-  async function login(apiKey) {
-    if (!apiKey || !apiKey.trim()) {
-      return { ok: false, error: 'APIキーを入力してください' };
-    }
-
-    const { url, key } = _sbCfg();
-    if (!url || !key) {
-      return {
-        ok: false,
-        error: 'Supabase設定が未完了です。管理画面の⚙️設定から入力してください。',
-      };
-    }
-
+    // ③ Supabase CDN ロード → サーバーサイドセッション検証
     try {
-      const hash = await _sha256(apiKey.trim());
+      await _loadCDN();
+      const client = _client();
+      if (!client) { location.replace(_loginUrl()); return null; }
 
-      // ── ① マイグレーションで作成した RPC を優先 ─────────────
-      // supabase/001_auth_multitenant.sql に verify_api_key(p_key_hash text) が
-      // 定義されている想定。SECURITY DEFINER で RLS を bypass する。
-      let company = null;
+      const { data: { session }, error } = await client.auth.getSession();
+      if (error || !session) { location.replace(_loginUrl()); return null; }
 
-      const rpcRes = await fetch(`${url}/rest/v1/rpc/verify_api_key`, {
-        method:  'POST',
-        headers: {
-          apikey:          key,
-          Authorization:   `Bearer ${key}`,
-          'Content-Type':  'application/json',
-          Prefer:          'return=representation',
-        },
-        body: JSON.stringify({ p_key_hash: hash }),
-      });
+      // ④ 会社情報キャッシュ
+      await _ensureCompany(client, session.user.id);
 
-      if (rpcRes.ok) {
-        const data = await rpcRes.json();
-        // RPC が単一オブジェクトを返す場合と配列の場合の両方に対応
-        const row = Array.isArray(data) ? data[0] : data;
-        if (row && row.id) company = row;
-      }
-
-      // ── ② RPC 未定義(404) の場合は直接 REST クエリにフォールバック ──
-      // ※ companies テーブルに RLS ポリシー "allow anon by hash" が
-      //   001_auth_multitenant.sql で追加されていれば有効
-      if (!company) {
-        const qRes = await fetch(
-          `${url}/rest/v1/companies` +
-          `?api_key_hash=eq.${encodeURIComponent(hash)}` +
-          `&status=eq.active` +
-          `&select=id,name,plan,expires_at`,
-          {
-            headers: {
-              apikey:        key,
-              Authorization: `Bearer ${key}`,
-            },
-          }
-        );
-        if (qRes.ok) {
-          const rows = await qRes.json();
-          if (rows && rows.length) company = rows[0];
-        }
-      }
-
-      // ── 結果判定 ──────────────────────────────────────────────
-      if (!company) {
-        return { ok: false, error: 'APIキーが正しくありません' };
-      }
-      if (company.expires_at && new Date(company.expires_at) < new Date()) {
-        return { ok: false, error: 'このAPIキーは有効期限切れです' };
-      }
-
-      // ── セッション作成 ────────────────────────────────────────
-      const session = {
-        companyId:   company.id,
-        companyName: company.name,
-        plan:        company.plan || 'basic',
-        apiKey:      apiKey.trim(),
-        expires:     Date.now() + TTL_MS,
-      };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-
-      // 既存コードが dr_cak から API キーを読んでいるため同期
-      localStorage.setItem('dr_cak', apiKey.trim());
-
-      return { ok: true, session };
-
-    } catch (err) {
-      console.error('[KS_AUTH] login error:', err);
-      return { ok: false, error: 'ネットワークエラーが発生しました。接続を確認してください。' };
+      // ⑤ 表示再開 + 会社バー挿入
+      show();
+      _injectBar();
+      return session;
+    } catch (e) {
+      console.error('[KS_AUTH] checkAuth error:', e);
+      location.replace(_loginUrl());
+      return null;
     }
   }
 
-  // ─── 公開 API ────────────────────────────────────────────────
-  return { login, logout, checkAuth, getSession };
+  /** キャッシュ済みセッション（会社情報オブジェクト）を返す */
+  function getSession() {
+    try {
+      const raw = localStorage.getItem(COMPANY_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  function getCompanyId()   { return getSession()?.id   ?? null; }
+  function getCompanyName() { return getSession()?.name ?? null; }
+
+  /** ログアウトして login.html へ */
+  async function logout() {
+    try {
+      await _loadCDN();
+      const c = _client();
+      if (c) await c.auth.signOut();
+    } catch {}
+    localStorage.removeItem(COMPANY_KEY);
+    const base = location.pathname.replace(/\/[^/]*$/, '/');
+    location.replace(base + 'login.html');
+  }
+
+  return { checkAuth, getSession, getCompanyId, getCompanyName, logout };
 })();

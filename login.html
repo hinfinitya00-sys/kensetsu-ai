@@ -3,18 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理者ログイン｜建設AIシステム</title>
+  <title>ログイン｜建設AIシステム</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="js/auth.js"></script>
   <script>
-    // すでにログイン済みなら元のページ（または管理画面）へ
+    // すでにログイン済みならリダイレクト
     (function () {
-      const s = KS_AUTH.getSession();
-      if (s) {
+      const url = localStorage.getItem('dr_sb_url');
+      if (!url) return;
+      const m = url.match(/https?:\/\/([^.]+)\.supabase\.co/);
+      if (!m) return;
+      const raw = localStorage.getItem('sb-' + m[1] + '-auth-token');
+      if (!raw) return;
+      try {
+        const d = JSON.parse(raw);
+        const token = d.access_token || (d.session && d.session.access_token);
+        if (!token) return;
+        const exp = d.expires_at || (d.session && d.session.expires_at);
+        if (exp && exp * 1000 <= Date.now()) return;
         const params = new URLSearchParams(location.search);
         const ret = params.get('return') || 'admin.html';
         location.replace(decodeURIComponent(ret));
-      }
+      } catch {}
     })();
   </script>
   <style>
@@ -32,236 +42,489 @@
       --green:        #22C55E;
       --red:          #EF4444;
       --blue:         #3B82F6;
+      --yellow:       #F59E0B;
     }
 
-    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-    html { height:100%; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { height: 100%; }
     body {
-      background:var(--navy);
+      background: var(--navy);
       background-image:
         radial-gradient(ellipse at 20% 20%, rgba(59,130,246,.08) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 80%, rgba(255,107,0,.06) 0%, transparent 50%);
-      color:var(--text);
-      font-family:'Noto Sans JP',sans-serif;
-      min-height:100vh;
-      display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      padding:20px;
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
 
-    /* ── Logo ────────────────────────────────────────────── */
-    .logo-wrap {
-      text-align:center; margin-bottom:40px;
-      animation:fadeUp .5s ease both;
-    }
+    /* ── ロゴ ───────────────────────────────────── */
+    .logo-wrap { text-align: center; margin-bottom: 36px; animation: fadeUp .45s ease both; }
     .logo-mark {
-      width:56px; height:56px; background:var(--orange);
-      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
-      display:flex; align-items:center; justify-content:center;
-      font-size:24px; font-weight:900; color:white;
-      margin:0 auto 14px;
+      width: 56px; height: 56px;
+      background: var(--orange);
+      clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 900; color: #fff;
+      margin: 0 auto 14px;
     }
-    .logo-text {
-      font-family:'Oswald',sans-serif; font-size:30px; font-weight:700;
-      letter-spacing:2px; color:var(--text);
-    }
-    .logo-text span { color:var(--orange); }
-    .logo-sub { font-size:13px; color:var(--muted); margin-top:6px; letter-spacing:.5px; }
+    .logo-text { font-family: 'Oswald', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: 2px; color: var(--text); }
+    .logo-text span { color: var(--orange); }
+    .logo-sub { font-size: 13px; color: var(--muted); margin-top: 6px; letter-spacing: .5px; }
 
-    /* ── Card ────────────────────────────────────────────── */
+    /* ── カード ─────────────────────────────────── */
     .login-card {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:20px; padding:40px 36px;
-      width:100%; max-width:420px;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
-      animation:fadeUp .5s .1s ease both;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px;
+      width: 100%; max-width: 440px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      animation: fadeUp .45s .1s ease both;
     }
-    .card-title {
-      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
-      text-align:center; margin-bottom:28px; letter-spacing:1px;
-      color:var(--text);
-    }
-    .card-title span { color:var(--orange); }
 
-    /* ── Form ────────────────────────────────────────────── */
-    .fg { margin-bottom:20px; }
-    .fg label {
-      display:block; font-size:12px; font-weight:700; color:var(--muted);
-      margin-bottom:8px; text-transform:uppercase; letter-spacing:.7px;
+    /* ── タブ ───────────────────────────────────── */
+    .tabs { display: flex; background: var(--navy2); border-radius: 12px; padding: 4px; margin-bottom: 28px; }
+    .tab-btn {
+      flex: 1; padding: 10px; border: none; border-radius: 9px;
+      background: transparent; color: var(--muted);
+      font-size: 14px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif;
+      cursor: pointer; transition: all .2s;
     }
-    .input-wrap { position:relative; }
-    .fg input[type=password], .fg input[type=text] {
-      width:100%; background:var(--card2); border:2px solid var(--border);
-      color:var(--text); padding:14px 48px 14px 18px; border-radius:12px;
-      font-size:18px; font-family:'Noto Sans JP',sans-serif;
-      transition:border-color .2s, box-shadow .2s; letter-spacing:.1em;
+    .tab-btn.active { background: var(--orange); color: #fff; box-shadow: 0 2px 12px rgba(255,107,0,.35); }
+
+    /* ── フォーム ────────────────────────────────── */
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+
+    .fg { margin-bottom: 18px; }
+    .fg label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 7px; text-transform: uppercase; letter-spacing: .7px; }
+    .input-wrap { position: relative; }
+    .fg input[type=email],
+    .fg input[type=password],
+    .fg input[type=text] {
+      width: 100%; background: var(--card2); border: 2px solid var(--border);
+      color: var(--text); padding: 13px 46px 13px 16px;
+      border-radius: 12px; font-size: 15px; font-family: 'Noto Sans JP', sans-serif;
+      transition: border-color .2s, box-shadow .2s;
     }
-    .fg input:focus {
-      outline:none; border-color:var(--blue);
-      box-shadow:0 0 0 3px rgba(59,130,246,.15);
-    }
-    .fg input.error-input { border-color:var(--red); }
+    .fg input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+    .fg input.error-input { border-color: var(--red); }
     .toggle-pw {
-      position:absolute; right:14px; top:50%; transform:translateY(-50%);
-      background:none; border:none; color:var(--muted); font-size:18px;
-      cursor:pointer; padding:4px; transition:color .15s;
+      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--muted); font-size: 17px;
+      cursor: pointer; padding: 4px; transition: color .15s;
     }
-    .toggle-pw:hover { color:var(--text); }
+    .toggle-pw:hover { color: var(--text); }
 
-    /* Error message */
-    .error-msg {
-      display:none; color:var(--red); font-size:13px; font-weight:700;
-      margin-top:8px; padding:10px 14px;
-      background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25);
-      border-radius:8px; text-align:center;
-    }
-    .error-msg.show { display:block; }
+    /* ── メッセージ ──────────────────────────────── */
+    .msg { display: none; font-size: 13px; font-weight: 700; margin-bottom: 18px; padding: 10px 14px; border-radius: 8px; text-align: center; }
+    .msg.show { display: block; }
+    .msg.error   { color: var(--red);    background: rgba(239,68,68,.08);   border: 1px solid rgba(239,68,68,.25); }
+    .msg.success { color: var(--green);  background: rgba(34,197,94,.08);   border: 1px solid rgba(34,197,94,.25); }
+    .msg.info    { color: var(--yellow); background: rgba(245,158,11,.08);  border: 1px solid rgba(245,158,11,.25); }
 
-    /* ── Submit ──────────────────────────────────────────── */
-    .btn-login {
-      width:100%; background:linear-gradient(135deg,var(--orange),var(--orange-dark));
-      color:#fff; border:none; padding:16px; border-radius:12px;
-      font-size:16px; font-weight:900; letter-spacing:.5px;
-      font-family:'Noto Sans JP',sans-serif;
-      box-shadow:0 4px 20px rgba(255,107,0,.35);
-      transition:all .2s; cursor:pointer;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-      margin-top:8px;
+    /* ── ボタン ─────────────────────────────────── */
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      color: #fff; border: none; padding: 15px; border-radius: 12px;
+      font-size: 15px; font-weight: 900; letter-spacing: .5px;
+      font-family: 'Noto Sans JP', sans-serif;
+      box-shadow: 0 4px 20px rgba(255,107,0,.35);
+      transition: all .2s; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 6px;
     }
-    .btn-login:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(255,107,0,.45); }
-    .btn-login:active { transform:scale(.98); }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(255,107,0,.45); }
+    .btn-primary:active:not(:disabled) { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 
-    /* ── Worker link ─────────────────────────────────────── */
-    .worker-link {
-      text-align:center; margin-top:28px;
-      font-size:13px; color:var(--muted);
+    /* ── Supabase 設定セクション ──────────────────── */
+    .setup-section {
+      display: none; margin-top: 24px; padding: 20px;
+      background: var(--navy2); border: 1px solid var(--border); border-radius: 14px;
     }
-    .worker-link a {
-      color:var(--blue); text-decoration:none; font-weight:700;
-      border-bottom:1px solid rgba(59,130,246,.3);
-      transition:border-color .15s;
+    .setup-section.show { display: block; }
+    .setup-title { font-size: 12px; font-weight: 700; color: var(--yellow); margin-bottom: 14px; }
+    .setup-section .fg { margin-bottom: 12px; }
+    .setup-section input[type=text] {
+      width: 100%; background: var(--navy); border: 2px solid var(--border);
+      color: var(--text); padding: 11px 14px; border-radius: 10px;
+      font-size: 13px; font-family: 'Noto Sans JP', sans-serif;
+      transition: border-color .2s;
     }
-    .worker-link a:hover { border-bottom-color:var(--blue); }
+    .setup-section input[type=text]:focus { outline: none; border-color: var(--blue); }
+    .btn-setup {
+      width: 100%; background: var(--navy3); border: 1px solid var(--border);
+      color: var(--text); padding: 10px; border-radius: 10px;
+      font-size: 13px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-setup:hover { background: var(--card2); }
 
-    /* ── Footer note ─────────────────────────────────────── */
-    .footer-note {
-      margin-top:32px; text-align:center; font-size:11px; color:var(--muted);
-      opacity:.6; animation:fadeUp .5s .3s ease both;
-    }
-
-    /* ── Animations ──────────────────────────────────────── */
-    @keyframes fadeUp {
-      from { opacity:0; transform:translateY(16px); }
-      to   { opacity:1; transform:translateY(0); }
-    }
-
-    /* ── Session expired notice ──────────────────────────── */
+    /* ── フッター / セッション切れ通知 ─────────────── */
     .notice {
-      display:none; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3);
-      color:#F59E0B; border-radius:10px; padding:10px 16px;
-      font-size:13px; text-align:center; margin-bottom:20px;
+      display: none; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3);
+      color: var(--yellow); border-radius: 10px; padding: 10px 16px;
+      font-size: 13px; text-align: center; margin-bottom: 20px;
     }
-    .notice.show { display:block; }
+    .notice.show { display: block; }
+    .footer-note { margin-top: 28px; text-align: center; font-size: 11px; color: var(--muted); opacity: .5; animation: fadeUp .45s .3s ease both; }
+
+    /* ── パスワード強度バー ───────────────────────── */
+    .pw-strength { height: 3px; border-radius: 2px; margin-top: 6px; transition: width .3s, background .3s; width: 0; }
+
+    /* ── アニメーション ──────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-6px); }
+      75%      { transform: translateX(6px); }
+    }
   </style>
 </head>
 <body>
 
-<!-- Logo -->
+<!-- ロゴ -->
 <div class="logo-wrap">
   <div class="logo-mark">建</div>
   <div class="logo-text">KENSETSU<span>AI</span></div>
   <div class="logo-sub">建設業向け DX管理システム</div>
 </div>
 
-<!-- Login Card -->
+<!-- ログインカード -->
 <div class="login-card">
-  <div class="card-title">管理者 <span>ログイン</span></div>
 
   <div class="notice" id="notice">⏰ セッションが切れました。再度ログインしてください。</div>
 
-  <div class="fg">
-    <label>パスワード</label>
-    <div class="input-wrap">
-      <input type="password" id="pwInput" placeholder="••••••••••••"
-             autofocus autocomplete="current-password"
-             onkeydown="if(event.key==='Enter')doLogin()">
-      <button class="toggle-pw" id="togglePw" onclick="togglePw()" type="button" title="表示/非表示">👁</button>
+  <!-- タブ -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabLogin"    onclick="switchTab('login')">🔑 ログイン</button>
+    <button class="tab-btn"        id="tabRegister" onclick="switchTab('register')">✨ 新規登録</button>
+  </div>
+
+  <!-- ── ログインフォーム ── -->
+  <div class="form-panel active" id="panelLogin">
+    <div class="msg error"   id="loginErr"></div>
+    <div class="msg success" id="loginOk"></div>
+
+    <div class="fg">
+      <label>メールアドレス</label>
+      <div class="input-wrap">
+        <input type="email" id="loginEmail" placeholder="example@company.com"
+               autocomplete="email" autofocus
+               onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
     </div>
-    <div class="error-msg" id="errorMsg">❌ パスワードが違います</div>
+
+    <div class="fg">
+      <label>パスワード</label>
+      <div class="input-wrap">
+        <input type="password" id="loginPw" placeholder="••••••••••••"
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <button class="toggle-pw" onclick="togglePw('loginPw',this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btnLogin" onclick="doLogin()">🔑 ログイン</button>
   </div>
 
-  <button class="btn-login" onclick="doLogin()">
-    🔑 ログイン
-  </button>
+  <!-- ── 新規登録フォーム ── -->
+  <div class="form-panel" id="panelRegister">
+    <div class="msg error"   id="regErr"></div>
+    <div class="msg success" id="regOk"></div>
+    <div class="msg info"    id="regInfo"></div>
 
-  <div class="worker-link">
-    従業員の方はこちら →
-    <a href="attendance-entry.html">出面送信ページ</a>
+    <div class="fg">
+      <label>会社名</label>
+      <div class="input-wrap">
+        <input type="text" id="regCompany" placeholder="株式会社◯◯建設"
+               autocomplete="organization"
+               onkeydown="if(event.key==='Enter')document.getElementById('regEmail').focus()">
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>メールアドレス</label>
+      <div class="input-wrap">
+        <input type="email" id="regEmail" placeholder="example@company.com"
+               autocomplete="email"
+               onkeydown="if(event.key==='Enter')document.getElementById('regPw').focus()">
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>パスワード（8文字以上）</label>
+      <div class="input-wrap">
+        <input type="password" id="regPw" placeholder="••••••••••••"
+               autocomplete="new-password"
+               oninput="checkPwStrength(this.value)"
+               onkeydown="if(event.key==='Enter')document.getElementById('regPwConfirm').focus()">
+        <button class="toggle-pw" onclick="togglePw('regPw',this)" type="button">👁</button>
+      </div>
+      <div class="pw-strength" id="pwStrength"></div>
+    </div>
+
+    <div class="fg">
+      <label>パスワード（確認）</label>
+      <div class="input-wrap">
+        <input type="password" id="regPwConfirm" placeholder="••••••••••••"
+               autocomplete="new-password"
+               onkeydown="if(event.key==='Enter')doRegister()">
+        <button class="toggle-pw" onclick="togglePw('regPwConfirm',this)" type="button">👁</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btnRegister" onclick="doRegister()">✨ アカウントを作成</button>
   </div>
+
+</div><!-- /.login-card -->
+
+<!-- Supabase 設定セクション（未設定時に表示） -->
+<div class="setup-section" id="setupSection">
+  <div class="setup-title">⚙️ Supabase 接続設定（初回のみ）</div>
+  <div class="fg">
+    <label>Project URL</label>
+    <input type="text" id="setupUrl" placeholder="https://xxxx.supabase.co">
+  </div>
+  <div class="fg">
+    <label>Anon Key</label>
+    <input type="text" id="setupKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5c...">
+  </div>
+  <button class="btn-setup" onclick="saveSetup()">💾 設定を保存</button>
 </div>
 
-<div class="footer-note">
-  © 建設AIシステム — 管理者専用ページ
-</div>
+<div class="footer-note">© 建設AIシステム — 管理者専用ページ</div>
 
 <script>
 (function () {
-  const params = new URLSearchParams(location.search);
+  'use strict';
 
-  // セッション切れで来た場合の通知
+  const SB_URL_KEY  = 'dr_sb_url';
+  const SB_KEY_KEY  = 'dr_sb_key';
+  const COMPANY_KEY = 'ks_company';
+
+  /* ── Supabase クライアント ─────────────────────── */
+  function sbClient() {
+    const url = localStorage.getItem(SB_URL_KEY);
+    const key = localStorage.getItem(SB_KEY_KEY);
+    if (!url || !key) return null;
+    return supabase.createClient(url, key);
+  }
+
+  /* ── 初期化 ─────────────────────────────────────── */
+  const params = new URLSearchParams(location.search);
   if (params.get('return')) {
     document.getElementById('notice').classList.add('show');
   }
+  if (!localStorage.getItem(SB_URL_KEY) || !localStorage.getItem(SB_KEY_KEY)) {
+    const setupSec = document.getElementById('setupSection');
+    setupSec.classList.add('show');
+    const savedUrl = localStorage.getItem(SB_URL_KEY);
+    if (savedUrl) document.getElementById('setupUrl').value = savedUrl;
+  }
 
+  /* ── タブ切り替え ────────────────────────────────── */
+  window.switchTab = function (tab) {
+    const tabs   = { login: 'Login',    register: 'Register' };
+    const others = { login: 'register', register: 'login'    };
+    document.getElementById('panel' + tabs[tab]).classList.add('active');
+    document.getElementById('tab'   + tabs[tab]).classList.add('active');
+    document.getElementById('panel' + tabs[others[tab]]).classList.remove('active');
+    document.getElementById('tab'   + tabs[others[tab]]).classList.remove('active');
+    clearMsgs();
+  };
+
+  /* ── メッセージ操作 ──────────────────────────────── */
+  function showMsg(id, text) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.classList.add('show');
+  }
+  function clearMsgs() {
+    ['loginErr','loginOk','regErr','regOk','regInfo'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.remove('show');
+      el.textContent = '';
+    });
+  }
+  function shakeInput(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('error-input');
+    el.style.animation = 'shake .3s ease';
+    setTimeout(() => { el.style.animation = ''; el.classList.remove('error-input'); }, 400);
+  }
+
+  /* ── パスワード表示切替 ──────────────────────────── */
+  window.togglePw = function (inputId, btn) {
+    const inp = document.getElementById(inputId);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+  };
+
+  /* ── パスワード強度バー ──────────────────────────── */
+  window.checkPwStrength = function (pw) {
+    const bar = document.getElementById('pwStrength');
+    let s = 0;
+    if (pw.length >= 8)  s++;
+    if (pw.length >= 12) s++;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+    if (/[0-9]/.test(pw)) s++;
+    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    const w = ['0%','20%','40%','60%','80%','100%'][s];
+    const c = ['transparent','#EF4444','#F59E0B','#F59E0B','#22C55E','#22C55E'][s];
+    bar.style.width = w;
+    bar.style.background = c;
+  };
+
+  /* ── ログイン ─────────────────────────────────────── */
   window.doLogin = async function () {
-    const pw  = document.getElementById('pwInput').value;
-    const err = document.getElementById('errorMsg');
-    const inp = document.getElementById('pwInput');
-    const btn = document.querySelector('.btn-login');
+    clearMsgs();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw    = document.getElementById('loginPw').value;
+    const btn   = document.getElementById('btnLogin');
 
-    err.classList.remove('show');
-    inp.classList.remove('error-input');
+    if (!email) { showMsg('loginErr', '❌ メールアドレスを入力してください'); shakeInput('loginEmail'); return; }
+    if (!pw)    { showMsg('loginErr', '❌ パスワードを入力してください');       shakeInput('loginPw');    return; }
 
-    if (!pw) {
-      err.textContent = '❌ APIキーを入力してください';
-      err.classList.add('show');
-      inp.focus();
+    const sb = sbClient();
+    if (!sb) {
+      document.getElementById('setupSection').classList.add('show');
+      showMsg('loginErr', '⚙️ 下の「接続設定」を入力してください');
       return;
     }
 
-    // ローディング表示
     btn.disabled = true;
-    btn.innerHTML = '⏳ 認証中...';
+    btn.innerHTML = '⏳ ログイン中...';
 
-    const result = await KS_AUTH.login(pw);
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
 
     btn.disabled = false;
     btn.innerHTML = '🔑 ログイン';
 
-    if (result.ok) {
-      const ret = params.get('return') || 'admin.html';
-      location.replace(decodeURIComponent(ret));
+    if (error) {
+      let msg = '❌ ' + error.message;
+      if (error.message.includes('Invalid login credentials')) msg = '❌ メールアドレスまたはパスワードが違います';
+      if (error.message.includes('Email not confirmed'))       msg = '❌ メールアドレスの確認が完了していません。受信ボックスをご確認ください';
+      showMsg('loginErr', msg);
+      shakeInput('loginPw');
+      document.getElementById('loginPw').value = '';
+      return;
+    }
+
+    showMsg('loginOk', '✅ ログイン成功！移動中...');
+    const ret = params.get('return') || 'admin.html';
+    setTimeout(() => location.replace(decodeURIComponent(ret)), 600);
+  };
+
+  /* ── 新規登録 ─────────────────────────────────────── */
+  window.doRegister = async function () {
+    clearMsgs();
+    const company = document.getElementById('regCompany').value.trim();
+    const email   = document.getElementById('regEmail').value.trim();
+    const pw      = document.getElementById('regPw').value;
+    const pwc     = document.getElementById('regPwConfirm').value;
+    const btn     = document.getElementById('btnRegister');
+
+    if (!company)      { showMsg('regErr', '❌ 会社名を入力してください');             shakeInput('regCompany');   return; }
+    if (!email)        { showMsg('regErr', '❌ メールアドレスを入力してください');       shakeInput('regEmail');     return; }
+    if (!pw)           { showMsg('regErr', '❌ パスワードを入力してください');           shakeInput('regPw');        return; }
+    if (pw.length < 8) { showMsg('regErr', '❌ パスワードは8文字以上にしてください');    shakeInput('regPw');        return; }
+    if (pw !== pwc)    { showMsg('regErr', '❌ パスワードが一致しません');               shakeInput('regPwConfirm'); return; }
+
+    const sb = sbClient();
+    if (!sb) {
+      document.getElementById('setupSection').classList.add('show');
+      showMsg('regErr', '⚙️ 下の「接続設定」を入力してください');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ 登録中...';
+
+    // ① Supabase Auth にユーザー作成
+    const { data: signUpData, error: signUpErr } = await sb.auth.signUp({ email, password: pw });
+
+    btn.disabled = false;
+    btn.innerHTML = '✨ アカウントを作成';
+
+    if (signUpErr) {
+      let msg = '❌ ' + signUpErr.message;
+      if (signUpErr.message.includes('already registered')) msg = '❌ このメールアドレスはすでに登録されています';
+      showMsg('regErr', msg);
+      shakeInput('regEmail');
+      return;
+    }
+
+    const session = signUpData.session;
+    const userId  = signUpData.user && signUpData.user.id;
+
+    if (session && userId) {
+      // メール確認不要 → 即座に会社作成してログイン
+      await _createCompany(sb, userId, company);
+      showMsg('regOk', '✅ 登録完了！管理画面へ移動します...');
+      setTimeout(() => location.replace('admin.html'), 1200);
     } else {
-      err.textContent = '❌ ' + result.error;
-      err.classList.add('show');
-      inp.classList.add('error-input');
-      inp.value = '';
-      inp.focus();
-      inp.style.animation = 'shake .3s ease';
-      setTimeout(() => { inp.style.animation = ''; }, 300);
+      // メール確認が必要なケース
+      localStorage.setItem('ks_pending_company', company);
+      showMsg('regInfo', '📧 確認メールを送信しました。メール内のリンクをクリック後、ログインしてください。');
+      switchTab('login');
+      document.getElementById('loginEmail').value = email;
     }
   };
 
-  window.togglePw = function () {
-    const inp = document.getElementById('pwInput');
-    inp.type = inp.type === 'password' ? 'text' : 'password';
+  /* ── companies + user_companies 作成 ─────────────── */
+  async function _createCompany(sb, userId, companyName) {
+    try {
+      const { data: co, error: coErr } = await sb
+        .from('companies')
+        .insert({ name: companyName })
+        .select('id, name')
+        .single();
+      if (coErr) { console.error('[login] companies insert:', coErr); return; }
+
+      const { error: ucErr } = await sb
+        .from('user_companies')
+        .insert({ user_id: userId, company_id: co.id });
+      if (ucErr) { console.error('[login] user_companies insert:', ucErr); return; }
+
+      localStorage.setItem(COMPANY_KEY, JSON.stringify({ id: co.id, name: co.name }));
+      localStorage.removeItem('ks_pending_company');
+    } catch (e) {
+      console.error('[login] _createCompany:', e);
+    }
+  }
+
+  /* ── Supabase 設定保存 ───────────────────────────── */
+  window.saveSetup = function () {
+    const url = document.getElementById('setupUrl').value.trim();
+    const key = document.getElementById('setupKey').value.trim();
+    if (!url || !key) { alert('URL と Anon Key の両方を入力してください'); return; }
+    localStorage.setItem(SB_URL_KEY, url);
+    localStorage.setItem(SB_KEY_KEY, key);
+    document.getElementById('setupSection').classList.remove('show');
+    alert('✅ 設定を保存しました。ログインしてください。');
   };
+
+  /* ── メール確認後のログイン時に pending company を処理 ── */
+  (async function () {
+    const pending = localStorage.getItem('ks_pending_company');
+    if (!pending) return;
+    const sb = sbClient();
+    if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    await _createCompany(sb, session.user.id, pending);
+  })();
+
 })();
 </script>
-<style>
-  @keyframes shake {
-    0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)}
-  }
-</style>
 </body>
 </html>
