@@ -783,7 +783,7 @@ const getCfg = () => ({
 });
 
 // ── Demo Data ─────────────────────────────────────────────
-const today = new Date().toISOString().slice(0,10);
+const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（ローカルタイムゾーン基準）
 const ym     = today.slice(0,7);
 
 const DEMO_LOGS = [
