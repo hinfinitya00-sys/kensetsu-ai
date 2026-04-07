@@ -252,6 +252,42 @@
     display: flex; align-items: center; gap: 8px;
   }
   .date-display span { color: var(--text-dim); font-size: 0.8rem; }
+
+  .custom-select-wrapper { position: relative; }
+  .custom-select-display {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 0.95rem;
+    padding: 10px 12px; cursor: pointer; display: flex;
+    justify-content: space-between; align-items: center;
+    font-family: inherit;
+  }
+  .custom-select-display:focus { border-color: var(--green-light); outline: none; }
+  .custom-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--bg3); border: 1px solid var(--green-light);
+    border-radius: 8px; z-index: 100; max-height: 280px; overflow-y: auto;
+  }
+  .custom-dropdown.open { display: block; }
+  .dropdown-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; cursor: pointer; font-size: 0.92rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .dropdown-item:last-child { border-bottom: none; }
+  .dropdown-item:hover { background: var(--bg2); }
+  .dropdown-item.selected { color: var(--accent); }
+  .dropdown-item .item-label { flex: 1; }
+  .dropdown-item .delete-btn {
+    background: none; border: none; color: var(--danger);
+    font-size: 1rem; cursor: pointer; padding: 2px 6px;
+    border-radius: 4px; line-height: 1; flex-shrink: 0;
+  }
+  .dropdown-item .delete-btn:hover { background: rgba(239,68,68,0.15); }
+  .dropdown-new-item {
+    padding: 10px 12px; cursor: pointer; font-size: 0.92rem;
+    color: var(--accent); display: flex; align-items: center; gap: 6px;
+  }
+  .dropdown-new-item:hover { background: var(--bg2); }
 </style>
 </head>
 <body>
@@ -270,9 +306,13 @@
       <div class="card-title">作業員</div>
       <div class="form-row">
         <label>氏名を選択 <span class="required">*</span></label>
-        <select id="workerSelect">
-          <option value="">-- 読み込み中... --</option>
-        </select>
+        <div class="custom-select-wrapper">
+          <button type="button" class="custom-select-display" id="workerSelectDisplay" onclick="toggleDropdown()">
+            <span id="workerSelectLabel">-- 作業員を選択 --</span>
+            <span>▼</span>
+          </button>
+          <div class="custom-dropdown" id="workerDropdown"></div>
+        </div>
       </div>
       <!-- 新規登録フォーム -->
       <div class="new-worker-area" id="newWorkerArea">
@@ -460,23 +500,11 @@ async function loadWorkers() {
   try {
     const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true&order=name`, { headers: HEADERS });
     workers = await res.json();
-    const sel = document.getElementById('workerSelect');
-    sel.innerHTML = '<option value="">-- 作業員を選択 --</option>';
-    workers.forEach(w => {
-      const opt = document.createElement('option');
-      opt.value = w.id;
-      opt.textContent = `${w.name}（${w.company}）`;
-      sel.appendChild(opt);
-    });
-    const newOpt = document.createElement('option');
-    newOpt.value = '__new__';
-    newOpt.textContent = '＋ 新しく登録する';
-    sel.appendChild(newOpt);
-    sel.onchange = onWorkerChange;
+    renderDropdown();
 
-    // 現場会社名の候補を会社名リストから生成
     const dl = document.getElementById('companyList');
     if (dl) {
+      dl.innerHTML = '';
       const companies = [...new Set(workers.map(w => w.company).filter(Boolean))];
       companies.forEach(c => {
         const opt = document.createElement('option');
@@ -485,6 +513,64 @@ async function loadWorkers() {
       });
     }
   } catch(e) { showError('作業員データの読み込みに失敗しました'); }
+}
+
+function renderDropdown() {
+  const dd = document.getElementById('workerDropdown');
+  dd.innerHTML = '';
+
+  workers.forEach(w => {
+    const item = document.createElement('div');
+    item.className = 'dropdown-item' + (selectedWorker && selectedWorker.id === w.id ? ' selected' : '');
+    item.innerHTML = `<span class="item-label">${w.name}（${w.company || ''}）</span>
+      <button class="delete-btn" title="削除" onclick="deleteWorker(event, '${w.id}')">✕</button>`;
+    item.querySelector('.item-label').addEventListener('click', () => selectWorker(w));
+    dd.appendChild(item);
+  });
+
+  const newItem = document.createElement('div');
+  newItem.className = 'dropdown-new-item';
+  newItem.textContent = '＋ 新しく登録する';
+  newItem.onclick = () => {
+    closeDropdown();
+    document.getElementById('workerSelectLabel').textContent = '＋ 新しく登録する';
+    document.getElementById('newWorkerArea').classList.add('open');
+    selectedWorker = null;
+  };
+  dd.appendChild(newItem);
+}
+
+function toggleDropdown() {
+  document.getElementById('workerDropdown').classList.toggle('open');
+}
+function closeDropdown() {
+  document.getElementById('workerDropdown').classList.remove('open');
+}
+
+function selectWorker(w) {
+  selectedWorker = w;
+  document.getElementById('workerSelectLabel').textContent = `${w.name}（${w.company || ''}）`;
+  document.getElementById('newWorkerArea').classList.remove('open');
+  if (w.daily_rate) document.getElementById('dailyRateInput').value = w.daily_rate;
+  closeDropdown();
+  renderDropdown();
+}
+
+async function deleteWorker(e, id) {
+  e.stopPropagation();
+  if (!confirm('この作業員を一覧から削除しますか？')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/workers?id=eq.${id}`, {
+      method: 'PATCH', headers: HEADERS,
+      body: JSON.stringify({ is_active: false })
+    });
+    workers = workers.filter(w => w.id !== id);
+    if (selectedWorker && selectedWorker.id === id) {
+      selectedWorker = null;
+      document.getElementById('workerSelectLabel').textContent = '-- 作業員を選択 --';
+    }
+    renderDropdown();
+  } catch(e) { showError('削除に失敗しました'); }
 }
 
 async function loadSites() {
@@ -500,23 +586,6 @@ async function loadSites() {
   } catch(e) {}
 }
 
-function onWorkerChange() {
-  const val = document.getElementById('workerSelect').value;
-  const newArea = document.getElementById('newWorkerArea');
-  if (val === '__new__') {
-    newArea.classList.add('open');
-    selectedWorker = null;
-  } else if (val) {
-    newArea.classList.remove('open');
-    selectedWorker = workers.find(w => w.id === val);
-    if (selectedWorker && selectedWorker.daily_rate) {
-      document.getElementById('dailyRateInput').value = selectedWorker.daily_rate;
-    }
-  } else {
-    newArea.classList.remove('open');
-    selectedWorker = null;
-  }
-}
 
 
 function getAppliedRate() {
@@ -542,13 +611,7 @@ async function registerWorker() {
     const data = await res.json();
     const newW = data[0];
     workers.push(newW);
-    const sel = document.getElementById('workerSelect');
-    const opt = document.createElement('option');
-    opt.value = newW.id; opt.textContent = `${newW.name}（${newW.company}）`;
-    sel.insertBefore(opt, sel.lastElementChild);
-    sel.value = newW.id;
-    selectedWorker = newW;
-    document.getElementById('newWorkerArea').classList.remove('open');
+    selectWorker(newW);
   } catch(e) { showError('登録に失敗しました'); }
   btn.disabled = false; btn.textContent = '＋ 登録する';
 }
@@ -611,8 +674,8 @@ function removePhoto() {
 
 async function submitReport() {
   hideError();
-  const workerId = document.getElementById('workerSelect').value;
-  if (!workerId || workerId === '__new__') return showError('作業員を選択してください');
+  if (!selectedWorker) return showError('作業員を選択してください');
+  const workerId = selectedWorker.id;
   const workDate = document.getElementById('workDate').value;
   const btn = document.getElementById('submitBtn');
 
@@ -813,7 +876,7 @@ function resetForm() {
   document.getElementById('mainForm').style.display = 'block';
   document.getElementById('successScreen').classList.remove('show');
   document.getElementById('successScreen').className = '';
-  document.getElementById('workerSelect').value = '';
+  document.getElementById('workerSelectLabel').textContent = '-- 作業員を選択 --';
   document.getElementById('newWorkerArea').classList.remove('open');
   document.getElementById('siteName').value = '';
   document.getElementById('workContent').value = '';
@@ -834,6 +897,13 @@ function showError(msg) {
 function hideError() {
   document.getElementById('errorMsg').classList.remove('show');
 }
+
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('workerSelectDisplay').contains(e.target) &&
+      !document.getElementById('workerDropdown').contains(e.target)) {
+    closeDropdown();
+  }
+});
 </script>
 </body>
 </html>
