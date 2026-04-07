@@ -280,14 +280,6 @@
           <label>氏名 <span class="required">*</span></label>
           <input type="text" id="newName" placeholder="例: 山田 太郎">
         </div>
-        <div class="form-row">
-          <label>会社名 <span class="required">*</span></label>
-          <input type="text" id="newCompany" placeholder="例: 株式会社○○建設">
-        </div>
-        <div class="form-row">
-          <label>基本日当 (円) <span class="required">*</span></label>
-          <input type="number" id="newRate" value="15000" min="0" step="500">
-        </div>
         <button class="btn btn-secondary" id="registerWorkerBtn" onclick="registerWorker()">＋ 登録する</button>
       </div>
       <!-- 単価プレビュー -->
@@ -586,15 +578,13 @@ function getAppliedRate() {
 
 async function registerWorker() {
   const name = document.getElementById('newName').value.trim();
-  const company = document.getElementById('newCompany').value.trim();
-  const rate = parseInt(document.getElementById('newRate').value);
-  if (!name || !company) return showError('氏名と会社名は必須です');
+  if (!name) return showError('氏名は必須です');
   const btn = document.getElementById('registerWorkerBtn');
   btn.disabled = true; btn.textContent = '登録中...';
   try {
     const res = await fetch(`${SB_URL}/rest/v1/workers`, {
       method: 'POST', headers: HEADERS,
-      body: JSON.stringify({ name, company, daily_rate: rate, is_active: true, work_rates: {} })
+      body: JSON.stringify({ name, company: '', daily_rate: 15000, is_active: true, work_rates: {} })
     });
     const data = await res.json();
     const newW = data[0];
