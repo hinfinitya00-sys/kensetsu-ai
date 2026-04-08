@@ -253,7 +253,7 @@
   }
   .date-display span { color: var(--text-dim); font-size: 0.8rem; }
 
-  .custom-select-wrapper { position: relative; }
+  .custom-select-wrapper { position: relative; z-index: 9999; }
   .custom-select-display {
     width: 100%; background: var(--bg3); border: 1px solid var(--border);
     border-radius: 8px; color: var(--text); font-size: 0.95rem;
@@ -263,9 +263,18 @@
   }
   .custom-select-display:focus { border-color: var(--green-light); outline: none; }
   .custom-dropdown {
-    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-    background: var(--bg3); border: 1px solid var(--green-light);
-    border-radius: 8px; z-index: 100; max-height: 280px; overflow-y: auto;
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg3);
+    border: 1px solid var(--green-light);
+    border-radius: 8px;
+    z-index: 9999;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   }
   .custom-dropdown.open { display: block; }
   .dropdown-item {
@@ -560,10 +569,20 @@ function renderDropdown() {
 }
 
 function toggleDropdown() {
-  document.getElementById('workerDropdown').classList.toggle('open');
+  const dd = document.getElementById('workerDropdown');
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) {
+    dd.classList.remove('open');
+    dd.style.display = 'none';
+  } else {
+    dd.classList.add('open');
+    dd.style.display = 'block';
+  }
 }
 function closeDropdown() {
-  document.getElementById('workerDropdown').classList.remove('open');
+  const dd = document.getElementById('workerDropdown');
+  dd.classList.remove('open');
+  dd.style.display = 'none';
 }
 
 function selectWorker(w) {
