@@ -709,6 +709,9 @@
 // ── Supabase Config ────────────────────────────────────
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+// auth.js が localStorage から読むため補完（login.html で設定済みのはずだが念のため）
+if (!localStorage.getItem('dr_sb_url')) localStorage.setItem('dr_sb_url', SB_URL);
+if (!localStorage.getItem('dr_sb_key')) localStorage.setItem('dr_sb_key', SB_KEY);
 // ── Util ──────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 let _tt;
@@ -734,6 +737,7 @@ const getCfg = () => {
 };
 
 const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（ローカルタイムゾーン基準）
+const ym    = today.slice(0, 7);                     // YYYY-MM
 
 
 // ── Supabase Fetch ─────────────────────────────────────────
@@ -1054,10 +1058,14 @@ async function loadDashboard() {
     }
   }
 
-  renderKPIs(logs, projects);
-  renderLogsTable(logs);
-  renderProjects(projects);
-  setPageSub(logs, projects);
+  try {
+    renderKPIs(logs, projects);
+    renderLogsTable(logs);
+    renderProjects(projects);
+    setPageSub(logs, projects);
+  } catch (err) {
+    console.error('[Dashboard] render error:', err);
+  }
 
   // 出面サマリー
   let attendanceEntries = [];
@@ -1071,7 +1079,11 @@ async function loadDashboard() {
     console.error('[Dashboard][Attendance] fetch failed:', err.message, err);
     attendanceErrMsg = err.message || '出面情報の取得に失敗しました';
   }
-  renderAttendanceToday(attendanceEntries, attendanceErrMsg);
+  try {
+    renderAttendanceToday(attendanceEntries, attendanceErrMsg);
+  } catch (err) {
+    console.error('[Dashboard] renderAttendanceToday error:', err);
+  }
 }
 
 // ── Refresh Button ─────────────────────────────────────────
@@ -1086,22 +1098,41 @@ $('refreshBtn').addEventListener('click', async () => {
   }, 700);
 });
 
+// ── Loading overlay dismiss helper ────────────────────────
+function dismissLoading() {
+  const lo = $('loadingOverlay');
+  if (!lo || lo.style.display === 'none') return;
+  lo.classList.add('fade');
+  setTimeout(() => { lo.style.display = 'none'; }, 450);
+}
+
 // ── Init ──────────────────────────────────────────────────
 (async () => {
-  await loadDashboard();
+  // フォールバック：15秒後に強制的にローディングを解除
+  const fallbackTimer = setTimeout(() => {
+    console.warn('[Init] loadDashboard timeout — forcing loading dismiss');
+    dismissLoading();
+  }, 15000);
 
-  // SaaS: 作業員ページリンクに自社の company_id を付与
-  const companyId = KS_AUTH.getCompanyId();
-  if (companyId) {
-    const waLink = document.getElementById('workerAttendanceLink');
-    if (waLink) waLink.href = `worker-attendance.html?cid=${companyId}`;
+  try {
+    await loadDashboard();
+  } catch (err) {
+    console.error('[Init] loadDashboard error:', err);
+  } finally {
+    clearTimeout(fallbackTimer);
+    dismissLoading();
   }
 
-  // ローディング解除
-  const lo = $('loadingOverlay');
-  lo.classList.add('fade');
-  setTimeout(() => lo.style.display='none', 450);
-
+  // SaaS: 作業員ページリンクに自社の company_id を付与
+  try {
+    const companyId = KS_AUTH.getCompanyId();
+    if (companyId) {
+      const waLink = document.getElementById('workerAttendanceLink');
+      if (waLink) waLink.href = `worker-attendance.html?cid=${companyId}`;
+    }
+  } catch (err) {
+    console.error('[Init] companyId setup error:', err);
+  }
 })();
 </script>
 </body>
