@@ -645,8 +645,7 @@ async function registerWorker() {
   const btn = document.getElementById('registerWorkerBtn');
   btn.disabled = true; btn.textContent = '登録中...';
   try {
-    const workerPayload = { name, company: '', daily_rate: 15000, is_active: true, work_rates: {} };
-    if (COMPANY_ID) workerPayload.company_id = COMPANY_ID;
+    const workerPayload = { name, company: '', daily_rate: 15000, is_active: true, work_rates: {}, company_id: COMPANY_ID || null };
     const res = await fetch(`${SB_URL}/rest/v1/workers`, {
       method: 'POST', headers: HEADERS,
       body: JSON.stringify(workerPayload)
@@ -745,7 +744,8 @@ async function submitReport() {
         absent_reason: '休暇',
         late_time: null,
         late_reason: null,
-        meter_photo_url: null
+        meter_photo_url: null,
+        company_id: COMPANY_ID || null
       });
       showSuccess({ type: 'vacation', name: selectedWorker.name, date: formatDateJP(workDate) });
     } catch(e) { showError('送信に失敗しました: ' + e.message); }
@@ -775,7 +775,8 @@ async function submitReport() {
         absent_reason: combinedReason,
         late_time: null,
         late_reason: null,
-        meter_photo_url: null /* 📷 photoBase64 || null */
+        meter_photo_url: null, /* 📷 photoBase64 || null */
+        company_id: COMPANY_ID || null
       });
       showSuccess({
         type: 'absent',
@@ -823,7 +824,8 @@ async function submitReport() {
       absent_reason: null,
       late_time: lateTime,
       late_reason: lateReason,
-      meter_photo_url: null /* 📷 photoBase64 || null */
+      meter_photo_url: null, /* 📷 photoBase64 || null */
+      company_id: COMPANY_ID || null
     };
     await postLog(payload);
 
@@ -845,9 +847,8 @@ async function submitReport() {
 }
 
 async function postLog(payload) {
-  if (COMPANY_ID) {
-    payload.company_id = COMPANY_ID;
-  } else {
+  payload.company_id = COMPANY_ID || null;
+  if (!COMPANY_ID) {
     console.warn('[postLog] COMPANY_ID が未設定です。?cid= パラメータを確認してください。');
   }
   console.log('[postLog] payload:', JSON.stringify(payload));
@@ -956,8 +957,8 @@ function hideError() {
 }
 
 document.addEventListener('click', function(e) {
-  if (!document.getElementById('workerSelectDisplay').contains(e.target) &&
-      !document.getElementById('workerDropdown').contains(e.target)) {
+  const wrapper = document.querySelector('.custom-select-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
     closeDropdown();
   }
 });
