@@ -1130,27 +1130,6 @@
       <div class="hint">Google Formsを作成後、URLの末尾を <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">/viewform</code> から <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">/formResponse</code> に変えて貼り付けてください。</div>
     </div>
 
-    <hr class="qr-divider">
-    <div class="qr-section-label" style="color:#7c3aed;">🗄️ Supabase設定（DB保存機能）</div>
-    <div class="fg">
-      <label>Supabase URL</label>
-      <input type="text" id="supabaseUrl" placeholder="https://xxxxxxxx.supabase.co" autocomplete="off">
-      <div class="hint">SupabaseプロジェクトのURL（Project Settings > API）</div>
-    </div>
-    <div class="fg">
-      <label>Supabase Anon Key</label>
-      <div class="kw">
-        <input type="password" id="supabaseAnonKey" placeholder="eyJhbGciOi..." autocomplete="off">
-        <button type="button" class="tvis" data-target="supabaseAnonKey">👁️</button>
-      </div>
-      <div class="hint">anon / public キーを入力してください</div>
-    </div>
-    <div class="fg">
-      <label>Company ID</label>
-      <input type="text" id="supabaseCompanyId" placeholder="例: company_001" autocomplete="off">
-      <div class="hint">daily_logsテーブルに保存する際のcompany_idです</div>
-    </div>
-
     <button class="save-btn" id="saveSettingsBtn">保存する</button>
 
     <hr class="qr-divider">
@@ -1183,16 +1162,9 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// Supabaseデフォルト設定（初回アクセス時に自動設定）
-if (!localStorage.getItem('dr_sb_url')) {
-  localStorage.setItem('dr_sb_url', 'https://bjohdzcoziezdkqcebhe.supabase.co');
-}
-if (!localStorage.getItem('dr_sb_key')) {
-  localStorage.setItem('dr_sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU');
-}
-if (!localStorage.getItem('dr_cak')) {
-  localStorage.setItem('dr_cak', 'TEST-API-KEY-12345');
-}
+// ── Supabase Config ────────────────────────────────────
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 // ── Util ────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 let _tt;
@@ -1203,16 +1175,13 @@ function showToast(msg, type='', dur=3200) {
 }
 
 // ── Settings ────────────────────────────────────────────
-const SK={cak:'dr_cak',oai:'dr_oai',mdl:'dr_mdl',gcid:'dr_gcid',gf:'dr_gforms',sbUrl:'dr_sb_url',sbKey:'dr_sb_key',sbCid:'dr_sb_cid'};
+const SK={cak:'dr_cak',oai:'dr_oai',mdl:'dr_mdl',gcid:'dr_gcid',gf:'dr_gforms'};
 const getS=()=>({
   companyApiKey: localStorage.getItem(SK.cak)||'',
-  openaiKey:     localStorage.getItem(SK.oai)||'',  // Whisper音声入力用（任意）
+  openaiKey:     localStorage.getItem(SK.oai)||'',
   model:         localStorage.getItem(SK.mdl)||'gpt-4o',
   gcid:          localStorage.getItem(SK.gcid)||'',
   gformsUrl:     localStorage.getItem(SK.gf)||'https://docs.google.com/forms/d/e/1FAIpQLSfTmUvs7vJVpk_53L5_T_Ka1-g5sy_R63-yPyaPMC34nR3tvg/formResponse',
-  supabaseUrl:   localStorage.getItem(SK.sbUrl)||'',
-  supabaseAnonKey: localStorage.getItem(SK.sbKey)||'',
-  supabaseCompanyId: localStorage.getItem(SK.sbCid)||'',
 });
 function loadS(){
   const s=getS();
@@ -1221,9 +1190,6 @@ function loadS(){
   $('modelSelect').value=s.model;
   $('googleClientId').value=s.gcid;
   $('gformsUrl').value=s.gformsUrl;
-  $('supabaseUrl').value=s.supabaseUrl;
-  $('supabaseAnonKey').value=s.supabaseAnonKey;
-  $('supabaseCompanyId').value=s.supabaseCompanyId;
 }
 function saveS(){
   const cak=$('companyApiKey').value.trim();
@@ -1233,9 +1199,6 @@ function saveS(){
   localStorage.setItem(SK.mdl,$('modelSelect').value);
   localStorage.setItem(SK.gcid,$('googleClientId').value.trim());
   localStorage.setItem(SK.gf,$('gformsUrl').value.trim());
-  localStorage.setItem(SK.sbUrl,$('supabaseUrl').value.trim());
-  localStorage.setItem(SK.sbKey,$('supabaseAnonKey').value.trim());
-  localStorage.setItem(SK.sbCid,$('supabaseCompanyId').value.trim());
   showToast('設定を保存しました ✓','ok');
   closeSettings();
   checkKey();
@@ -2050,8 +2013,8 @@ function buildLogPayload(data, reportText){
   ].filter(Boolean).join('\n')||null;
   return {
     // company_idはUUID型。設定値がUUID形式の場合のみセット
-    ...(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(getS().supabaseCompanyId)
-      ? {company_id: getS().supabaseCompanyId} : {}),
+    ...((typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId())
+      ? {company_id: KS_AUTH.getCompanyId()} : {}),
     work_date:        data.workDate||null,
     weather_am:       data.weatherAM||null,
     weather_pm:       data.weatherPM||null,
@@ -2067,16 +2030,14 @@ function buildLogPayload(data, reportText){
 }
 
 async function supabaseInsert(data, reportText){
-  const s=getS();
-  if(!s.supabaseUrl||!s.supabaseAnonKey) return null;
   const payload=buildLogPayload(data,reportText);
   console.log('[Supabase INSERT] payload:', payload);
   try{
-    const r=await fetch(`${s.supabaseUrl}/rest/v1/daily_logs`,{
+    const r=await fetch(`${SB_URL}/rest/v1/daily_logs`,{
       method:'POST',
       headers:{
-        'apikey':s.supabaseAnonKey,
-        'Authorization':'Bearer '+s.supabaseAnonKey,
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
         'Content-Type':'application/json',
         'Prefer':'return=representation',
       },
@@ -2094,19 +2055,14 @@ async function supabaseInsert(data, reportText){
 }
 
 async function supabaseUpdate(id, data, reportText){
-  const s=getS();
-  if(!s.supabaseUrl||!s.supabaseAnonKey){
-    showToast('Supabase設定が未入力です。⚙️から設定してください','err');
-    return false;
-  }
   const payload=buildLogPayload(data,reportText);
   console.log('[Supabase UPDATE] id:', id, 'payload:', payload);
   try{
-    const r=await fetch(`${s.supabaseUrl}/rest/v1/daily_logs?id=eq.${id}`,{
+    const r=await fetch(`${SB_URL}/rest/v1/daily_logs?id=eq.${id}`,{
       method:'PATCH',
       headers:{
-        'apikey':s.supabaseAnonKey,
-        'Authorization':'Bearer '+s.supabaseAnonKey,
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
         'Content-Type':'application/json',
         'Prefer':'return=minimal',
       },

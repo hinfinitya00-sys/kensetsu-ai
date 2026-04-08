@@ -351,17 +351,11 @@
       <span>出面<span style="color:var(--orange)">管理</span></span>
     </div>
     <div class="header-right">
-      <span id="modeBadge" class="badge-demo">DEMO</span>
       <button class="icon-btn" id="refreshBtn" title="更新">🔄</button>
-      <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
     </div>
   </header>
 
   <div class="container">
-    <div class="info-banner banner-demo" id="demoBanner">
-      <span>🎭</span>
-      <div><strong style="color:var(--orange)">デモモード</strong> — Supabase未設定のためサンプル/ローカル保存で動作します。</div>
-    </div>
     <div class="info-banner banner-rls" id="rlsBanner">
       <span>⚠️</span>
       <div>Supabaseに接続できましたが、RLS未設定のため編集/削除に失敗する可能性があります。</div>
@@ -576,26 +570,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- Settings Modal -->
-  <div class="overlay" id="settingsModal">
-    <div class="modal modal-small">
-      <div class="modal-hd">
-        <div class="modal-title">⚙️ Supabase接続設定</div>
-        <button class="close-btn" id="closeSettingsModal" type="button">✕</button>
-      </div>
-      <div class="modal-body">
-        <div style="margin-bottom:12px; padding:12px; border:1px solid rgba(245,158,11,.25); background:rgba(245,158,11,.06); border-radius:12px; color:var(--yellow); font-size:13px; line-height:1.7;">
-          Supabase URL / Anon Key（または Service Role Key）を入力してください。
-        </div>
-        <label>Supabase URL</label>
-        <input type="text" id="cfgUrl" placeholder="https://xxxxxxxx.supabase.co" style="margin-bottom:12px;">
-        <label>Supabase Anon Key（または Service Role Key）</label>
-        <input type="password" id="cfgKey" placeholder="eyJhbGciOi..." style="margin-bottom:16px;">
-        <button class="btn btn-primary btn-wide" id="saveSettingsBtn" type="button">保存して反映</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     // ── Util ────────────────────────────────────────────────
     const $ = (id) => document.getElementById(id);
@@ -612,63 +586,13 @@
       'Content-Type': 'application/json'
     };
 
-    // ── Settings ───────────────────────────────────────────
-    const SK = { url:'dr_sb_url', key:'dr_sb_key' };
-    const getCfg = () => ({ url: localStorage.getItem(SK.url) || '', key: localStorage.getItem(SK.key) || '' });
+    // ── Supabase 設定（ハードコード） ──────────────────────
+    const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+    // SaaS: ログイン中の会社IDでデータを分離
+    const COMPANY_ID = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || '';
 
-    function openSettings() {
-      const c = getCfg();
-      $('cfgUrl').value = c.url;
-      $('cfgKey').value = c.key;
-      $('settingsModal').classList.add('open');
-    }
-    function closeSettings() { $('settingsModal').classList.remove('open'); }
-    $('settingsBtn').addEventListener('click', openSettings);
-    $('closeSettingsModal').addEventListener('click', closeSettings);
-    $('settingsModal').addEventListener('click', (e) => { if (e.target === $('settingsModal')) closeSettings(); });
-    $('saveSettingsBtn').addEventListener('click', () => {
-      const url = $('cfgUrl').value.trim();
-      const key = $('cfgKey').value.trim();
-      localStorage.setItem(SK.url, url);
-      localStorage.setItem(SK.key, key);
-      toast('設定を保存しました。再読み込みします...','ok');
-      closeSettings();
-      setTimeout(() => location.reload(), 900);
-    });
-
-    // ── Demo Data ───────────────────────────────────────────
-    const today = new Date().toISOString().slice(0,10);
-    const ym = today.slice(0,7);
-    const DEMO_STORAGE_KEY = 'demo_attendance_entries_v1';
-    const DEMO_ATTENDANCE_ENTRIES = (() => {
-      const now = Date.now();
-      const agoIso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
-      return [
-        { id:'a1', work_date: today, worker_name:'山田 太郎', status:'present', work_hours:8, company:'○○建設株式会社', site_name:'福岡082 法面整備 現場', work_content:'法面整形・法枠コンクリート打設', meter_photo_url:null, late_time:null, late_reason:null, absent_reason:null, absent_note:null, notes:null, submitted_at: agoIso(120) },
-        { id:'a2', work_date: today, worker_name:'佐藤 健', status:'late', work_hours:6, company:'○○建設株式会社', site_name:'宮崎区間C 路盤整備 現場', work_content:'路盤工・転圧作業', meter_photo_url:null, late_time:null, late_reason:null, absent_reason:null, absent_note:null, notes:null, submitted_at: agoIso(95) },
-        { id:'a3', work_date: today, worker_name:'鈴木 一郎', status:'vacation', work_hours:0, company:'○○建設株式会社', site_name:'福岡082 法面整備 現場', work_content:'休暇（現場対応なし）', meter_photo_url:null, late_time:null, late_reason:null, absent_reason:'休暇', absent_note:'有給休暇', notes:'有給休暇', submitted_at: agoIso(70) },
-        { id:'a4', work_date: today, worker_name:'高橋 次郎', status:'early_leave', work_hours:5, company:'△△工業株式会社', site_name:'大分014 排水路 現場', work_content:'排水溝整備・遣り方補助', meter_photo_url:null, late_time:null, late_reason:null, absent_reason:null, absent_note:'体調不良のため早退', notes:'体調不良のため早退', submitted_at: agoIso(45) },
-        { id:'a5', work_date: today, worker_name:'田中 花子', status:'absent', work_hours:0, company:'△△工業株式会社', site_name:'大分014 排水路 現場', work_content:'欠勤（現場対応なし）', meter_photo_url:null, late_time:null, late_reason:null, absent_reason:'欠勤', absent_note:null, notes:null, submitted_at: agoIso(30) },
-        // 先月分サンプル（今月累計の見栄え）
-        { id:'a6', work_date: ym + '-01', worker_name:'中村 一馬', status:'present', work_hours:8, company:'○○建設株式会社', site_name:'福岡082 法面整備 現場', work_content:'作業', meter_photo_url:null, late_time:null, late_reason:null, absent_reason:null, absent_note:null, notes:null, submitted_at: agoIso(5000) },
-      ];
-    })();
-
-    function ensureDemoSeed() {
-      const raw = localStorage.getItem(DEMO_STORAGE_KEY);
-      if (!raw) {
-        localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(DEMO_ATTENDANCE_ENTRIES));
-      }
-    }
-
-    function getDemoEntries() {
-      ensureDemoSeed();
-      try { return JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || '[]'); } catch { return []; }
-    }
-
-    function saveDemoEntries(arr) {
-      localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(arr));
-    }
+    const today = new Date().toLocaleDateString('sv-SE');
 
     // ── Status / Rendering ─────────────────────────────────
     function attendanceStatusLabel(status) {
@@ -730,10 +654,8 @@
 
     // ── Supabase REST Helpers ──────────────────────────────
     async function sbFetch(path) {
-      const { url, key } = getCfg();
-      if (!url || !key) throw new Error('Supabase未設定');
-      const r = await fetch(`${url}/rest/v1/${path}`, {
-        headers: { apikey:key, Authorization:'Bearer ' + key, 'Content-Type':'application/json' }
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+        headers: { apikey:SB_KEY, Authorization:'Bearer ' + SB_KEY, 'Content-Type':'application/json' }
       });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
@@ -743,10 +665,9 @@
     }
 
     async function sbPatch(path, body) {
-      const { url, key } = getCfg();
-      const r = await fetch(`${url}/rest/v1/${path}`, {
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
         method: 'PATCH',
-        headers: { apikey:key, Authorization:'Bearer ' + key, 'Content-Type':'application/json', Prefer:'return=representation' },
+        headers: { apikey:SB_KEY, Authorization:'Bearer ' + SB_KEY, 'Content-Type':'application/json', Prefer:'return=representation' },
         body: JSON.stringify(body)
       });
       if (!r.ok) {
@@ -757,10 +678,9 @@
     }
 
     async function sbDelete(path) {
-      const { url, key } = getCfg();
-      const r = await fetch(`${url}/rest/v1/${path}`, {
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
         method: 'DELETE',
-        headers: { apikey:key, Authorization:'Bearer ' + key, 'Content-Type':'application/json' }
+        headers: { apikey:SB_KEY, Authorization:'Bearer ' + SB_KEY, 'Content-Type':'application/json' }
       });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
@@ -777,8 +697,6 @@
       return (m && m[1]) ? m[1] : 'jpg';
     }
     async function uploadMeterImage(file) {
-      const { url, key } = getCfg();
-      if (!url || !key) throw new Error('Supabase未設定');
       const d = new Date();
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth()+1).padStart(2,'0');
@@ -786,9 +704,9 @@
       const ts = Date.now();
       const path = `meter/${yyyy}/${mm}/${ts}-${rand}.${extFromFile(file)}`;
 
-      const uploadRes = await fetch(`${url}/storage/v1/object/${METER_BUCKET}/${path}`, {
+      const uploadRes = await fetch(`${SB_URL}/storage/v1/object/${METER_BUCKET}/${path}`, {
         method: 'POST',
-        headers: { apikey:key, Authorization:'Bearer ' + key, 'Content-Type': file.type, 'x-upsert':'true' },
+        headers: { apikey:SB_KEY, Authorization:'Bearer ' + SB_KEY, 'Content-Type': file.type, 'x-upsert':'true' },
         body: file
       });
       if (!uploadRes.ok) {
@@ -796,7 +714,7 @@
         throw new Error(e.message || e.error || `Storage ${uploadRes.status}`);
       }
 
-      const publicUrl = `${url}/storage/v1/object/public/${METER_BUCKET}/${path}`;
+      const publicUrl = `${SB_URL}/storage/v1/object/public/${METER_BUCKET}/${path}`;
       return { publicUrl, path };
     }
 
@@ -817,18 +735,10 @@
       $('attendanceBody').innerHTML = '<tr><td colspan="12" style="padding:18px; text-align:center; color:var(--muted);">読み込み中...</td></tr>';
     }
 
-    let isDemo = false;
     let currentEntries = []; // filter result
     let editingRow = null;
     let editingMeterFile = null;
     let editingRemoveMeter = false;
-
-    function initMode() {
-      const { url, key } = getCfg();
-      isDemo = !url || !key;
-      $('modeBadge').style.display = isDemo ? 'inline-flex' : 'none';
-      if (isDemo) $('demoBanner').classList.add('show');
-    }
 
     function getTodayRange() {
       const y = Number(today.slice(0,4));
@@ -856,19 +766,8 @@
     }
 
     async function fetchAttendanceForFilters(filters) {
-      if (isDemo) {
-        const arr = getDemoEntries();
-        return arr
-          .filter(e => !filters.date || e.work_date === filters.date)
-          .filter(e => !filters.name || String(e.worker_name||'').includes(filters.name))
-          .filter(e => !filters.status || e.status === filters.status)
-          .filter(e => !filters.company || String(e.company||'').includes(filters.company))
-          .filter(e => !filters.site || String(e.site_name||'').includes(filters.site))
-          .slice()
-          .sort((a,b) => String(b.submitted_at||'').localeCompare(String(a.submitted_at||'')));
-      }
-
-      let url = `attendance_logs?select=*&order=submitted_at.desc&limit=2000`;
+      const cidQ = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+      let url = `attendance_logs?select=*&order=submitted_at.desc&limit=2000${cidQ}`;
       if (filters.date) url += `&work_date=eq.${filters.date}`;
       if (filters.status) url += `&status=eq.${filters.status}`;
       if (filters.name) url += `&worker_name=ilike.*${encodeURIComponent(filters.name)}*`;
@@ -878,17 +777,10 @@
     }
 
     async function fetchTodayMonthKpis() {
-      if (isDemo) {
-        const arr = getDemoEntries();
-        const todayEntries = arr.filter(e => e.work_date === today);
-        const { first, last } = getTodayRange();
-        const monthEntries = arr.filter(e => e.work_date >= first && e.work_date <= last);
-        return { todayEntries, monthEntries };
-      }
-
-      const todayEntries = await sbFetch(`attendance_logs?select=*&work_date=eq.${today}&order=submitted_at.desc&limit=2000`);
+      const cidQ = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+      const todayEntries = await sbFetch(`attendance_logs?select=*&work_date=eq.${today}&order=submitted_at.desc&limit=2000${cidQ}`);
       const { first, last } = getTodayRange();
-      const monthEntries = await sbFetch(`attendance_logs?select=*&work_date=gte.${first}&work_date=lte.${last}&limit=5000`);
+      const monthEntries = await sbFetch(`attendance_logs?select=*&work_date=gte.${first}&work_date=lte.${last}&limit=5000${cidQ}`);
       return { todayEntries, monthEntries };
     }
 
@@ -1158,16 +1050,7 @@
           late_time: status === 'late' ? '09:00' : null
         };
 
-        if (isDemo) {
-          const arr = getDemoEntries();
-          const idx = arr.findIndex(x => String(x.id) === String(row.id));
-          if (idx >= 0) {
-            arr[idx] = { ...arr[idx], ...payload, id: arr[idx].id, submitted_at: arr[idx].submitted_at || new Date().toISOString() };
-            saveDemoEntries(arr);
-          }
-        } else {
-          await sbPatch(`attendance_logs?id=eq.${encodeURIComponent(row.id)}`, payload);
-        }
+        await sbPatch(`attendance_logs?id=eq.${encodeURIComponent(row.id)}`, payload);
 
         toast('更新しました ✓', 'ok');
         closeAllModals();
@@ -1185,13 +1068,7 @@
       if (!ok) return;
       try {
         $('listBadge').textContent = '削除中...';
-        if (isDemo) {
-          const arr = getDemoEntries();
-          const next = arr.filter(x => String(x.id) !== String(row.id));
-          saveDemoEntries(next);
-        } else {
-          await sbDelete(`attendance_logs?id=eq.${encodeURIComponent(row.id)}`);
-        }
+        await sbDelete(`attendance_logs?id=eq.${encodeURIComponent(row.id)}`);
         toast('削除しました','ok');
         await loadAttendance();
       } catch(e) {
@@ -1203,7 +1080,6 @@
 
     // ── Init ────────────────────────────────────────────────
     window.addEventListener('load', () => {
-      initMode();
       buildEditHoursUI();
       $('filterDate').value = today;
       loadAttendance();

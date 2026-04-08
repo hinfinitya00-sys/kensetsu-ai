@@ -312,16 +312,11 @@
       <span>出面<span style="color:var(--orange)">送信</span></span>
     </div>
     <div class="header-right">
-      <span id="modeBadge" class="badge-demo" style="display:none;">DEMO</span>
-      <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
     </div>
   </header>
 
   <div class="container">
-    <div class="info-banner banner-demo" id="demoBanner">
-      <span>🎭</span>
-      <div><strong style="color:var(--orange)">デモモード</strong> — Supabase未設定のためサンプル/ローカル保存で動作します。</div>
-    </div>
+
     <div class="info-banner banner-rls" id="rlsBanner">
       <span>⚠️</span>
       <div>Supabaseに接続できましたが、RLS未設定のため登録に失敗する可能性があります。</div>
@@ -417,29 +412,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- Settings Modal -->
-  <div class="overlay" id="settingsModal">
-    <div class="modal">
-      <div class="modal-hd">
-        <div class="modal-title">⚙️ Supabase接続設定</div>
-        <button class="close-btn" id="closeSettingsModal" type="button">✕</button>
-      </div>
-      <div class="modal-body">
-        <div style="margin-bottom:12px; padding:12px; border:1px solid rgba(245,158,11,.25); background:rgba(245,158,11,.06); border-radius:12px; color:var(--yellow); font-size:13px; line-height:1.7;">
-          Supabase URL / Anon Key（または Service Role Key）を入力してください。
-          <div style="margin-top:6px; color:var(--muted); font-weight:800; font-size:12px;">※ アクセスにはRLSポリシーが必要になる場合があります。</div>
-        </div>
-
-        <label>Supabase URL</label>
-        <input type="text" id="cfgUrl" placeholder="https://xxxxxxxx.supabase.co" style="margin-bottom:12px;">
-
-        <label>Supabase Anon Key（または Service Role Key）</label>
-        <input type="password" id="cfgKey" placeholder="eyJhbGciOi..." style="margin-bottom:16px;">
-
-        <button class="btn btn-primary btn-wide" id="saveSettingsBtn" type="button">保存して反映</button>
-      </div>
-    </div>
-  </div>
 
   <script>
     // ── Util ────────────────────────────────────────────────
@@ -453,115 +425,16 @@
       _tt = setTimeout(() => { t.className = 'toast'; }, dur);
     }
 
-    // ── Settings ───────────────────────────────────────────
-    const SK = { url:'dr_sb_url', key:'dr_sb_key' };
-    const getCfg = () => ({
-      url: localStorage.getItem(SK.url) || '',
-      key: localStorage.getItem(SK.key) || ''
-    });
-
-    function openSettings() {
-      const c = getCfg();
-      $('cfgUrl').value = c.url;
-      $('cfgKey').value = c.key;
-      $('settingsModal').classList.add('open');
-    }
-    function closeSettings() { $('settingsModal').classList.remove('open'); }
-    $('settingsBtn').addEventListener('click', openSettings);
-    $('closeSettingsModal').addEventListener('click', closeSettings);
-    $('settingsModal').addEventListener('click', (e) => { if (e.target === $('settingsModal')) closeSettings(); });
-    $('saveSettingsBtn').addEventListener('click', () => {
-      const url = $('cfgUrl').value.trim();
-      const key = $('cfgKey').value.trim();
-      localStorage.setItem(SK.url, url);
-      localStorage.setItem(SK.key, key);
-      toast('設定を保存しました。再読み込みします...','ok');
-      closeSettings();
-      setTimeout(() => location.reload(), 900);
-    });
-
-    // ── Demo Attendance Seed ───────────────────────────────
+    // ── Supabase Config ────────────────────────────────────
+    const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+    const COMPANY_ID = new URLSearchParams(location.search).get('cid') || '';
     const today = new Date().toISOString().slice(0,10);
-    const DEMO_ATTENDANCE_ENTRIES = (() => {
-      const now = Date.now();
-      const agoIso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
-      return [
-        {
-          id: 'a_demo_1',
-          work_date: today,
-          worker_name: '山田 太郎',
-          status: 'present',
-          work_hours: 8,
-          company: '○○建設株式会社',
-          site_name: '福岡082 法面整備 現場',
-          work_content: '法面整形・法枠コンクリート打設',
-          meter_photo_url: null,
-          meter_photo_path: null,
-          notes: null,
-          submitted_at: agoIso(120),
-          late_time: null,
-          late_reason: null,
-          absent_reason: null,
-          absent_note: null,
-        },
-        {
-          id: 'a_demo_2',
-          work_date: today,
-          worker_name: '佐藤 健',
-          status: 'late',
-          work_hours: 6,
-          company: '○○建設株式会社',
-          site_name: '宮崎区間C 路盤整備 現場',
-          work_content: '路盤工・転圧作業',
-          meter_photo_url: null,
-          meter_photo_path: null,
-          notes: null,
-          submitted_at: agoIso(80),
-          late_time: null,
-          late_reason: null,
-          absent_reason: null,
-          absent_note: null,
-        },
-        {
-          id: 'a_demo_3',
-          work_date: today,
-          worker_name: '鈴木 一郎',
-          status: 'vacation',
-          work_hours: 0,
-          company: '○○建設株式会社',
-          site_name: '福岡082 法面整備 現場',
-          work_content: '休暇（現場対応なし）',
-          meter_photo_url: null,
-          meter_photo_path: null,
-          notes: '有給休暇',
-          submitted_at: agoIso(40),
-          late_time: null,
-          late_reason: null,
-          absent_reason: '休暇',
-          absent_note: '有給休暇',
-        },
-      ];
-    })();
-
-    const DEMO_STORAGE_KEY = 'demo_attendance_entries_v1';
-    function ensureDemoSeed() {
-      const raw = localStorage.getItem(DEMO_STORAGE_KEY);
-      if (!raw) {
-        localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(DEMO_ATTENDANCE_ENTRIES));
-      }
-    }
-
-    function getDemoEntries() {
-      ensureDemoSeed();
-      try { return JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || '[]'); } catch { return []; }
-    }
 
     // ── Supabase REST Helpers ──────────────────────────────
     async function sbFetch(path) {
-      const { url, key } = getCfg();
-      if (!url || !key) throw new Error('Supabase未設定');
-      const r = await fetch(`${url}/rest/v1/${path}`, {
-        headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+        headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }
       });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
@@ -571,12 +444,11 @@
     }
 
     async function sbPost(path, body, prefer='return=representation') {
-      const { url, key } = getCfg();
-      const r = await fetch(`${url}/rest/v1/${path}`, {
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
         method: 'POST',
         headers: {
-          apikey: key,
-          Authorization: 'Bearer ' + key,
+          apikey: SB_KEY,
+          Authorization: 'Bearer ' + SB_KEY,
           'Content-Type': 'application/json',
           'Prefer': prefer
         },
@@ -592,12 +464,11 @@
     }
 
     async function sbPatch(path, body, prefer='return=representation') {
-      const { url, key } = getCfg();
-      const r = await fetch(`${url}/rest/v1/${path}`, {
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
         method: 'PATCH',
         headers: {
-          apikey: key,
-          Authorization: 'Bearer ' + key,
+          apikey: SB_KEY,
+          Authorization: 'Bearer ' + SB_KEY,
           'Content-Type': 'application/json',
           'Prefer': prefer
         },
@@ -619,8 +490,6 @@
     }
 
     async function uploadMeterImage(file) {
-      const { url, key } = getCfg();
-      if (!url || !key) throw new Error('Supabase未設定');
       const d = new Date();
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2,'0');
@@ -628,11 +497,11 @@
       const ts = Date.now();
       const path = `meter/${yyyy}/${mm}/${ts}-${rand}.${extFromFile(file)}`;
 
-      const uploadRes = await fetch(`${url}/storage/v1/object/${METER_BUCKET}/${path}`, {
+      const uploadRes = await fetch(`${SB_URL}/storage/v1/object/${METER_BUCKET}/${path}`, {
         method: 'POST',
         headers: {
-          apikey: key,
-          Authorization: 'Bearer ' + key,
+          apikey: SB_KEY,
+          Authorization: 'Bearer ' + SB_KEY,
           'Content-Type': file.type,
           'x-upsert': 'true'
         },
@@ -643,7 +512,7 @@
         throw new Error(e.message || e.error || `Storage ${uploadRes.status}`);
       }
 
-      const publicUrl = `${url}/storage/v1/object/public/${METER_BUCKET}/${path}`;
+      const publicUrl = `${SB_URL}/storage/v1/object/public/${METER_BUCKET}/${path}`;
       return { publicUrl, path };
     }
 
@@ -721,30 +590,17 @@
 
     // ── Candidate Lists (datalist) ─────────────────────────
     async function loadCandidates() {
-      const { url, key } = getCfg();
-      const isDemo = !url || !key;
-
-      if (isDemo) {
-        // DEMOから最低限の候補を生成
-        const entries = getDemoEntries();
-        const names = Array.from(new Set(entries.map(e => e.worker_name).filter(Boolean))).slice(0, 20);
-        const companies = Array.from(new Set(entries.map(e => e.company).filter(Boolean))).slice(0, 20);
-        const sites = Array.from(new Set(entries.map(e => e.site_name).filter(Boolean))).slice(0, 30);
-        names.forEach(n => addDatalistOption('nameList', n));
-        companies.forEach(c => addDatalistOption('companyList', c));
-        sites.forEach(s => addDatalistOption('siteList', s));
-        return;
-      }
+      const cidQ = COMPANY_ID ? '&company_id=eq.' + COMPANY_ID : '';
 
       // workers（名前候補）
       try {
-        const workers = await sbFetch(`workers?is_active=eq.true&select=name&order=name&limit=200`);
+        const workers = await sbFetch(`workers?is_active=eq.true${cidQ}&select=name&order=name&limit=200`);
         workers.forEach(w => addDatalistOption('nameList', w.name));
       } catch {}
 
       // sites（現場候補）
       try {
-        const sites = await sbFetch(`sites?select=name&order=name&limit=300`);
+        const sites = await sbFetch(`sites?select=name${cidQ}&order=name&limit=300`);
         sites.forEach(s => addDatalistOption('siteList', s.name));
       } catch {}
     }
@@ -760,22 +616,24 @@
 
     // ── Worker / Site Upsert ───────────────────────────────
     async function findOrCreateWorker(name, company) {
-      const { url, key } = getCfg();
-      if (!url || !key) throw new Error('Supabase未設定');
-
-      const existing = await sbFetch(`workers?name=eq.${encodeURIComponent(name)}&company=eq.${encodeURIComponent(company)}&select=id,daily_rate,work_rates&limit=1`);
+      const cidQ = COMPANY_ID ? '&company_id=eq.' + COMPANY_ID : '';
+      const existing = await sbFetch(`workers?name=eq.${encodeURIComponent(name)}&company=eq.${encodeURIComponent(company)}${cidQ}&select=id,daily_rate,work_rates&limit=1`);
       if (existing && existing.length) return existing[0];
 
       const rate = 15000;
-      const created = await sbPost('workers', { name, company, daily_rate: rate, work_rates: {}, is_active: true });
-      // created is array
+      const payload = { name, company, daily_rate: rate, work_rates: {}, is_active: true };
+      if (COMPANY_ID) payload.company_id = COMPANY_ID;
+      const created = await sbPost('workers', payload);
       return created && created[0] ? created[0] : null;
     }
 
     async function addSiteIfNew(siteName, company) {
-      const existing = await sbFetch(`sites?name=eq.${encodeURIComponent(siteName)}&select=id&limit=1`);
+      const cidQ = COMPANY_ID ? '&company_id=eq.' + COMPANY_ID : '';
+      const existing = await sbFetch(`sites?name=eq.${encodeURIComponent(siteName)}${cidQ}&select=id&limit=1`);
       if (existing && existing.length) return;
-      await sbPost('sites', { name: siteName, company });
+      const payload = { name: siteName, company };
+      if (COMPANY_ID) payload.company_id = COMPANY_ID;
+      await sbPost('sites', payload);
     }
 
     function computeDailyRate(worker, workContent) {
@@ -804,8 +662,6 @@
     async function submit() {
       const btn = $('submitBtn');
       btn.disabled = true;
-      const { url, key } = getCfg();
-      const isDemo = !url || !key;
 
       const workDate = $('workDate').value;
       const status = $('attStatus').value;
@@ -841,40 +697,13 @@
         localStorage.setItem(LS.hours, String(workHours));
         localStorage.setItem(LS.status, status);
 
-        // メーター画像アップロード（ライブ時のみ）
+        // メーター画像アップロード
         let meterPhotoUrl = null;
-        if (meterFile && !isDemo) {
+        if (meterFile) {
           const upload = await uploadMeterImage(meterFile);
           meterPhotoUrl = upload.publicUrl;
         }
 
-        if (isDemo) {
-          const entry = {
-            id: 'demo_' + Date.now(),
-            work_date: workDate,
-            worker_name: workerName,
-            status,
-            work_hours: workHours,
-            company,
-            site_name: siteName,
-            work_content: workContent,
-            meter_photo_url: meterPhotoUrl,
-            late_time: null,
-            late_reason: status === 'late' ? notes : null,
-            absent_reason: (status === 'vacation' ? '休暇' : (status === 'absent' ? '欠勤' : null)),
-            absent_note: (status === 'late' ? null : notes),
-            submitted_at: new Date().toISOString(),
-            notes
-          };
-          const arr = getDemoEntries();
-          arr.push(entry);
-          localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(arr));
-          toast('送信しました ✓', 'ok');
-          showSuccess(entry);
-          return;
-        }
-
-        // ── Live Mode ──
         const worker = await findOrCreateWorker(workerName, company);
         await addSiteIfNew(siteName, company);
 
@@ -900,6 +729,7 @@
           late_reason: noteByStatus.late_reason,
           meter_photo_url: meterPhotoUrl
         };
+        if (COMPANY_ID) payload.company_id = COMPANY_ID;
 
         const created = await sbPost('attendance_logs', payload, 'return=representation');
         const row = (created && created[0]) ? created[0] : payload;
@@ -988,18 +818,6 @@
       $('employeeName').value = localStorage.getItem(LS.name) || '';
       $('primeContractor').value = localStorage.getItem(LS.company) || '';
       $('siteName').value = localStorage.getItem(LS.site) || '';
-
-      const { url, key } = getCfg();
-      const isDemo = !url || !key;
-      if (isDemo) {
-        $('demoBanner').classList.add('show');
-        $('modeBadge').style.display = 'inline-flex';
-        ensureDemoSeed();
-      } else {
-        try {
-          $('demoBanner').classList.remove('show');
-        } catch {}
-      }
 
       // datalist candidates（失敗しても入力は継続）
       await loadCandidates();

@@ -415,19 +415,11 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
 </div>
 
 <script>
-// Supabaseデフォルト設定（初回アクセス時に自動設定）
-if (!localStorage.getItem('dr_sb_url')) {
-  localStorage.setItem('dr_sb_url', 'https://bjohdzcoziezdkqcebhe.supabase.co');
-}
-if (!localStorage.getItem('dr_sb_key')) {
-  localStorage.setItem('dr_sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU');
-}
-if (!localStorage.getItem('dr_cak')) {
-  localStorage.setItem('dr_cak', 'TEST-API-KEY-12345');
-}
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Prefer': 'return=representation' };
+// SaaS: ログイン中の会社IDでデータを分離
+const COMPANY_ID = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || '';
 
 const RATE_KEYS = ['法面工事','吹付工','アンカー工','コンクリート打設','鉄筋工','交通誘導','重機作業'];
 let editingWorkerId = null;
@@ -468,6 +460,7 @@ async function loadAttendance() {
   const name = document.getElementById('filterName').value.trim();
   const status = document.getElementById('filterStatus').value;
   let url = `${SB_URL}/rest/v1/attendance_logs?order=work_date.desc,submitted_at.desc&limit=500`;
+  if (COMPANY_ID) url += `&company_id=eq.${COMPANY_ID}`;
   if (year && month) {
     const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     url += `&work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-${String(lastDay).padStart(2,'0')}`;
@@ -624,7 +617,8 @@ function exportCSV() {
 let workers = [];
 async function loadWorkers() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true&order=name`, { headers: H });
+    const cidQ = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true${cidQ}&order=name`, { headers: H });
     workers = await res.json();
     renderWorkers();
   } catch(e) {}
@@ -728,7 +722,8 @@ async function loadSalary() {
   const year = document.getElementById('salaryYear').value;
   const month = document.getElementById('salaryMonth').value;
   const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-  const url = `${SB_URL}/rest/v1/attendance_logs?work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-${String(lastDay).padStart(2,'0')}&status=neq.absent&order=worker_name`;
+  const cidQ2 = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+  const url = `${SB_URL}/rest/v1/attendance_logs?work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-${String(lastDay).padStart(2,'0')}&status=neq.absent${cidQ2}&order=worker_name`;
   const tbody = document.getElementById('salaryBody');
   tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><span class="spinner"></span> 集計中...</td></tr>';
   try {

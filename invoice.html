@@ -756,16 +756,9 @@
 ════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
-// Supabaseデフォルト設定（初回アクセス時に自動設定）
-if (!localStorage.getItem('dr_sb_url')) {
-  localStorage.setItem('dr_sb_url', 'https://bjohdzcoziezdkqcebhe.supabase.co');
-}
-if (!localStorage.getItem('dr_sb_key')) {
-  localStorage.setItem('dr_sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU');
-}
-if (!localStorage.getItem('dr_cak')) {
-  localStorage.setItem('dr_cak', 'TEST-API-KEY-12345');
-}
+// ── Supabase Config ────────────────────────────────────
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
 // ── Utils ─────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -791,9 +784,6 @@ const LS = {
   issuerTel:     'inv_issuer_tel',
   issuerRegNum:  'inv_issuer_reg',
   issuerBank:    'inv_issuer_bank',
-  sbUrl:         'dr_sb_url',
-  sbKey:         'dr_sb_key',
-  sbCid:         'dr_sb_cid',
 };
 
 // ── Issuer info persistence ───────────────────────────────
@@ -1194,17 +1184,7 @@ function renderPrint(d) {
 let _savedData = null;
 
 async function saveToSupabase(d) {
-  const sbUrl = localStorage.getItem(LS.sbUrl);
-  const sbKey = localStorage.getItem(LS.sbKey);
-  const cak   = localStorage.getItem('dr_cak'); // company API key
-
-  if (!sbUrl || !sbKey) {
-    toast('Supabase未設定のため保存をスキップ（ローカルのみ）', '', 4000);
-    return false;
-  }
-
-  // Save via netlify function (bypasses RLS)
-  // If company API key is available, use it; otherwise direct Supabase
+  const companyId = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || null;
   try {
     const payload = {
       invoice_no:       d.invoiceNo,
@@ -1231,13 +1211,13 @@ async function saveToSupabase(d) {
       final_amount:     Math.round(d.saibiki||d.total),
       remarks:          d.remarks || null,
     };
+    if (companyId) payload.company_id = companyId;
 
-    // Try Supabase direct (requires INSERT policy)
-    const res = await fetch(`${sbUrl}/rest/v1/invoices`, {
+    const res = await fetch(`${SB_URL}/rest/v1/invoices`, {
       method: 'POST',
       headers: {
-        'apikey':        sbKey,
-        'Authorization': `Bearer ${sbKey}`,
+        'apikey':        SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
         'Content-Type':  'application/json',
         'Prefer':        'return=representation',
       },

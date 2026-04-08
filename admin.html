@@ -531,22 +531,13 @@
     <span class="header-company" id="headerCompany"></span>
     <button class="icon-btn" id="refreshBtn" title="データを更新">🔄</button>
     <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
-    <span id="modeBadge" class="badge-demo">DEMO</span>
   </div>
 </header>
 
 <!-- Main -->
 <div class="container" id="mainContent">
 
-  <!-- Banner -->
-  <div class="info-banner banner-demo" id="demoBanner">
-    <span>🎭</span>
-    <div>
-      <strong style="color:var(--orange)">デモモード</strong> —
-      Supabaseが未設定のため、サンプルデータを表示しています。
-      ⚙️ から Supabase URL と Anon Key を設定するとリアルデータに切り替わります。
-    </div>
-  </div>
+
   <div class="info-banner banner-rls" id="rlsBanner">
     <span>⚠️</span>
     <div>
@@ -756,16 +747,9 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// Supabaseデフォルト設定（初回アクセス時に自動設定）
-if (!localStorage.getItem('dr_sb_url')) {
-  localStorage.setItem('dr_sb_url', 'https://bjohdzcoziezdkqcebhe.supabase.co');
-}
-if (!localStorage.getItem('dr_sb_key')) {
-  localStorage.setItem('dr_sb_key', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU');
-}
-if (!localStorage.getItem('dr_cak')) {
-  localStorage.setItem('dr_cak', 'TEST-API-KEY-12345');
-}
+// ── Supabase Config ────────────────────────────────────
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 // ── Util ──────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 let _tt;
@@ -776,151 +760,22 @@ function toast(msg, type='', dur=3000) {
 }
 
 // ── Settings ──────────────────────────────────────────────
-const SK = { url:'dr_sb_url', key:'dr_sb_key' };
 const getCfg = () => {
-  const url = localStorage.getItem(SK.url) || '';
-  let key = localStorage.getItem(SK.key) || '';
+  let key = SB_KEY;
   // RLS適用のため Supabase セッションのアクセストークンを優先使用
-  if (url) {
-    try {
-      const m = url.match(/https?:\/\/([^.]+)\.supabase\.co/);
-      if (m) {
-        const raw = localStorage.getItem(`sb-${m[1]}-auth-token`);
-        if (raw) {
-          const d = JSON.parse(raw);
-          const token = d.access_token || d.session?.access_token;
-          if (token) key = token;
-        }
-      }
-    } catch {}
-  }
-  return { url, key };
+  try {
+    const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
+    if (raw) {
+      const d = JSON.parse(raw);
+      const token = d.access_token || d.session?.access_token;
+      if (token) key = token;
+    }
+  } catch {}
+  return { url: SB_URL, key };
 };
 
-// ── Demo Data ─────────────────────────────────────────────
 const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（ローカルタイムゾーン基準）
-const ym     = today.slice(0,7);
 
-const DEMO_LOGS = [
-  { id:'d1', work_date: today,
-    project: { name:'R6-法面崩壊防止工事 福岡082', work_type:'法面工事', location:'福岡県北九州市' },
-    quality_notes:'工種: 法面工事\n明日の予定: コンクリート吹付\n特記事項: 特になし',
-    progress_rate:65, workers_count:8,
-    generated_report:'━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n　　　　　工　事　日　報\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n【工事情報】\n工事名称：R6-法面崩壊防止工事 福岡082\n元請会社：○○建設株式会社　　現場代理人：山田 太郎\n\n【作業日時・天候】\n作業日：2026年3月16日（月）\n天候：午前 晴れ ／ 午後 晴れ\n\n【作業員構成】　計8名\n土木作業員5名　重機オペ2名　交通誘導員1名\n\n【使用重機・機械】\n・バックホウ 0.45㎥ × 2台\n・ダンプトラック 10t × 3台\n\n【本日の作業概要】\n工種：法面工事　　進捗率：65%\n法面整形および法枠工の施工を実施しました。\n\n【作業詳細】\n・法面の整形作業（切土・成形）\n・法枠コンクリート打設 約50㎡\n・排水溝清掃・整備\n\n【安全管理】\n朝礼：有　KY活動：有　ヒヤリハット：無\n高所作業における安全帯着用を徹底しました。\n\n【品質管理】\n検査・立会：無　写真撮影：12枚\n\n【明日の作業予定】\nコンクリート吹付工 約80㎡を予定。資材搬入を午前中に実施。\n\n【特記事項・所見】\n特になし\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n作成日時：2026年3月16日 17:30\n担当者：＿＿＿＿＿＿＿＿＿＿（署名）' },
-  { id:'d2', work_date: ym+'-15',
-    project: { name:'県道改良工事 宮崎区間C', work_type:'土工', location:'宮崎県延岡市' },
-    quality_notes:'工種: 土工\n明日の予定: 路盤工\n特記事項: 大型車通行多数',
-    progress_rate:40, workers_count:12,
-    generated_report:'工事日報（サンプル）\n\n工事名：県道改良工事 宮崎区間C\n作業日：2026年3月15日\n進捗率：40%\n\n本日は路盤整備および舗装準備を実施しました。' },
-  { id:'d3', work_date: ym+'-14',
-    project: { name:'NEXCO法面緑化工事 熊本IC', work_type:'法面工事', location:'熊本県菊池市' },
-    quality_notes:'工種: 法面工事\n明日の予定: 仕上げ\n特記事項: 検査立会あり',
-    progress_rate:88, workers_count:5,
-    generated_report:'工事日報（サンプル）\n\n工事名：NEXCO法面緑化工事 熊本IC\n作業日：2026年3月14日\n進捗率：88%\n\n本日は法面緑化工の最終仕上げ作業を実施しました。検査立会も滞りなく完了。' },
-  { id:'d4', work_date: ym+'-13',
-    project: { name:'排水路整備工事 大分014', work_type:'排水工', location:'大分県臼杵市' },
-    quality_notes:'工種: 排水工\n明日の予定: コンクリート打設\n特記事項: 特になし',
-    progress_rate:22, workers_count:6,
-    generated_report:'工事日報（サンプル）\n\n工事名：排水路整備工事 大分014\n作業日：2026年3月13日\n進捗率：22%\n\n本日は排水路掘削工を実施。基礎砕石投入まで完了しました。' },
-  { id:'d5', work_date: ym+'-12',
-    project: { name:'R6-法面崩壊防止工事 福岡082', work_type:'法面工事', location:'福岡県北九州市' },
-    quality_notes:'工種: 法面工事\n明日の予定: 整形作業継続\n特記事項: 特になし',
-    progress_rate:55, workers_count:8,
-    generated_report:'工事日報（サンプル）\n\n工事名：R6-法面崩壊防止工事 福岡082\n作業日：2026年3月12日\n進捗率：55%\n\n本日は法面整形工を継続実施しました。' },
-];
-
-const DEMO_PROJECTS = [
-  { id:'p1', name:'R6-法面崩壊防止工事 福岡082', location:'福岡県北九州市', work_type:'法面工事', status:'進行中' },
-  { id:'p2', name:'県道改良工事 宮崎区間C',        location:'宮崎県延岡市',   work_type:'土木',    status:'進行中' },
-  { id:'p3', name:'NEXCO法面緑化工事 熊本IC',      location:'熊本県菊池市',   work_type:'法面工事', status:'進行中' },
-  { id:'p4', name:'排水路整備工事 大分014',         location:'大分県臼杵市',   work_type:'排水工',   status:'進行中' },
-  { id:'p5', name:'急傾斜地対策工事 鹿児島',        location:'鹿児島県薩摩川内市', work_type:'法面工事', status:'完了' },
-];
-
-const DEMO_ATTENDANCE_ENTRIES = (() => {
-  const now = Date.now();
-  const agoIso = (minsAgo) => new Date(now - minsAgo * 60000).toISOString();
-  return [
-    {
-      id: 'a1',
-      work_date: today,
-      worker_name: '山田 太郎',
-      status: 'present',
-      work_hours: 8,
-      company: '○○建設株式会社',
-      site_name: '福岡082 法面整備 現場',
-      work_content: '法面整形・法枠コンクリート打設',
-      meter_photo_url: null,
-      notes: null,
-      submitted_at: agoIso(120),
-    },
-    {
-      id: 'a2',
-      work_date: today,
-      worker_name: '佐藤 健',
-      status: 'late',
-      work_hours: 6,
-      company: '○○建設株式会社',
-      site_name: '宮崎区間C 路盤整備 現場',
-      work_content: '路盤工・転圧作業',
-      meter_photo_url: null,
-      notes: null,
-      submitted_at: agoIso(95),
-    },
-    {
-      id: 'a3',
-      work_date: today,
-      worker_name: '鈴木 一郎',
-      status: 'vacation',
-      work_hours: 0,
-      company: '○○建設株式会社',
-      site_name: '福岡082 法面整備 現場',
-      work_content: '休暇（現場対応なし）',
-      meter_photo_url: null,
-      notes: '有給休暇',
-      submitted_at: agoIso(70),
-    },
-    {
-      id: 'a4',
-      work_date: today,
-      worker_name: '高橋 次郎',
-      status: 'early_leave',
-      work_hours: 5,
-      company: '△△工業株式会社',
-      site_name: '大分014 排水路 現場',
-      work_content: '排水溝整備・遣り方補助',
-      meter_photo_url: null,
-      notes: '体調不良のため早退',
-      submitted_at: agoIso(45),
-    },
-    {
-      id: 'a5',
-      work_date: today,
-      worker_name: '田中 花子',
-      status: 'absent',
-      work_hours: 0,
-      company: '△△工業株式会社',
-      site_name: '大分014 排水路 現場',
-      work_content: '欠勤（現場対応なし）',
-      meter_photo_url: null,
-      notes: null,
-      submitted_at: agoIso(30),
-    },
-  ];
-})();
-
-function getDemoAttendanceEntries() {
-  const raw = localStorage.getItem('demo_attendance_entries_v1');
-  if (!raw) return DEMO_ATTENDANCE_ENTRIES.slice();
-  try {
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr) || !arr.length) return DEMO_ATTENDANCE_ENTRIES.slice();
-    arr.sort((a, b) => String(b.submitted_at || '').localeCompare(String(a.submitted_at || '')));
-    return arr;
-  } catch {
-    return DEMO_ATTENDANCE_ENTRIES.slice();
-  }
-}
 
 // ── Supabase Fetch ─────────────────────────────────────────
 async function sbFetch(path) {
@@ -1240,54 +1095,26 @@ function renderAttendanceToday(entries, errMsg='') {
 }
 
 // ── Load Dashboard ─────────────────────────────────────────
-let _isDemo = false;
-
 async function loadDashboard() {
-  $('loadingText').textContent = 'Supabaseに接続中...';
-  const { url, key } = getCfg();
-
-  _isDemo = false;
-  $('demoBanner').classList.remove('show');
+  $('loadingText').textContent = 'データを取得中...';
   $('rlsBanner').classList.remove('show');
   $('liveBanner').classList.remove('show');
 
-  let logs, projects;
+  const companyId = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || '';
+  const cidQ = companyId ? '&company_id=eq.' + companyId : '';
 
-  if (!url || !key) {
-    // 未設定 → デモモード
-    _isDemo = true;
-    logs     = DEMO_LOGS;
-    projects = DEMO_PROJECTS;
-    $('demoBanner').classList.add('show');
-    $('modeBadge').textContent = 'DEMO';
-    $('modeBadge').className   = 'badge-demo';
-    $('headerCompany').textContent = '🏢 サンプル建設（デモ）';
-  } else {
-    try {
-      $('loadingText').textContent = 'データを取得中...';
-      [logs, projects] = await Promise.all([
-        sbFetch(`daily_logs?select=id,work_date,work_description,progress_rate,workers_count,generated_report,quality_notes,project:projects(name,work_type,location,status)&order=created_at.desc&limit=30`),
-        sbFetch(`projects?select=id,name,location,work_type,status&order=created_at.desc`),
-      ]);
-      $('liveBanner').classList.add('show');
-      setTimeout(() => $('liveBanner').classList.remove('show'), 4000);
-      $('modeBadge').textContent = 'LIVE';
-      $('modeBadge').className   = 'badge-live';
-      $('headerCompany').textContent = '🏢 接続済み';
-    } catch (err) {
-      console.warn('[Dashboard] Supabase fetch failed:', err.message);
-      // RLSやネットワークエラー → デモフォールバック
-      _isDemo = true;
-      logs     = DEMO_LOGS;
-      projects = DEMO_PROJECTS;
-      if (err.message.includes('42501') || err.message.includes('permission') || err.message.includes('policy')) {
-        $('rlsBanner').classList.add('show');
-      } else {
-        $('demoBanner').classList.add('show');
-      }
-      $('modeBadge').textContent = 'DEMO';
-      $('modeBadge').className   = 'badge-demo';
-      $('headerCompany').textContent = '🏢 未接続（デモ）';
+  let logs = [], projects = [];
+  try {
+    [logs, projects] = await Promise.all([
+      sbFetch(`daily_logs?select=id,work_date,work_description,progress_rate,workers_count,generated_report,quality_notes,project:projects(name,work_type,location,status)${cidQ}&order=created_at.desc&limit=30`),
+      sbFetch(`projects?select=id,name,location,work_type,status${cidQ}&order=created_at.desc`),
+    ]);
+    $('liveBanner').classList.add('show');
+    setTimeout(() => $('liveBanner').classList.remove('show'), 4000);
+  } catch (err) {
+    console.warn('[Dashboard] Supabase fetch failed:', err.message);
+    if (err.message.includes('42501') || err.message.includes('permission') || err.message.includes('policy')) {
+      $('rlsBanner').classList.add('show');
     }
   }
 
@@ -1296,25 +1123,17 @@ async function loadDashboard() {
   renderProjects(projects);
   setPageSub(logs, projects);
 
-  // 出面サマリー（daily_logs の成否に関わらず常に実データを試みる）
+  // 出面サマリー
   let attendanceEntries = [];
   let attendanceErrMsg = '';
-  const { url: _attUrl, key: _attKey } = getCfg();
-  if (_attUrl && _attKey) {
-    try {
-      // カラム: work_date, worker_name, company, site_name, work_content,
-      //         work_hours, daily_rate, status, absent_reason, late_time, submitted_at
-      attendanceEntries = await sbFetch(
-        `attendance_logs?select=work_date,worker_name,company,site_name,work_content,work_hours,daily_rate,status,absent_reason,late_time,submitted_at` +
-        `&work_date=eq.${today}&order=submitted_at.desc&limit=500`
-      );
-    } catch (err) {
-      console.error('[Dashboard][Attendance] fetch failed:', err.message, err);
-      attendanceErrMsg = err.message || '出面情報の取得に失敗しました';
-      // Supabase接続はあるがエラーの場合：空リストのまま（デモデータで上書きしない）
-    }
-  } else {
-    attendanceEntries = getDemoAttendanceEntries();
+  try {
+    attendanceEntries = await sbFetch(
+      `attendance_logs?select=work_date,worker_name,company,site_name,work_content,work_hours,daily_rate,status,absent_reason,late_time,submitted_at` +
+      `&work_date=eq.${today}${cidQ}&order=submitted_at.desc&limit=500`
+    );
+  } catch (err) {
+    console.error('[Dashboard][Attendance] fetch failed:', err.message, err);
+    attendanceErrMsg = err.message || '出面情報の取得に失敗しました';
   }
   renderAttendanceToday(attendanceEntries, attendanceErrMsg);
 }
@@ -1333,17 +1152,6 @@ $('refreshBtn').addEventListener('click', async () => {
 
 // ── Init ──────────────────────────────────────────────────
 (async () => {
-  // URLハッシュから設定を自動適用（daily-report.htmlと同じQR共有方式）
-  if (location.hash.startsWith('#setup=')) {
-    try {
-      const json = decodeURIComponent(escape(atob(location.hash.slice(7))));
-      const p = JSON.parse(json);
-      if (p.sbUrl) localStorage.setItem(SK.url, p.sbUrl);
-      if (p.sbKey) localStorage.setItem(SK.key, p.sbKey);
-      history.replaceState(null,'',location.pathname);
-    } catch(e) {}
-  }
-
   await loadDashboard();
 
   // SaaS: 作業員ページリンクに自社の company_id を付与
@@ -1358,15 +1166,6 @@ $('refreshBtn').addEventListener('click', async () => {
   lo.classList.add('fade');
   setTimeout(() => lo.style.display='none', 450);
 
-  // Supabase未設定なら設定を促す（初回のみ）
-  if (!getCfg().url && !localStorage.getItem('dash_setup_shown')) {
-    localStorage.setItem('dash_setup_shown','1');
-    setTimeout(() => {
-      if (confirm('Supabase設定をまだ行っていません。\n今すぐ設定しますか？\n（デモモードのままでもご利用いただけます）')) {
-        openSettings();
-      }
-    }, 1200);
-  }
 })();
 </script>
 </body>
