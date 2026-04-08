@@ -90,7 +90,7 @@ const KS_AUTH = (() => {
         .from('user_companies')
         .select('company_id, companies(id, name)')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (!error && data && data.companies) {
         localStorage.setItem(COMPANY_KEY, JSON.stringify({
@@ -105,14 +105,14 @@ const KS_AUTH = (() => {
         .from('user_companies')
         .select('company_id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       if (!uc) return;
 
       const { data: co } = await client
         .from('companies')
         .select('id, name')
         .eq('id', uc.company_id)
-        .single();
+        .maybeSingle();
       if (co) {
         localStorage.setItem(COMPANY_KEY, JSON.stringify({ id: co.id, name: co.name }));
       }

@@ -722,18 +722,18 @@ function toast(msg, type='', dur=3000) {
 }
 
 // ── Settings ──────────────────────────────────────────────
+// apikey は常に anon key。Authorization Bearer のみセッショントークンを優先使用
 const getCfg = () => {
-  let key = SB_KEY;
-  // RLS適用のため Supabase セッションのアクセストークンを優先使用
+  let bearerToken = SB_KEY;
   try {
     const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
     if (raw) {
       const d = JSON.parse(raw);
       const token = d.access_token || d.session?.access_token;
-      if (token) key = token;
+      if (token) bearerToken = token;
     }
   } catch {}
-  return { url: SB_URL, key };
+  return { url: SB_URL, anonKey: SB_KEY, bearerToken };
 };
 
 const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（ローカルタイムゾーン基準）
@@ -742,11 +742,11 @@ const ym    = today.slice(0, 7);                     // YYYY-MM
 
 // ── Supabase Fetch ─────────────────────────────────────────
 async function sbFetch(path) {
-  const { url, key } = getCfg();
+  const { url, anonKey, bearerToken } = getCfg();
   const r = await fetch(`${url}/rest/v1/${path}`, {
     headers: {
-      'apikey': key,
-      'Authorization': 'Bearer ' + key,
+      'apikey': anonKey,
+      'Authorization': 'Bearer ' + bearerToken,
       'Content-Type': 'application/json',
     },
   });
@@ -758,10 +758,10 @@ async function sbFetch(path) {
 }
 
 async function sbCount(path) {
-  const { url, key } = getCfg();
+  const { url, anonKey, bearerToken } = getCfg();
   const r = await fetch(`${url}/rest/v1/${path}`, {
     headers: {
-      'apikey': key, 'Authorization': 'Bearer ' + key,
+      'apikey': anonKey, 'Authorization': 'Bearer ' + bearerToken,
       'Prefer': 'count=exact', 'Range': '0-0',
     },
   });
