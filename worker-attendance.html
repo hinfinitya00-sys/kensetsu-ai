@@ -472,23 +472,11 @@ const COMPANY_ID = new URLSearchParams(location.search).get('cid')
   || localStorage.getItem('company_id')
   || '';
 
-// セッショントークンがあればBearerに使用（RLSが許可するため）
-const _getBearer = () => {
-  try {
-    const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
-    if (raw) {
-      const d = JSON.parse(raw);
-      const token = d.access_token || d.session?.access_token;
-      if (token) return token;
-    }
-  } catch {}
-  return SB_KEY;
-};
-
+// 公開ページのため常に anon key を使用（期限切れセッショントークンで 401 になるのを防ぐ）
 const HEADERS = {
   'Content-Type': 'application/json',
   'apikey': SB_KEY,
-  'Authorization': 'Bearer ' + _getBearer(),
+  'Authorization': 'Bearer ' + SB_KEY,
   'Prefer': 'return=representation'
 };
 
@@ -516,8 +504,16 @@ function formatDateJP(ymd) {
 async function loadWorkers() {
   try {
     const cidFilter = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
-    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true${cidFilter}&order=name`, { headers: HEADERS });
-    workers = await res.json();
+    const url = `${SB_URL}/rest/v1/workers?is_active=eq.true${cidFilter}&order=name`;
+    console.log('[loadWorkers] fetching:', url);
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    workers = Array.isArray(data) ? data : [];
+    console.log('[loadWorkers] 取得件数:', workers.length);
     renderDropdown();
 
     const dl = document.getElementById('companyList');
@@ -530,7 +526,12 @@ async function loadWorkers() {
         dl.appendChild(opt);
       });
     }
-  } catch(e) { showError('作業員データの読み込みに失敗しました'); }
+  } catch(e) {
+    console.error('[loadWorkers] error:', e);
+    workers = [];
+    renderDropdown();
+    showError('作業員データの読み込みに失敗しました: ' + e.message);
+  }
 }
 
 function renderDropdown() {
@@ -595,14 +596,16 @@ async function loadSites() {
   try {
     const cidFilter = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
     const res = await fetch(`${SB_URL}/rest/v1/sites?select=name${cidFilter}&order=name`, { headers: HEADERS });
-    const sites = await res.json();
+    if (!res.ok) return;
+    const data = await res.json();
+    const sites = Array.isArray(data) ? data : [];
     const dl = document.getElementById('siteList');
     sites.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.name;
       dl.appendChild(opt);
     });
-  } catch(e) {}
+  } catch(e) { console.error('[loadSites] error:', e); }
 }
 
 
@@ -629,8 +632,13 @@ async function registerWorker() {
       method: 'POST', headers: HEADERS,
       body: JSON.stringify(workerPayload)
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
     const data = await res.json();
-    const newW = data[0];
+    const newW = Array.isArray(data) ? data[0] : data;
+    if (!newW || !newW.id) throw new Error('作業員データの取得に失敗しました');
     workers.push(newW);
     selectWorker(newW);
   } catch(e) { showError('登録に失敗しました'); }
