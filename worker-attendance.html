@@ -467,13 +467,28 @@ if (!localStorage.getItem('dr_cak')) {
 }
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
-// SaaS: URLパラメータ ?cid=<company_id> から自社IDを取得
-const COMPANY_ID = new URLSearchParams(location.search).get('cid') || '';
+// SaaS: URLパラメータ ?cid=<company_id> から自社IDを取得、なければlocalStorageから
+const COMPANY_ID = new URLSearchParams(location.search).get('cid')
+  || localStorage.getItem('company_id')
+  || '';
+
+// セッショントークンがあればBearerに使用（RLSが許可するため）
+const _getBearer = () => {
+  try {
+    const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
+    if (raw) {
+      const d = JSON.parse(raw);
+      const token = d.access_token || d.session?.access_token;
+      if (token) return token;
+    }
+  } catch {}
+  return SB_KEY;
+};
 
 const HEADERS = {
   'Content-Type': 'application/json',
   'apikey': SB_KEY,
-  'Authorization': 'Bearer ' + SB_KEY,
+  'Authorization': 'Bearer ' + _getBearer(),
   'Prefer': 'return=representation'
 };
 
@@ -803,15 +818,20 @@ async function submitReport() {
 }
 
 async function postLog(payload) {
-  if (COMPANY_ID) payload.company_id = COMPANY_ID;
+  if (COMPANY_ID) {
+    payload.company_id = COMPANY_ID;
+  } else {
+    console.warn('[postLog] COMPANY_ID が未設定です。?cid= パラメータを確認してください。');
+  }
+  console.log('[postLog] payload:', JSON.stringify(payload));
   const res = await fetch(`${SB_URL}/rest/v1/attendance_logs`, {
     method: 'POST',
     headers: HEADERS,
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'DB error');
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `HTTP ${res.status}`);
   }
 }
 
