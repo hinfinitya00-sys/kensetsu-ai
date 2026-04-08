@@ -467,6 +467,8 @@ if (!localStorage.getItem('dr_cak')) {
 }
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+// SaaS: URLパラメータ ?cid=<company_id> から自社IDを取得
+const COMPANY_ID = new URLSearchParams(location.search).get('cid') || '';
 
 const HEADERS = {
   'Content-Type': 'application/json',
@@ -498,7 +500,8 @@ function formatDateJP(ymd) {
 
 async function loadWorkers() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true&order=name`, { headers: HEADERS });
+    const cidFilter = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true${cidFilter}&order=name`, { headers: HEADERS });
     workers = await res.json();
     renderDropdown();
 
@@ -575,7 +578,8 @@ async function deleteWorker(e, id) {
 
 async function loadSites() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/sites?select=name&order=name`, { headers: HEADERS });
+    const cidFilter = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+    const res = await fetch(`${SB_URL}/rest/v1/sites?select=name${cidFilter}&order=name`, { headers: HEADERS });
     const sites = await res.json();
     const dl = document.getElementById('siteList');
     sites.forEach(s => {
@@ -604,9 +608,11 @@ async function registerWorker() {
   const btn = document.getElementById('registerWorkerBtn');
   btn.disabled = true; btn.textContent = '登録中...';
   try {
+    const workerPayload = { name, company: '', daily_rate: 15000, is_active: true, work_rates: {} };
+    if (COMPANY_ID) workerPayload.company_id = COMPANY_ID;
     const res = await fetch(`${SB_URL}/rest/v1/workers`, {
       method: 'POST', headers: HEADERS,
-      body: JSON.stringify({ name, company: '', daily_rate: 15000, is_active: true, work_rates: {} })
+      body: JSON.stringify(workerPayload)
     });
     const data = await res.json();
     const newW = data[0];
@@ -797,6 +803,7 @@ async function submitReport() {
 }
 
 async function postLog(payload) {
+  if (COMPANY_ID) payload.company_id = COMPANY_ID;
   const res = await fetch(`${SB_URL}/rest/v1/attendance_logs`, {
     method: 'POST',
     headers: HEADERS,
@@ -810,12 +817,15 @@ async function postLog(payload) {
 
 async function addSiteIfNew(name, company) {
   try {
-    const check = await fetch(`${SB_URL}/rest/v1/sites?name=eq.${encodeURIComponent(name)}`, { headers: HEADERS });
+    const cidFilter = COMPANY_ID ? `&company_id=eq.${COMPANY_ID}` : '';
+    const check = await fetch(`${SB_URL}/rest/v1/sites?name=eq.${encodeURIComponent(name)}${cidFilter}`, { headers: HEADERS });
     const existing = await check.json();
     if (existing.length === 0) {
+      const sitePayload = { name, company };
+      if (COMPANY_ID) sitePayload.company_id = COMPANY_ID;
       await fetch(`${SB_URL}/rest/v1/sites`, {
         method: 'POST', headers: { ...HEADERS, Prefer: 'return=minimal' },
-        body: JSON.stringify({ name, company })
+        body: JSON.stringify(sitePayload)
       });
     }
   } catch(e) {}

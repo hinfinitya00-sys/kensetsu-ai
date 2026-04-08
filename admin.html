@@ -577,7 +577,7 @@
     <a href="schedule.html" class="cta-primary" style="background:linear-gradient(135deg,#22C55E,#16a34a);box-shadow:0 4px 14px rgba(34,197,94,.35);">📊 工程表</a>
     <a href="safety.html" class="cta-primary" style="background:linear-gradient(135deg,#EF4444,#dc2626);box-shadow:0 4px 14px rgba(239,68,68,.35);">🏗️ 安全書類</a>
     <a href="attendance.html" class="cta-primary" style="background:linear-gradient(135deg,#14B8A6,#0d9488);box-shadow:0 4px 14px rgba(20,184,166,.35);">👷 出勤管理</a>
-    <a href="worker-attendance.html" class="cta-primary" style="background:linear-gradient(135deg,#22a05a,#135c38);box-shadow:0 4px 14px rgba(34,160,90,.35);">📲 出勤報告</a>
+    <a href="worker-attendance.html" id="workerAttendanceLink" class="cta-primary" style="background:linear-gradient(135deg,#22a05a,#135c38);box-shadow:0 4px 14px rgba(34,160,90,.35);">📲 出勤報告</a>
   </div>
 
   <!-- KPI Cards -->
@@ -777,10 +777,25 @@ function toast(msg, type='', dur=3000) {
 
 // ── Settings ──────────────────────────────────────────────
 const SK = { url:'dr_sb_url', key:'dr_sb_key' };
-const getCfg = () => ({
-  url: localStorage.getItem(SK.url)||'',
-  key: localStorage.getItem(SK.key)||'',
-});
+const getCfg = () => {
+  const url = localStorage.getItem(SK.url) || '';
+  let key = localStorage.getItem(SK.key) || '';
+  // RLS適用のため Supabase セッションのアクセストークンを優先使用
+  if (url) {
+    try {
+      const m = url.match(/https?:\/\/([^.]+)\.supabase\.co/);
+      if (m) {
+        const raw = localStorage.getItem(`sb-${m[1]}-auth-token`);
+        if (raw) {
+          const d = JSON.parse(raw);
+          const token = d.access_token || d.session?.access_token;
+          if (token) key = token;
+        }
+      }
+    } catch {}
+  }
+  return { url, key };
+};
 
 // ── Demo Data ─────────────────────────────────────────────
 const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（ローカルタイムゾーン基準）
@@ -1330,6 +1345,13 @@ $('refreshBtn').addEventListener('click', async () => {
   }
 
   await loadDashboard();
+
+  // SaaS: 作業員ページリンクに自社の company_id を付与
+  const companyId = KS_AUTH.getCompanyId();
+  if (companyId) {
+    const waLink = document.getElementById('workerAttendanceLink');
+    if (waLink) waLink.href = `worker-attendance.html?cid=${companyId}`;
+  }
 
   // ローディング解除
   const lo = $('loadingOverlay');
