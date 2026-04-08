@@ -56,7 +56,6 @@
     .header-right { display:flex; align-items:center; gap:12px; }
     .header-company { font-size:13px; color:var(--muted); }
     .badge-live  { background:var(--green);  color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
-    .badge-demo  { background:var(--orange); color:#fff; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; letter-spacing:1px; }
     .icon-btn {
       background:rgba(255,255,255,.08); border:1px solid var(--border);
       color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:18px;
@@ -67,14 +66,13 @@
     /* ── Container ───────────────────────────────────────── */
     .container { max-width:1400px; margin:0 auto; padding:24px 24px 48px; }
 
-    /* ── Demo/RLS Banner ─────────────────────────────────── */
+    /* ── RLS Banner ──────────────────────────────────────── */
     .info-banner {
       display:none; border-radius:10px; padding:12px 16px;
       align-items:center; gap:12px; margin-bottom:20px; font-size:13px;
       animation:fadeUp .4s ease both;
     }
     .info-banner.show { display:flex; }
-    .banner-demo { background:rgba(255,107,0,.1); border:1px solid rgba(255,107,0,.3); }
     .banner-rls  { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); color:var(--yellow); }
     .banner-ok   { background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.25); color:var(--green); }
 
@@ -530,7 +528,6 @@
   <div class="header-right">
     <span class="header-company" id="headerCompany"></span>
     <button class="icon-btn" id="refreshBtn" title="データを更新">🔄</button>
-    <button class="icon-btn" id="settingsBtn" title="設定">⚙️</button>
   </div>
 </header>
 
@@ -705,44 +702,6 @@
   </div>
 </div>
 
-<!-- Settings Modal -->
-<div class="overlay" id="settingsModal">
-  <div class="modal settings-modal">
-    <div class="modal-hd">
-      <div class="modal-title">⚙️ Supabase接続設定</div>
-      <button class="close-btn" id="closeSettingsModal">✕</button>
-    </div>
-    <div style="padding:20px;">
-      <div class="s-info">
-        ⚠️ APIキーはこのデバイスの localStorage にのみ保存されます。
-        管理ダッシュボードでデータを読み込むには Supabase の
-        <code style="background:rgba(0,0,0,.3);padding:1px 5px;border-radius:3px;">anon key</code>（または service role key）と
-        SELECT ポリシーが必要です。
-      </div>
-      <div class="s-field">
-        <label>Supabase URL</label>
-        <input type="text" id="cfgUrl" placeholder="https://xxxxxxxx.supabase.co">
-      </div>
-      <div class="s-field">
-        <label>Supabase Anon Key（または Service Role Key）</label>
-        <input type="password" id="cfgKey" placeholder="eyJhbGciOi...">
-        <div class="hint">daily-report.html の⚙️設定で入力した値と同じです。</div>
-      </div>
-      <div class="s-divider"></div>
-      <div class="s-field">
-        <label>RLSポリシー設定（必要な場合）</label>
-        <div class="hint" style="font-size:12px;line-height:1.8;">
-          Supabase SQL Editor で以下を実行してください：<br>
-          <code style="display:block;background:rgba(0,0,0,.4);padding:8px;border-radius:6px;margin-top:6px;font-size:11px;">
-            CREATE POLICY "dash_read" ON daily_logs FOR SELECT TO anon USING (true);<br>
-            CREATE POLICY "dash_read" ON projects FOR SELECT TO anon USING (true);
-          </code>
-        </div>
-      </div>
-      <button class="s-save-btn" id="saveSettingsBtn">保存してリロード</button>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -780,7 +739,6 @@ const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD（ローカ�
 // ── Supabase Fetch ─────────────────────────────────────────
 async function sbFetch(path) {
   const { url, key } = getCfg();
-  if (!url || !key) throw new Error('Supabase未設定');
   const r = await fetch(`${url}/rest/v1/${path}`, {
     headers: {
       'apikey': key,
@@ -797,7 +755,6 @@ async function sbFetch(path) {
 
 async function sbCount(path) {
   const { url, key } = getCfg();
-  if (!url || !key) return null;
   const r = await fetch(`${url}/rest/v1/${path}`, {
     headers: {
       'apikey': key, 'Authorization': 'Bearer ' + key,
@@ -977,27 +934,6 @@ $('modalDlBtn').addEventListener('click', () => {
   toast('保存しました ✓','ok');
 });
 
-// ── Settings Modal ─────────────────────────────────────────
-function openSettings() {
-  const c = getCfg();
-  $('cfgUrl').value = c.url;
-  $('cfgKey').value = c.key;
-  $('settingsModal').classList.add('open');
-}
-function closeSettings() { $('settingsModal').classList.remove('open'); }
-
-$('settingsBtn').addEventListener('click', openSettings);
-$('closeSettingsModal').addEventListener('click', closeSettings);
-$('settingsModal').addEventListener('click', e => { if (e.target === $('settingsModal')) closeSettings(); });
-$('saveSettingsBtn').addEventListener('click', () => {
-  const url = $('cfgUrl').value.trim();
-  const key = $('cfgKey').value.trim();
-  localStorage.setItem(SK.url, url);
-  localStorage.setItem(SK.key, key);
-  toast('設定を保存しました。再読み込みします...','ok');
-  closeSettings();
-  setTimeout(() => location.reload(), 1000);
-});
 
 // ── Page Sub Title ─────────────────────────────────────────
 function setPageSub(logs, projects) {
