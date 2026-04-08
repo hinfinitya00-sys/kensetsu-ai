@@ -9,11 +9,7 @@
   <script>
     // すでにログイン済みならリダイレクト
     (function () {
-      const url = localStorage.getItem('dr_sb_url');
-      if (!url) return;
-      const m = url.match(/https?:\/\/([^.]+)\.supabase\.co/);
-      if (!m) return;
-      const raw = localStorage.getItem('sb-' + m[1] + '-auth-token');
+      const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
       if (!raw) return;
       try {
         const d = JSON.parse(raw);
@@ -141,29 +137,6 @@
     .btn-primary:active:not(:disabled) { transform: scale(.98); }
     .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
 
-    /* ── Supabase 設定セクション ──────────────────── */
-    .setup-section {
-      display: none; margin-top: 24px; padding: 20px;
-      background: var(--navy2); border: 1px solid var(--border); border-radius: 14px;
-    }
-    .setup-section.show { display: block; }
-    .setup-title { font-size: 12px; font-weight: 700; color: var(--yellow); margin-bottom: 14px; }
-    .setup-section .fg { margin-bottom: 12px; }
-    .setup-section input[type=text] {
-      width: 100%; background: var(--navy); border: 2px solid var(--border);
-      color: var(--text); padding: 11px 14px; border-radius: 10px;
-      font-size: 13px; font-family: 'Noto Sans JP', sans-serif;
-      transition: border-color .2s;
-    }
-    .setup-section input[type=text]:focus { outline: none; border-color: var(--blue); }
-    .btn-setup {
-      width: 100%; background: var(--navy3); border: 1px solid var(--border);
-      color: var(--text); padding: 10px; border-radius: 10px;
-      font-size: 13px; font-weight: 700; font-family: 'Noto Sans JP', sans-serif;
-      cursor: pointer; transition: background .15s;
-    }
-    .btn-setup:hover { background: var(--card2); }
-
     /* ── フッター / セッション切れ通知 ─────────────── */
     .notice {
       display: none; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3);
@@ -286,48 +259,29 @@
 
 </div><!-- /.login-card -->
 
-<!-- Supabase 設定セクション（未設定時に表示） -->
-<div class="setup-section" id="setupSection">
-  <div class="setup-title">⚙️ Supabase 接続設定（初回のみ）</div>
-  <div class="fg">
-    <label>Project URL</label>
-    <input type="text" id="setupUrl" placeholder="https://xxxx.supabase.co">
-  </div>
-  <div class="fg">
-    <label>Anon Key</label>
-    <input type="text" id="setupKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5c...">
-  </div>
-  <button class="btn-setup" onclick="saveSetup()">💾 設定を保存</button>
-</div>
-
 <div class="footer-note">© 建設AIシステム — 管理者専用ページ</div>
 
 <script>
 (function () {
   'use strict';
 
-  const SB_URL_KEY  = 'dr_sb_url';
-  const SB_KEY_KEY  = 'dr_sb_key';
+  const SB_URL      = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+  const SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
   const COMPANY_KEY = 'ks_company';
 
   /* ── Supabase クライアント ─────────────────────── */
   function sbClient() {
-    const url = localStorage.getItem(SB_URL_KEY);
-    const key = localStorage.getItem(SB_KEY_KEY);
-    if (!url || !key) return null;
-    return supabase.createClient(url, key);
+    return supabase.createClient(SB_URL, SB_ANON_KEY);
   }
+
+  /* ── localStorage に URL/KEY を同期（admin ページが参照するため） */
+  localStorage.setItem('dr_sb_url', SB_URL);
+  localStorage.setItem('dr_sb_key', SB_ANON_KEY);
 
   /* ── 初期化 ─────────────────────────────────────── */
   const params = new URLSearchParams(location.search);
   if (params.get('return')) {
     document.getElementById('notice').classList.add('show');
-  }
-  if (!localStorage.getItem(SB_URL_KEY) || !localStorage.getItem(SB_KEY_KEY)) {
-    const setupSec = document.getElementById('setupSection');
-    setupSec.classList.add('show');
-    const savedUrl = localStorage.getItem(SB_URL_KEY);
-    if (savedUrl) document.getElementById('setupUrl').value = savedUrl;
   }
 
   /* ── タブ切り替え ────────────────────────────────── */
@@ -395,12 +349,6 @@
     if (!pw)    { showMsg('loginErr', '❌ パスワードを入力してください');       shakeInput('loginPw');    return; }
 
     const sb = sbClient();
-    if (!sb) {
-      document.getElementById('setupSection').classList.add('show');
-      showMsg('loginErr', '⚙️ 下の「接続設定」を入力してください');
-      return;
-    }
-
     btn.disabled = true;
     btn.innerHTML = '⏳ ログイン中...';
 
@@ -440,12 +388,6 @@
     if (pw !== pwc)    { showMsg('regErr', '❌ パスワードが一致しません');               shakeInput('regPwConfirm'); return; }
 
     const sb = sbClient();
-    if (!sb) {
-      document.getElementById('setupSection').classList.add('show');
-      showMsg('regErr', '⚙️ 下の「接続設定」を入力してください');
-      return;
-    }
-
     btn.disabled = true;
     btn.innerHTML = '⏳ 登録中...';
 
@@ -501,17 +443,6 @@
       console.error('[login] _createCompany:', e);
     }
   }
-
-  /* ── Supabase 設定保存 ───────────────────────────── */
-  window.saveSetup = function () {
-    const url = document.getElementById('setupUrl').value.trim();
-    const key = document.getElementById('setupKey').value.trim();
-    if (!url || !key) { alert('URL と Anon Key の両方を入力してください'); return; }
-    localStorage.setItem(SB_URL_KEY, url);
-    localStorage.setItem(SB_KEY_KEY, key);
-    document.getElementById('setupSection').classList.remove('show');
-    alert('✅ 設定を保存しました。ログインしてください。');
-  };
 
   /* ── メール確認後のログイン時に pending company を処理 ── */
   (async function () {
