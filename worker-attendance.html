@@ -314,6 +314,9 @@
         <div class="status-tab" id="tab-absent" onclick="selectStatus('absent')">
           <span class="icon">🏠</span>欠勤
         </div>
+        <div class="status-tab" id="tab-vacation" onclick="selectStatus('vacation')">
+          <span class="icon">🌿</span>休暇
+        </div>
         <div class="status-tab" id="tab-late" onclick="selectStatus('late')">
           <span class="icon">⏰</span>遅刻
         </div>
@@ -359,6 +362,11 @@
     <div class="card" id="workDetailCard">
       <div class="card-title">現場・作業内容</div>
       <div class="form-row">
+        <label>現場会社名（元請会社） <span class="required">*</span></label>
+        <input type="text" id="siteCompany" list="companyList" placeholder="例: ○○建設株式会社">
+        <datalist id="companyList"></datalist>
+      </div>
+      <div class="form-row">
         <label>現場名 <span class="required">*</span></label>
         <input type="text" id="siteName" list="siteList" placeholder="現場名を入力または選択">
         <datalist id="siteList"></datalist>
@@ -371,20 +379,9 @@
         <label>勤務時間 (h)</label>
         <input type="number" id="workHours" value="8.0" min="0.5" max="24" step="0.5">
       </div>
-    </div>
-
-    <!-- 車メーター写真（任意） -->
-    <div class="card">
-      <div class="card-title">車メーター写真 <span style="font-size:0.7rem; color:var(--text-dim); font-weight:400; text-transform:none;">(任意)</span></div>
-      <div class="photo-upload-area" id="photoArea">
-        <input type="file" id="meterPhoto" accept="image/*" capture="environment" onchange="previewPhoto(event)">
-        <div class="upload-icon">📷</div>
-        <p>タップして写真を撮影 / 選択</p>
-        <p style="font-size:0.7rem; margin-top:4px; color:var(--text-dim)">走行メーター・出発前の車両確認など</p>
-      </div>
-      <div class="photo-preview" id="photoPreview">
-        <img id="photoImg" src="" alt="メーター写真">
-        <button class="remove-photo" onclick="removePhoto()">✕</button>
+      <div class="form-row">
+        <label>日当（円）</label>
+        <input type="number" id="dailyRateInput" value="15000" min="0" step="500">
       </div>
     </div>
 
