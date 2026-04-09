@@ -541,7 +541,7 @@ async function registerWorker() {
   btn.disabled = true; btn.textContent = '登録中...';
   try {
     const res = await fetch(`${SB_URL}/rest/v1/workers`, {
-      method: 'POST', headers: HEADERS,
+      method: 'POST', headers: { ...HEADERS, Prefer: 'return=representation' },
       body: JSON.stringify({ name, company: '', daily_rate: 15000, is_active: true, work_rates: {}, company_id: null })
     });
     const data = await res.json();
