@@ -550,8 +550,16 @@ function renderDropdown() {
   workers.forEach(w => {
     const item = document.createElement('div');
     item.className = 'dropdown-item' + (selectedWorker && selectedWorker.id === w.id ? ' selected' : '');
-    item.innerHTML = `<span class="item-label">${w.name}（${w.company || ''}）</span>
-      <button class="delete-btn" title="削除" onclick="deleteWorker(event, '${w.id}')">✕</button>`;
+    const label = document.createElement('span');
+    label.className = 'item-label';
+    label.textContent = w.company ? w.name + '（' + w.company + '）' : w.name;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.title = '削除';
+    delBtn.textContent = '✕';
+    delBtn.onclick = (e) => deleteWorker(e, w.id);
+    item.appendChild(label);
+    item.appendChild(delBtn);
     item.querySelector('.item-label').addEventListener('click', () => selectWorker(w));
     dd.appendChild(item);
   });
@@ -587,7 +595,7 @@ function closeDropdown() {
 
 function selectWorker(w) {
   selectedWorker = w;
-  document.getElementById('workerSelectLabel').textContent = `${w.name}（${w.company || ''}）`;
+  document.getElementById('workerSelectLabel').textContent = w.company ? w.name + '（' + w.company + '）' : w.name;
   document.getElementById('newWorkerArea').classList.remove('open');
   if (w.daily_rate) document.getElementById('dailyRateInput').value = w.daily_rate;
   closeDropdown();
