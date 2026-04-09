@@ -278,14 +278,6 @@
           <label>氏名 <span class="required">*</span></label>
           <input type="text" id="newName" placeholder="例: 山田 太郎">
         </div>
-        <div class="form-row">
-          <label>会社名 <span class="required">*</span></label>
-          <input type="text" id="newCompany" placeholder="例: 株式会社○○建設">
-        </div>
-        <div class="form-row">
-          <label>基本日当 (円) <span class="required">*</span></label>
-          <input type="number" id="newRate" value="15000" min="0" step="500">
-        </div>
         <button class="btn btn-secondary" id="registerWorkerBtn" onclick="registerWorker()">＋ 登録する</button>
       </div>
       <!-- 単価プレビュー -->
@@ -501,7 +493,7 @@ function showRatePreview(matchedKey) {
   if (!selectedWorker) return;
   const preview = document.getElementById('ratePreview');
   preview.classList.add('show');
-  document.getElementById('baseRateText').textContent = `基本日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
+  document.getElementById('baseRateText').textContent = `日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
   const rateList = document.getElementById('rateList');
   const rates = selectedWorker.work_rates || {};
   rateList.innerHTML = '';
@@ -520,7 +512,7 @@ function showRatePreview(matchedKey) {
     document.getElementById('baseRateText').textContent = `適用日当: ¥${Number(rate).toLocaleString()}`;
   } else {
     note.textContent = '';
-    document.getElementById('baseRateText').textContent = `基本日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
+    document.getElementById('baseRateText').textContent = `日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
   }
 }
 
@@ -547,15 +539,13 @@ function getAppliedRate() {
 
 async function registerWorker() {
   const name = document.getElementById('newName').value.trim();
-  const company = document.getElementById('newCompany').value.trim();
-  const rate = parseInt(document.getElementById('newRate').value);
-  if (!name || !company) return showError('氏名と会社名は必須です');
+  if (!name) return showError('氏名は必須です');
   const btn = document.getElementById('registerWorkerBtn');
   btn.disabled = true; btn.textContent = '登録中...';
   try {
     const res = await fetch(`${SB_URL}/rest/v1/workers`, {
       method: 'POST', headers: HEADERS,
-      body: JSON.stringify({ name, company, daily_rate: rate, is_active: true, work_rates: {} })
+      body: JSON.stringify({ name, company: '', daily_rate: 15000, is_active: true, work_rates: {}, company_id: null })
     });
     const data = await res.json();
     const newW = data[0];
@@ -651,7 +641,8 @@ async function submitReport() {
         absent_note: absentNote || null,
         late_time: null,
         late_reason: null,
-        meter_photo_url: photoBase64 || null
+        meter_photo_url: photoBase64 || null,
+        company_id: null
       };
       await postLog(payload);
       showSuccess({
@@ -699,7 +690,8 @@ async function submitReport() {
       absent_note: null,
       late_time: lateTime,
       late_reason: lateReason,
-      meter_photo_url: photoBase64 || null
+      meter_photo_url: photoBase64 || null,
+      company_id: null
     };
     await postLog(payload);
 
@@ -813,6 +805,25 @@ function showError(msg) {
 function hideError() {
   document.getElementById('errorMsg').classList.remove('show');
 }
+
+document.addEventListener('click', function(e) {
+  const wrapper = document.querySelector('.custom-select-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    // カスタムドロップダウンが将来追加された場合の外クリック処理
+  }
+});
+
+// 新規登録エリアのクリックが外部に伝播しないよう制御
+document.addEventListener('DOMContentLoaded', function() {
+  const newArea = document.getElementById('newWorkerArea');
+  if (newArea) {
+    newArea.addEventListener('click', function(e) { e.stopPropagation(); });
+  }
+  const registerBtn = document.getElementById('registerWorkerBtn');
+  if (registerBtn) {
+    registerBtn.addEventListener('click', function(e) { e.stopPropagation(); });
+  }
+});
 </script>
 </body>
 </html>
