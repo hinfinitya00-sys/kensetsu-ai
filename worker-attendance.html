@@ -413,7 +413,7 @@ const HEADERS = {
   'Content-Type': 'application/json',
   'apikey': SB_KEY,
   'Authorization': 'Bearer ' + SB_KEY,
-  'Prefer': 'return=representation'
+  'Prefer': 'return=minimal'
 };
 
 let workers = [];
@@ -446,7 +446,7 @@ async function loadWorkers() {
     workers.forEach(w => {
       const opt = document.createElement('option');
       opt.value = w.id;
-      opt.textContent = `${w.name}（${w.company}）`;
+      opt.textContent = w.company ? w.name + '（' + w.company + '）' : w.name;
       sel.appendChild(opt);
     });
     const newOpt = document.createElement('option');
@@ -552,7 +552,7 @@ async function registerWorker() {
     workers.push(newW);
     const sel = document.getElementById('workerSelect');
     const opt = document.createElement('option');
-    opt.value = newW.id; opt.textContent = `${newW.name}（${newW.company}）`;
+    opt.value = newW.id; opt.textContent = newW.company ? newW.name + '（' + newW.company + '）' : newW.name;
     sel.insertBefore(opt, sel.lastElementChild);
     sel.value = newW.id;
     selectedWorker = newW;
