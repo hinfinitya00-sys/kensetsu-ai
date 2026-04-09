@@ -560,7 +560,8 @@ function renderDropdown() {
     delBtn.onclick = (e) => deleteWorker(e, w.id);
     item.appendChild(label);
     item.appendChild(delBtn);
-    item.querySelector('.item-label').addEventListener('click', () => selectWorker(w));
+    label.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); selectWorker(w); });
+    label.addEventListener('click', (e) => { e.stopPropagation(); selectWorker(w); });
     dd.appendChild(item);
   });
 
