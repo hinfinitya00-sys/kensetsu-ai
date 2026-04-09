@@ -280,12 +280,6 @@
         </div>
         <button class="btn btn-secondary" id="registerWorkerBtn" onclick="registerWorker()">＋ 登録する</button>
       </div>
-      <!-- 単価プレビュー -->
-      <div class="rate-preview" id="ratePreview">
-        <div class="base-rate" id="baseRateText"></div>
-        <div class="rate-note" id="rateMatchNote"></div>
-        <div class="rate-list" id="rateList"></div>
-      </div>
     </div>
 
     <!-- 報告日 -->
@@ -373,7 +367,7 @@
       </div>
       <div class="form-row">
         <label>作業内容 <span class="required">*</span></label>
-        <input type="text" id="workContent" placeholder="例: 法面吹付工事、鉄筋組立など" oninput="matchWorkRate()">
+        <input type="text" id="workContent" placeholder="例: 法面吹付工事、鉄筋組立など">
       </div>
       <div class="form-row">
         <label>勤務時間 (h)</label>
@@ -470,59 +464,18 @@ async function loadSites() {
 function onWorkerChange() {
   const val = document.getElementById('workerSelect').value;
   const newArea = document.getElementById('newWorkerArea');
-  const preview = document.getElementById('ratePreview');
   if (val === '__new__') {
     newArea.classList.add('open');
-    preview.classList.remove('show');
     selectedWorker = null;
   } else if (val) {
     newArea.classList.remove('open');
     selectedWorker = workers.find(w => w.id === val);
-    showRatePreview();
   } else {
     newArea.classList.remove('open');
-    preview.classList.remove('show');
     selectedWorker = null;
   }
 }
 
-function showRatePreview(matchedKey) {
-  if (!selectedWorker) return;
-  const preview = document.getElementById('ratePreview');
-  preview.classList.add('show');
-  document.getElementById('baseRateText').textContent = `日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
-  const rateList = document.getElementById('rateList');
-  const rates = selectedWorker.work_rates || {};
-  rateList.innerHTML = '';
-  if (Object.keys(rates).length > 0) {
-    Object.entries(rates).forEach(([k, v]) => {
-      const badge = document.createElement('span');
-      badge.className = 'rate-badge' + (k === matchedKey ? ' active' : '');
-      badge.textContent = `${k}: ¥${Number(v).toLocaleString()}`;
-      rateList.appendChild(badge);
-    });
-  }
-  const note = document.getElementById('rateMatchNote');
-  if (matchedKey) {
-    const rate = rates[matchedKey];
-    note.textContent = `✅ "${matchedKey}" の単価 ¥${Number(rate).toLocaleString()} を適用`;
-    document.getElementById('baseRateText').textContent = `適用日当: ¥${Number(rate).toLocaleString()}`;
-  } else {
-    note.textContent = '';
-    document.getElementById('baseRateText').textContent = `日当: ¥${selectedWorker.daily_rate.toLocaleString()}`;
-  }
-}
-
-function matchWorkRate() {
-  if (!selectedWorker) return;
-  const content = document.getElementById('workContent').value;
-  const rates = selectedWorker.work_rates || {};
-  let matched = null;
-  Object.keys(rates).forEach(k => {
-    if (content.includes(k)) matched = k;
-  });
-  showRatePreview(matched);
-}
 
 function getAppliedRate() {
   if (!selectedWorker) return 15000;
@@ -554,7 +507,6 @@ async function registerWorker() {
     sel.value = newW.id;
     selectedWorker = newW;
     document.getElementById('newWorkerArea').classList.remove('open');
-    showRatePreview();
   } catch(e) { showError('登録に失敗しました'); }
   btn.disabled = false; btn.textContent = '＋ 登録する';
 }
@@ -780,7 +732,6 @@ function resetForm() {
   document.getElementById('successScreen').classList.remove('show');
   document.getElementById('successScreen').className = '';
   document.getElementById('workerSelect').value = '';
-  document.getElementById('ratePreview').classList.remove('show');
   document.getElementById('newWorkerArea').classList.remove('open');
   document.getElementById('siteName').value = '';
   document.getElementById('workContent').value = '';
