@@ -417,9 +417,27 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
 <script>
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
-const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Prefer': 'return=representation' };
+function getAuthHeaders(prefer = 'return=representation') {
+  const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
+  let token = SB_KEY;
+  try { const d = JSON.parse(raw); token = d?.access_token || SB_KEY; } catch {}
+  return {
+    'Content-Type': 'application/json',
+    'apikey': SB_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Prefer': prefer
+  };
+}
+const H = getAuthHeaders();
 // SaaS: ログイン中の会社IDでデータを分離
-const COMPANY_ID = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || '';
+function getCompanyId() {
+  if (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) return KS_AUTH.getCompanyId();
+  try {
+    const raw = localStorage.getItem('ks_company');
+    return raw ? JSON.parse(raw)?.id || '' : '';
+  } catch { return ''; }
+}
+const COMPANY_ID = getCompanyId();
 
 const RATE_KEYS = ['法面工事','吹付工','アンカー工','コンクリート打設','鉄筋工','交通誘導','重機作業'];
 let editingWorkerId = null;
