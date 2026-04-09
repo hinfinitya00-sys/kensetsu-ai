@@ -477,9 +477,9 @@ if (!localStorage.getItem('dr_cak')) {
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 // SaaS: URLパラメータ ?cid=<company_id> から自社IDを取得、なければlocalStorageから
-const COMPANY_ID = new URLSearchParams(location.search).get('cid')
-  || localStorage.getItem('company_id')
-  || '';
+const _cid = new URLSearchParams(location.search).get('cid')
+  || localStorage.getItem('company_id');
+const COMPANY_ID = _cid || null;
 
 // 公開ページのため常に anon key を使用（期限切れセッショントークンで 401 になるのを防ぐ）
 const HEADERS = {
