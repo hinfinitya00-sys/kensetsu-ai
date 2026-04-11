@@ -714,7 +714,8 @@ let salaryData = [];
 async function loadSalary() {
   const year = document.getElementById('salaryYear').value;
   const month = document.getElementById('salaryMonth').value;
-  const url = `${SB_URL}/rest/v1/attendance_logs?work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-31&status=neq.absent&order=worker_name`;
+  const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+  const url = `${SB_URL}/rest/v1/attendance_logs?work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-${String(lastDay).padStart(2,'0')}&status=neq.absent&order=worker_name`;
   const tbody = document.getElementById('salaryBody');
   tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><span class="spinner"></span> 集計中...</td></tr>';
   try {
