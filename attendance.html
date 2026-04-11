@@ -519,8 +519,10 @@ async function loadAttendance() {
   const status = document.getElementById('filterStatus').value;
   let url = `${SB_URL}/rest/v1/attendance_logs?order=work_date.desc,submitted_at.desc&limit=500`;
   if (COMPANY_ID) url += '&company_id=eq.' + COMPANY_ID;
-  if (year && month) url += `&work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-31`;
-  else if (year) url += `&work_date=gte.${year}-01-01&work_date=lte.${year}-12-31`;
+  if (year && month) {
+    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+    url += '&work_date=gte.' + year + '-' + month + '-01&work_date=lte.' + year + '-' + month + '-' + String(lastDay).padStart(2,'0');
+  } else if (year) url += '&work_date=gte.' + year + '-01-01&work_date=lte.' + year + '-12-31';
   if (name) url += `&worker_name=ilike.*${encodeURIComponent(name)}*`;
   if (status) url += `&status=eq.${status}`;
 
