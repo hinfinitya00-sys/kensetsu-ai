@@ -122,7 +122,7 @@
 
   /* ステータス選択 */
   .status-tabs {
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    display: grid; grid-template-columns: 1fr 1fr;
     gap: 8px; margin-bottom: 4px;
   }
   .status-tab {
@@ -137,6 +137,11 @@
   .status-tab.selected-present { border-color: var(--accent); color: var(--accent); background: rgba(46,204,113,0.1); }
   .status-tab.selected-absent { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,0.1); }
   .status-tab.selected-late { border-color: var(--warn); color: var(--warn); background: rgba(245,158,11,0.1); }
+  .status-tab.selected-vacation { border-color: #4ade80; color: #4ade80; background: rgba(74,222,128,0.1); }
+
+  .dropdown-item { cursor: pointer; }
+  .dropdown-item:hover { background: rgba(46,204,113,0.08); }
+  .dropdown-item.selected { background: rgba(46,204,113,0.1); }
 
   /* 条件表示エリア */
   .conditional-area { display: none; margin-top: 12px; }
@@ -268,9 +273,13 @@
       <div class="card-title">作業員</div>
       <div class="form-row">
         <label>氏名を選択 <span class="required">*</span></label>
-        <select id="workerSelect">
-          <option value="">-- 読み込み中... --</option>
-        </select>
+        <div class="custom-select-wrapper" style="position:relative">
+          <button type="button" class="custom-select-display" id="workerSelectDisplay" onclick="toggleDropdown()" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.95rem;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-family:inherit;text-align:left">
+            <span id="workerSelectLabel">-- 作業員を選択 --</span>
+            <span>▼</span>
+          </button>
+          <div id="workerDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg3);border:1px solid var(--green-light);border-radius:8px;z-index:9999;max-height:300px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.4)"></div>
+        </div>
       </div>
       <!-- 新規登録フォーム -->
       <div class="new-worker-area" id="newWorkerArea">
@@ -430,22 +439,76 @@ function formatDateJP(ymd) {
 
 async function loadWorkers() {
   try {
-    const res = await fetch(`${SB_URL}/rest/v1/workers?is_active=eq.true&order=name`, { headers: HEADERS });
+    const res = await fetch(SB_URL + '/rest/v1/workers?is_active=eq.true&order=name', { headers: HEADERS });
     workers = await res.json();
-    const sel = document.getElementById('workerSelect');
-    sel.innerHTML = '<option value="">-- 作業員を選択 --</option>';
-    workers.forEach(w => {
-      const opt = document.createElement('option');
-      opt.value = w.id;
-      opt.textContent = w.company ? w.name + '（' + w.company + '）' : w.name;
-      sel.appendChild(opt);
-    });
-    const newOpt = document.createElement('option');
-    newOpt.value = '__new__';
-    newOpt.textContent = '＋ 新しく登録する';
-    sel.appendChild(newOpt);
-    sel.onchange = onWorkerChange;
+    renderDropdown();
+    const dl = document.getElementById('companyList');
+    if (dl) {
+      dl.innerHTML = '';
+      const companies = [...new Set(workers.map(w => w.company).filter(Boolean))];
+      companies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        dl.appendChild(opt);
+      });
+    }
   } catch(e) { showError('作業員データの読み込みに失敗しました'); }
+}
+
+function renderDropdown() {
+  const dd = document.getElementById('workerDropdown');
+  dd.innerHTML = '';
+  workers.forEach(w => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);';
+    item.className = 'dropdown-item' + (selectedWorker && selectedWorker.id === w.id ? ' selected' : '');
+    const label = document.createElement('span');
+    label.style.cssText = 'flex:1;padding:11px 12px;cursor:pointer;font-size:0.92rem;' + (selectedWorker && selectedWorker.id === w.id ? 'color:var(--accent)' : '');
+    label.textContent = w.company ? w.name + '（' + w.company + '）' : w.name;
+    label.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); selectWorker(w); });
+    label.addEventListener('click', (e) => { e.stopPropagation(); selectWorker(w); });
+    const btn = document.createElement('button');
+    btn.style.cssText = 'background:none;border:none;color:#ef4444;font-size:1.1rem;cursor:pointer;padding:11px 14px;line-height:1;flex-shrink:0;';
+    btn.textContent = '✕';
+    btn.title = '削除';
+    btn.onclick = (e) => deleteWorker(e, w.id);
+    item.appendChild(label);
+    item.appendChild(btn);
+    dd.appendChild(item);
+  });
+  const newItem = document.createElement('div');
+  newItem.style.cssText = 'padding:11px 12px;cursor:pointer;font-size:0.92rem;color:var(--accent);';
+  newItem.textContent = '＋ 新しく登録する';
+  newItem.onclick = () => {
+    closeDropdown();
+    document.getElementById('workerSelectLabel').textContent = '＋ 新しく登録する';
+    document.getElementById('newWorkerArea').classList.add('open');
+    selectedWorker = null;
+  };
+  dd.appendChild(newItem);
+}
+
+function toggleDropdown() {
+  const dd = document.getElementById('workerDropdown');
+  if (dd.style.display === 'none' || dd.style.display === '') {
+    dd.style.display = 'block';
+  } else {
+    dd.style.display = 'none';
+  }
+}
+
+function closeDropdown() {
+  const dd = document.getElementById('workerDropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function selectWorker(w) {
+  selectedWorker = w;
+  document.getElementById('workerSelectLabel').textContent = w.company ? w.name + '（' + w.company + '）' : w.name;
+  document.getElementById('newWorkerArea').classList.remove('open');
+  if (w.daily_rate) document.getElementById('dailyRateInput').value = w.daily_rate;
+  closeDropdown();
+  renderDropdown();
 }
 
 async function loadSites() {
@@ -500,26 +563,26 @@ async function registerWorker() {
     const data = await res.json();
     const newW = data[0];
     workers.push(newW);
-    const sel = document.getElementById('workerSelect');
-    const opt = document.createElement('option');
-    opt.value = newW.id; opt.textContent = newW.company ? newW.name + '（' + newW.company + '）' : newW.name;
-    sel.insertBefore(opt, sel.lastElementChild);
-    sel.value = newW.id;
     selectedWorker = newW;
+    document.getElementById('workerSelectLabel').textContent = newW.company ? newW.name + '（' + newW.company + '）' : newW.name;
     document.getElementById('newWorkerArea').classList.remove('open');
+    renderDropdown();
   } catch(e) { showError('登録に失敗しました'); }
   btn.disabled = false; btn.textContent = '＋ 登録する';
 }
 
 function selectStatus(status) {
   currentStatus = status;
-  ['present','absent','late'].forEach(s => {
-    document.getElementById(`tab-${s}`).className = 'status-tab';
+  ['present','absent','vacation','late'].forEach(s => {
+    const t = document.getElementById('tab-' + s);
+    if (t) t.className = 'status-tab';
   });
-  document.getElementById(`tab-${status}`).className = `status-tab selected-${status}`;
+  const tab = document.getElementById('tab-' + status);
+  if (tab) tab.className = 'status-tab selected-' + status;
   document.getElementById('absentArea').classList.toggle('show', status === 'absent');
   document.getElementById('lateArea').classList.toggle('show', status === 'late');
-  document.getElementById('workDetailCard').style.display = (status === 'absent') ? 'none' : 'block';
+  document.getElementById('workDetailCard').style.display =
+    (status === 'absent' || status === 'vacation') ? 'none' : 'block';
 }
 
 function toggleDateEdit() {
@@ -564,10 +627,37 @@ function removePhoto() {
 
 async function submitReport() {
   hideError();
-  const workerId = document.getElementById('workerSelect').value;
-  if (!workerId || workerId === '__new__') return showError('作業員を選択してください');
+  if (!selectedWorker) return showError('作業員を選択してください');
+  const workerId = selectedWorker.id;
   const workDate = document.getElementById('workDate').value;
   const btn = document.getElementById('submitBtn');
+
+  // 休暇の場合
+  if (currentStatus === 'vacation') {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>送信中...';
+    try {
+      await postLog({
+        work_date: workDate,
+        worker_id: workerId,
+        worker_name: selectedWorker.name,
+        company: selectedWorker.company || '',
+        site_name: null,
+        work_content: null,
+        work_hours: 0,
+        daily_rate: 0,
+        status: 'vacation',
+        absent_reason: '休暇',
+        late_time: null,
+        late_reason: null,
+        meter_photo_url: null,
+        company_id: null
+      });
+      showSuccess({ type: 'vacation', name: selectedWorker.name, date: formatDateJP(workDate) });
+    } catch(e) { showError('送信に失敗しました: ' + e.message); }
+    btn.disabled = false; btn.innerHTML = '📤 報告を送信する';
+    return;
+  }
 
   // 欠勤の場合
   if (currentStatus === 'absent') {
@@ -698,6 +788,14 @@ function showSuccess(info) {
       info.note ? { label: '備考', val: info.note } : null
     ].filter(Boolean);
     screen.className = 'show success-absent';
+  } else if (info.type === 'vacation') {
+    icon = '🌿'; title = '休暇報告を送信しました';
+    rows = [
+      { label: '氏名', val: info.name },
+      { label: '日付', val: info.date },
+      { label: 'ステータス', val: '休暇' }
+    ];
+    screen.className = 'show success-vacation';
   } else if (info.type === 'late') {
     icon = '⏰'; title = '遅刻報告を送信しました';
     rows = [
@@ -731,7 +829,7 @@ function resetForm() {
   document.getElementById('mainForm').style.display = 'block';
   document.getElementById('successScreen').classList.remove('show');
   document.getElementById('successScreen').className = '';
-  document.getElementById('workerSelect').value = '';
+  document.getElementById('workerSelectLabel').textContent = '-- 作業員を選択 --';
   document.getElementById('newWorkerArea').classList.remove('open');
   document.getElementById('siteName').value = '';
   document.getElementById('workContent').value = '';
@@ -755,7 +853,7 @@ function hideError() {
 document.addEventListener('click', function(e) {
   const wrapper = document.querySelector('.custom-select-wrapper');
   if (wrapper && !wrapper.contains(e.target)) {
-    // カスタムドロップダウンが将来追加された場合の外クリック処理
+    closeDropdown();
   }
 });
 
