@@ -100,7 +100,7 @@
       color:#fff; border:none; padding:12px 24px; border-radius:10px;
       font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px;
       box-shadow:0 4px 14px rgba(255,107,0,.35);
-      transition:all .2s; white-space:nowrap;
+      transition:all .2s; white-space:nowrap; text-decoration:none;
     }
     .cta-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,107,0,.45); }
     .cta-disabled {
@@ -498,15 +498,42 @@
       .main-grid { grid-template-columns:1fr; }
     }
     @media (max-width:768px) {
-      .container { padding:16px; }
-      .kpi-grid { grid-template-columns:1fr 1fr; }
-      .cta-section { padding:14px; gap:8px; }
-      .cta-primary { padding:10px 16px; font-size:13px; }
+      .container { padding:12px 12px 48px; }
+      .kpi-grid { grid-template-columns:1fr 1fr; gap:10px; }
+      .cta-section { padding:12px 12px; gap:8px; flex-wrap:wrap; }
+      .cta-label { width:100%; margin-right:0; margin-bottom:2px; }
+      .cta-primary { padding:10px 14px; font-size:13px; flex:1 1 calc(50% - 4px); justify-content:center; }
       .header-company { display:none; }
+      .page-title { font-size:22px; }
     }
     @media (max-width:480px) {
-      .kpi-grid { grid-template-columns:1fr 1fr; }
-      .kpi-value { font-size:28px; }
+      .container { padding:10px 10px 48px; }
+      .kpi-grid { grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+      .kpi-card { padding:14px 12px; }
+      .kpi-value { font-size:26px; }
+      .kpi-icon { font-size:20px; right:10px; top:10px; }
+      .cta-section { padding:10px; gap:7px; margin-bottom:16px; }
+      .cta-primary { padding:9px 10px; font-size:12px; flex:1 1 calc(50% - 4px); min-width:0; }
+      .att-summary-grid { grid-template-columns:1fr 1fr 1fr; gap:8px; }
+      .att-kpi { padding:10px 8px; }
+      .att-kpi-value { font-size:22px; }
+      .card-header { padding:12px 14px; }
+      .card-body { padding:12px 14px; }
+      .page-title { font-size:20px; }
+      .page-sub { font-size:12px; }
+      header { padding:0 14px; height:52px; }
+      .logo { font-size:17px; }
+      .logo-mark { width:28px; height:28px; font-size:12px; }
+      .icon-btn { display:none; }
+      /* auth-barをヘッダー内に収める */
+      #ks-auth-bar {
+        top:0 !important;
+        border-radius:0 0 0 10px !important;
+        font-size:11px !important;
+        padding:5px 10px !important;
+        gap:8px !important;
+        height:52px !important;
+      }
     }
   </style>
 </head>
