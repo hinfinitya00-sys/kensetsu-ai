@@ -4,23 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>建設日報 管理画面</title>
-<script>
-// auth.js checkAuth() 相当（シンプル実装）
-function checkAuth() {
-  const session = sessionStorage.getItem('admin_auth');
-  if (!session) {
-    const pw = prompt('管理者パスワードを入力してください:');
-    if (pw !== 'admin1234') {
-      alert('認証失敗');
-      document.body.innerHTML = '<p style="color:white;text-align:center;padding:40px">認証が必要です</p>';
-      return false;
-    }
-    sessionStorage.setItem('admin_auth', '1');
-  }
-  return true;
-}
-checkAuth();
-</script>
+<script src="js/auth.js"></script>
+<script>KS_AUTH.checkAuth();</script>
 <style>
 :root {
   --navy: #0f172a;
@@ -301,10 +286,11 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
             <th>欠勤理由</th>
             <th>メーター</th>
             <th>送信日時</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody id="attendanceBody">
-          <tr><td colspan="12" class="empty-state">データを読み込み中...</td></tr>
+          <tr><td colspan="13" class="empty-state">データを読み込み中...</td></tr>
         </tbody>
       </table>
     </div>
@@ -362,6 +348,34 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
   </div>
 </div>
 
+<!-- 出勤記録編集モーダル -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">出勤記録を編集</div>
+    <input type="hidden" id="editId">
+    <label>作業日</label><input type="date" id="editDate">
+    <label>氏名</label><input type="text" id="editName">
+    <label>元請会社</label><input type="text" id="editCompany">
+    <label>現場名</label><input type="text" id="editSite">
+    <label>作業内容</label><input type="text" id="editContent">
+    <label>日当（円）</label><input type="number" id="editRate" step="500">
+    <label>勤務時間</label><input type="number" id="editHours" step="0.5">
+    <label>ステータス</label>
+    <select id="editStatus">
+      <option value="present">出勤</option><option value="absent">欠勤</option>
+      <option value="vacation">休暇</option><option value="late">遅刻</option>
+    </select>
+    <label>欠勤理由</label><input type="text" id="editAbsentReason">
+    <label>遅刻時刻</label><input type="time" id="editLateTime">
+    <label>遅刻理由</label><input type="text" id="editLateReason">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-danger" id="deleteEditBtn" onclick="deleteAttendanceRecord()">🗑️ 削除</button>
+      <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 作業員モーダル -->
 <div class="modal-overlay" id="workerModal">
   <div class="modal">
@@ -392,9 +406,76 @@ tbody td { padding: 10px 12px; white-space: nowrap; }
 <script>
 const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
-const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Prefer': 'return=representation' };
+function getAuthHeaders(prefer = 'return=representation') {
+  const raw = localStorage.getItem('sb-bjohdzcoziezdkqcebhe-auth-token');
+  let token = SB_KEY;
+  try { const d = JSON.parse(raw); token = d?.access_token || SB_KEY; } catch {}
+  return { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + token, 'Prefer': prefer };
+}
+const H = getAuthHeaders();
+function getCompanyId() {
+  if (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) return KS_AUTH.getCompanyId();
+  try { const raw = localStorage.getItem('ks_company'); return raw ? JSON.parse(raw)?.id || '' : ''; } catch { return ''; }
+}
+const COMPANY_ID = getCompanyId();
 
 const RATE_KEYS = ['法面工事','吹付工','アンカー工','コンクリート打設','鉄筋工','交通誘導','重機作業'];
+
+function openEditModal(id) {
+  const r = attendanceData.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('editId').value = r.id;
+  document.getElementById('editDate').value = r.work_date || '';
+  document.getElementById('editName').value = r.worker_name || '';
+  document.getElementById('editCompany').value = r.company || '';
+  document.getElementById('editSite').value = r.site_name || '';
+  document.getElementById('editContent').value = r.work_content || '';
+  document.getElementById('editRate').value = r.daily_rate || 0;
+  document.getElementById('editHours').value = r.work_hours || 8;
+  document.getElementById('editStatus').value = r.status || 'present';
+  document.getElementById('editAbsentReason').value = r.absent_reason || '';
+  document.getElementById('editLateTime').value = r.late_time || '';
+  document.getElementById('editLateReason').value = r.late_reason || '';
+  const db = document.getElementById('deleteEditBtn');
+  if (r.is_deleted) { db.textContent = '↩️ 削除取消'; db.style.background = 'var(--warn)'; }
+  else { db.textContent = '🗑️ 削除'; db.style.background = ''; }
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal() { document.getElementById('editModal').classList.remove('open'); }
+async function saveEdit() {
+  const id = document.getElementById('editId').value;
+  const payload = {
+    work_date: document.getElementById('editDate').value,
+    worker_name: document.getElementById('editName').value,
+    company: document.getElementById('editCompany').value,
+    site_name: document.getElementById('editSite').value,
+    work_content: document.getElementById('editContent').value,
+    daily_rate: parseInt(document.getElementById('editRate').value) || 0,
+    work_hours: parseFloat(document.getElementById('editHours').value) || 8,
+    status: document.getElementById('editStatus').value,
+    absent_reason: document.getElementById('editAbsentReason').value || null,
+    late_time: document.getElementById('editLateTime').value || null,
+    late_reason: document.getElementById('editLateReason').value || null,
+  };
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/attendance_logs?id=eq.' + id, { method: 'PATCH', headers: H, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(await res.text());
+    closeEditModal(); await loadAttendance();
+  } catch(e) { alert('保存失敗: ' + e.message); }
+}
+async function deleteAttendanceRecord() {
+  const id = document.getElementById('editId').value;
+  const r = attendanceData.find(x => x.id === id);
+  if (!r) return;
+  const isDeleted = !!r.is_deleted;
+  if (!confirm(isDeleted ? '削除を取り消しますか？' : '削除しますか？\n※履歴として残ります。')) return;
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/attendance_logs?id=eq.' + id, { method: 'PATCH', headers: H, body: JSON.stringify({ is_deleted: !isDeleted }) });
+    if (!res.ok) throw new Error(await res.text());
+    closeEditModal(); await loadAttendance();
+  } catch(e) { alert('操作失敗: ' + e.message); }
+}
+
 let editingWorkerId = null;
 let attendanceData = [];
 
@@ -426,8 +507,8 @@ function switchTab(name) {
 }
 
 function logout() {
-  sessionStorage.removeItem('admin_auth');
-  location.reload();
+  if (typeof KS_AUTH !== 'undefined') KS_AUTH.logout();
+  else location.reload();
 }
 
 // ========== 出勤管理 ==========
@@ -437,20 +518,21 @@ async function loadAttendance() {
   const name = document.getElementById('filterName').value.trim();
   const status = document.getElementById('filterStatus').value;
   let url = `${SB_URL}/rest/v1/attendance_logs?order=work_date.desc,submitted_at.desc&limit=500`;
+  if (COMPANY_ID) url += '&company_id=eq.' + COMPANY_ID;
   if (year && month) url += `&work_date=gte.${year}-${month}-01&work_date=lte.${year}-${month}-31`;
   else if (year) url += `&work_date=gte.${year}-01-01&work_date=lte.${year}-12-31`;
   if (name) url += `&worker_name=ilike.*${encodeURIComponent(name)}*`;
   if (status) url += `&status=eq.${status}`;
 
   const tbody = document.getElementById('attendanceBody');
-  tbody.innerHTML = '<tr><td colspan="12" class="empty-state"><span class="spinner"></span> 読み込み中...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="13" class="empty-state"><span class="spinner"></span> 読み込み中...</td></tr>';
 
   try {
     const res = await fetch(url, { headers: H });
     attendanceData = await res.json();
     renderAttendance(attendanceData);
   } catch(e) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">読み込みエラー</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="empty-state">読み込みエラー</td></tr>';
   }
 }
 
@@ -469,35 +551,30 @@ function renderAttendance(data) {
   document.getElementById('stat-cost').textContent = '¥' + cost.toLocaleString();
 
   if (!data.length) {
-    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">データがありません</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="empty-state">データがありません</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(r => {
-    const statusBadge = {
+    const isDeleted = !!r.is_deleted;
+    const statusBadge = isDeleted ? '<span class="badge" style="background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.3)">削除済</span>' : ({
       present: '<span class="badge badge-present">出勤</span>',
       absent: '<span class="badge badge-absent">欠勤</span>',
-      late: '<span class="badge badge-late">遅刻</span>'
-    }[r.status] || r.status;
-    const photoCell = r.meter_photo_url
-      ? `<img class="photo-thumb" src="${r.meter_photo_url}" onclick="showPhoto('${r.id}')" alt="メーター">`
-      : '-';
+      late: '<span class="badge badge-late">遅刻</span>',
+      vacation: '<span class="badge badge-present" style="opacity:0.7">休暇</span>'
+    }[r.status] || r.status);
+    const photoCell = r.meter_photo_url ? '<img class="photo-thumb" src="' + r.meter_photo_url + '" onclick="showPhoto(\'' + r.id + '\')" alt="メーター">' : '-';
     const submitted = r.submitted_at ? r.submitted_at.substring(0,16).replace('T',' ') : '-';
-    const lateInfo = r.late_time ? `${r.late_time}${r.late_reason ? ' ('+r.late_reason+')' : ''}` : '-';
-    const absentInfo = r.absent_reason ? `${r.absent_reason}${r.absent_note ? ' / '+r.absent_note : ''}` : '-';
-    return `<tr data-id="${r.id}" data-photo="${r.meter_photo_url||''}">
-      <td>${r.work_date||'-'}</td>
-      <td>${r.worker_name||'-'}</td>
-      <td>${r.company||'-'}</td>
-      <td>${r.site_name||'-'}</td>
-      <td class="detail-cell">${r.work_content||'-'}</td>
-      <td>${r.daily_rate ? '¥'+r.daily_rate.toLocaleString() : '-'}</td>
-      <td>${r.work_hours || '-'}${r.work_hours ? 'h' : ''}</td>
-      <td>${statusBadge}</td>
-      <td>${lateInfo}</td>
-      <td class="detail-cell">${absentInfo}</td>
-      <td>${photoCell}</td>
-      <td style="font-size:0.75rem; color:var(--text-dim)">${submitted}</td>
-    </tr>`;
+    const lateInfo = r.late_time ? r.late_time + (r.late_reason ? ' (' + r.late_reason + ')' : '') : '-';
+    const absentInfo = r.absent_reason ? r.absent_reason + (r.absent_note ? ' / ' + r.absent_note : '') : '-';
+    const rowStyle = isDeleted ? ' style="opacity:0.5;text-decoration:line-through"' : '';
+    const editBtn = isDeleted ? '<span style="font-size:0.72rem;color:var(--text-dim)">削除済</span>' : '<button class="btn btn-secondary btn-small" onclick="openEditModal(\'' + r.id + '\')">✏️ 編集</button>';
+    return '<tr data-id="' + r.id + '" data-photo="' + (r.meter_photo_url||'') + '"' + rowStyle + '>' +
+      '<td>' + (r.work_date||'-') + '</td><td>' + (r.worker_name||'-') + '</td><td>' + (r.company||'-') + '</td>' +
+      '<td>' + (r.site_name||'-') + '</td><td class="detail-cell">' + (r.work_content||'-') + '</td>' +
+      '<td>' + (r.daily_rate ? '¥'+r.daily_rate.toLocaleString() : '-') + '</td>' +
+      '<td>' + (r.work_hours||'-') + (r.work_hours ? 'h' : '') + '</td><td>' + statusBadge + '</td>' +
+      '<td>' + lateInfo + '</td><td class="detail-cell">' + absentInfo + '</td><td>' + photoCell + '</td>' +
+      '<td style="font-size:0.75rem;color:var(--text-dim)">' + submitted + '</td><td>' + editBtn + '</td></tr>';
   }).join('');
 }
 
