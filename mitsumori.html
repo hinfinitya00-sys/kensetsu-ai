@@ -422,6 +422,38 @@
       .p-footer-company { text-align:right; font-size:9pt; margin-top:4pt; }
     }
 
+    /* ── History ─────────────────────────────────────────── */
+    .btn-refresh {
+      background:rgba(255,255,255,.08); border:1px solid var(--border);
+      color:var(--muted); padding:4px 10px; border-radius:6px;
+      font-size:12px; margin-left:auto; cursor:pointer; transition:all .2s;
+    }
+    .btn-refresh:hover { border-color:var(--orange); color:var(--orange); }
+    .history-item {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:10px 12px; border:1px solid var(--border); border-radius:8px;
+      margin-bottom:8px; background:var(--card2); cursor:pointer; transition:all .2s;
+    }
+    .history-item:hover { border-color:var(--orange); }
+    .history-item-info { flex:1; }
+    .history-item-title { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px; }
+    .history-item-sub { font-size:11px; color:var(--muted); }
+    .history-item-btns { display:flex; gap:6px; }
+    .btn-load {
+      background:rgba(255,107,0,.15); color:var(--orange);
+      border:1px solid rgba(255,107,0,.3); padding:5px 12px;
+      border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;
+      transition:all .2s; white-space:nowrap;
+    }
+    .btn-load:hover { background:rgba(255,107,0,.3); }
+    .btn-copy {
+      background:rgba(34,197,94,.1); color:var(--green);
+      border:1px solid rgba(34,197,94,.25); padding:5px 12px;
+      border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;
+      transition:all .2s; white-space:nowrap;
+    }
+    .btn-copy:hover { background:rgba(34,197,94,.25); }
+
     /* ── Responsive ──────────────────────────────────────── */
     @media(max-width:640px){
       .form-grid { grid-template-columns:1fr; }
@@ -477,6 +509,18 @@
   <div class="page-header">
     <div class="page-title">御見積書 <span>作成</span></div>
     <div class="page-sub">建設工事専用フォーマット｜印刷対応（A4縦）</div>
+  </div>
+
+  <!-- 過去の見積書 -->
+  <div class="card" id="historyCard">
+    <div class="card-header">
+      <div class="dot"></div>
+      過去の見積書を読み込む
+      <button onclick="loadHistory()" class="btn-refresh" id="historyRefreshBtn">🔄 更新</button>
+    </div>
+    <div class="card-body" id="historyList">
+      <div style="color:var(--muted);font-size:13px;">読み込み中...</div>
+    </div>
   </div>
 
   <!-- 発行者情報 -->
@@ -1247,6 +1291,92 @@ function downloadPDF() {
   setTimeout(() => window.print(), 300);
 }
 
+// ── History: 過去の見積書 ─────────────────────────────────
+async function loadHistory() {
+  const listEl = $('historyList');
+  listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">読み込み中...</div>';
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/estimates?select=*&order=created_at.desc&limit=20`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+    );
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">保存済みの見積書がありません</div>';
+      return;
+    }
+    listEl.innerHTML = data.map((item, i) => {
+      const date = item.estimate_date ? new Date(item.estimate_date).toLocaleDateString('ja-JP') : '日付なし';
+      const total = item.total_amount ? '¥'+item.total_amount.toLocaleString('ja-JP') : '¥0';
+      return `
+        <div class="history-item">
+          <div class="history-item-info">
+            <div class="history-item-title">${escHtml(item.recipient_name||'（相手先未入力）')}</div>
+            <div class="history-item-sub">${escHtml(item.project_name||'')}　${date}　${total}</div>
+          </div>
+          <div class="history-item-btns">
+            <button class="btn-load" onclick="applyHistory(${i},false)">📂 読込</button>
+            <button class="btn-copy" onclick="applyHistory(${i},true)">📋 複製</button>
+          </div>
+        </div>`;
+    }).join('');
+    window._historyData = data;
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:var(--red);font-size:13px;">読み込みに失敗しました</div>';
+    console.error(e);
+  }
+}
+
+function applyHistory(index, isCopy) {
+  const item = window._historyData?.[index];
+  if (!item) return;
+  const label = isCopy ? '複製' : '読込';
+  if (!confirm(`この見積書を${label}しますか？\n現在の入力内容は上書きされます。`)) return;
+
+  // 基本フィールド
+  const fm = {
+    recipientName: item.recipient_name||'',
+    projectName:   item.project_name||'',
+    projectSite:   item.project_site||'',
+    estimateDate:  isCopy ? new Date().toISOString().slice(0,10) : (item.estimate_date||''),
+    estimateNo:    isCopy ? '' : (item.estimate_no||''),
+    inputAnzen:    item.anzen_amount||0,
+    inputShiharai: item.nikyuu_amount||0,
+    inputNebiki:   item.nebiki_amount||0,
+    remarks:       item.notes||'',
+  };
+  Object.entries(fm).forEach(([id, val]) => { const el=$(id); if(el) el.value=val; });
+
+  // 発行者
+  if (item.issuer_name)    $('issuerName').value    = item.issuer_name;
+  if (item.issuer_rep)     $('issuerRep').value     = item.issuer_rep;
+  if (item.issuer_tanto)   $('issuerTanto').value   = item.issuer_tanto;
+  if (item.issuer_address) $('issuerAddress').value = item.issuer_address;
+  if (item.issuer_tel)     $('issuerTel').value     = item.issuer_tel;
+
+  // 明細行
+  $('detailBody').innerHTML = '';
+  rowIdCounter = 0;
+  if (item.items && item.items.length > 0) {
+    item.items.forEach(r => {
+      if (r.type === 'separator') {
+        addSeparator();
+      } else {
+        addRow({
+          month: r.month||'', day: r.day||'', kouji: r.kouji||'',
+          desc: r.desc||'', qty: r.qty||'', unit: r.unit||'',
+          price: r.price||'', amt: r.amt||'',
+        });
+      }
+    });
+  }
+
+  calcTotals();
+  saveDraft();
+  toast(isCopy ? '複製しました ✅' : '読み込みました ✅', 'ok');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // ── Supabase Save ─────────────────────────────────────────
 let _savedData = null;
 
@@ -1357,6 +1487,7 @@ $('clearDraftBtn').addEventListener('click', () => {
 (function init() {
   loadIssuer();
   setDefaultDates();
+  loadHistory();
 
   // 下書き復元を試みる。なければデフォルト3行
   const restored = loadDraft();
