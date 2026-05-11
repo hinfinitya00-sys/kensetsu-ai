@@ -1243,29 +1243,64 @@ function renderPrint(d) {
 
 // ── PDF Download ─────────────────────────────────────────
 function downloadPDF() {
-  const el = $('printPage');
-  if (!el || !el.innerHTML.trim()) {
-    toast('先にプレビューを確認してください', 'err');
+  const d = _savedData || collectData();
+  if (!d.recipientName || !d.projectName) {
+    toast('見積先・工事名を入力してください', 'err');
     return;
   }
 
-  const d = _savedData || collectData();
-  const filename = `見積書_${d.recipientName || '相手先'}_${d.estimateNo || ''}.pdf`;
+  // printAreaを構築
+  renderPrint(d);
+
+  const printArea = $('printArea');
+  const printPage = $('printPage');
+
+  // 一時的にprintAreaを画面外に表示（html2pdfが読めるように）
+  printArea.style.display = 'block';
+  printArea.style.position = 'fixed';
+  printArea.style.top = '-9999px';
+  printArea.style.left = '0';
+  printArea.style.width = '210mm';
+  printArea.style.background = '#fff';
+  printArea.style.color = '#000';
+  printArea.style.fontFamily = "'Noto Sans JP', sans-serif";
+  printArea.style.zIndex = '-1';
+
+  const filename = `見積書_${d.recipientName || '相手先'}_${d.estimateNo || 'MTR'}.pdf`;
 
   const opt = {
     margin: 0,
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      backgroundColor: '#ffffff',
+      width: printPage.scrollWidth,
+      windowWidth: 794
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
-  toast('PDF生成中...', '', 5000);
-  html2pdf().set(opt).from(el).save().then(() => {
-    toast('PDFを保存しました', 'ok');
-  }).catch(() => {
-    toast('PDF生成に失敗しました', 'err');
-  });
+  toast('PDF生成中...しばらくお待ちください', '', 8000);
+
+  html2pdf().set(opt).from(printPage).save()
+    .then(() => {
+      toast('PDFを保存しました ✅', 'ok');
+    })
+    .catch((err) => {
+      console.error(err);
+      toast('PDF生成に失敗しました', 'err');
+    })
+    .finally(() => {
+      printArea.style.display = 'none';
+      printArea.style.position = '';
+      printArea.style.top = '';
+      printArea.style.left = '';
+      printArea.style.width = '';
+      printArea.style.zIndex = '';
+    });
 }
 
 // ── Supabase Save ─────────────────────────────────────────
