@@ -1194,15 +1194,14 @@ function renderPrint(d) {
 let _savedData = null;
 
 async function saveToSupabase(d) {
-  const companyId = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || null;
   try {
     const payload = {
       estimate_no:      d.estimateNo,
       estimate_date:    d.estimateDate || null,
-      project_name:     d.projectName || null,
+      recipient_name:   d.recipientName,
+      project_name:     d.projectName,
       project_site:     d.projectSite || null,
-      recipient_name:   d.recipientName || null,
-      issuer_name:      d.issuerName || null,
+      issuer_name:      d.issuerName,
       issuer_rep:       d.issuerRep || null,
       issuer_tanto:     d.issuerTanto || null,
       issuer_address:   d.issuerAddress || null,
@@ -1211,12 +1210,11 @@ async function saveToSupabase(d) {
       subtotal:         Math.round(d.subtotal),
       tax_amount:       Math.round(d.tax),
       anzen_amount:     Math.round(d.anzen || 0),
-      shiharai_amount:  Math.round(d.shiharai || 0),
+      nikyuu_amount:    Math.round(d.shiharai || 0),
       nebiki_amount:    Math.round(d.nebiki || 0),
       total_amount:     Math.round(d.total),
-      remarks:          d.remarks || null,
+      notes:            d.remarks || null,
     };
-    if (companyId) payload.company_id = companyId;
 
     const res = await fetch(`${SB_URL}/rest/v1/estimates`, {
       method: 'POST',
