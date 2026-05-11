@@ -368,23 +368,25 @@
         display:inline-block; text-align:center; font-size:15pt; font-weight:700;
         border-bottom:1.5pt solid #000; padding-bottom:3pt; min-width:200pt;
       }
-      .p-header-row {
-        display:flex; align-items:flex-start; margin-bottom:8pt; gap:0;
+      .p-sec1 {
+        display:flex; justify-content:space-between; align-items:flex-start;
+        margin-bottom:0; padding:6pt 0;
       }
-      .p-greeting { flex:1; font-size:9pt; padding-top:4pt; }
-      .p-issuer { flex:1; text-align:right; font-size:9pt; line-height:1.9; }
-      .p-stamps { display:flex; flex-direction:row; margin-left:8pt; gap:0; }
-      .p-stamp-box {
-        width:50pt; height:50pt; border:1pt solid #000; font-size:8pt;
-        display:flex; align-items:flex-start; justify-content:center; padding-top:3pt;
-      }
-      .p-amount-row {
-        display:flex; align-items:baseline; gap:16pt;
+      .p-greeting { font-size:9pt; flex:1; }
+      .p-issuer-text { text-align:right; font-size:9pt; line-height:1.9; flex:1; }
+      .p-sec2 {
+        display:flex; justify-content:space-between; align-items:center;
         border-top:0.5pt solid #000; border-bottom:0.5pt solid #000;
-        padding:5pt 0; margin-bottom:8pt;
+        padding:6pt 0; margin-bottom:8pt;
       }
-      .p-amount-label { font-size:9pt; }
-      .p-amount-value { font-size:17pt; font-weight:900; letter-spacing:1px; }
+      .p-amount-block { flex:1; }
+      .p-amount-label { font-size:9pt; margin-bottom:4pt; }
+      .p-amount-value { font-size:20pt; font-weight:900; letter-spacing:1px; }
+      .p-stamps { display:flex; flex-direction:row; gap:0; }
+      .p-stamp-box {
+        width:60pt; height:60pt; border:1pt solid #000; font-size:8.5pt; font-weight:700;
+        display:flex; align-items:flex-start; justify-content:center; padding-top:4pt;
+      }
       table.p-items {
         width:100%; border-collapse:collapse; font-size:9pt; margin-bottom:6pt;
       }
@@ -1180,31 +1182,25 @@ function renderPrint(d) {
       <div class="p-recipient">${escHtml(d.recipientName)}　様</div>
     </div>
 
-    <div class="p-header-row">
-      <div class="p-greeting">
-        下記の通りご返答申し上げます
-        <div style="margin-top:6pt;font-size:8pt;color:#555;">見積番号: ${escHtml(d.estimateNo)}</div>
-      </div>
-      <div class="p-issuer">
+    <div class="p-sec1">
+      <div class="p-greeting">下記の通りご返答申し上げます</div>
+      <div class="p-issuer-text">
         ${d.issuerAddress ? escHtml(d.issuerAddress)+'<br>' : ''}
-        <strong style="font-size:11pt;">${escHtml(d.issuerName)}</strong><br>
-        ${d.issuerRep ? escHtml(d.issuerRep)+'<br>' : ''}
-        ${d.issuerTel ? 'TEL: '+escHtml(d.issuerTel) : ''}
+        ${escHtml(d.issuerName)}<br>
+        ${d.issuerRep ? '代表　'+escHtml(d.issuerRep)+'<br>' : ''}
+        TEL：${escHtml(d.issuerTel || '')}
+      </div>
+    </div>
+
+    <div class="p-sec2">
+      <div class="p-amount-block">
+        <div class="p-amount-label">金額（消費税込み）</div>
+        <div class="p-amount-value">${fmtKingaku(d.total)}</div>
       </div>
       <div class="p-stamps">
         <div class="p-stamp-box">承認印</div>
         <div class="p-stamp-box">担当印</div>
       </div>
-    </div>
-
-    <div class="p-amount-row">
-      <span class="p-amount-label">金額（消費税込み）</span>
-      <span class="p-amount-value">${fmtKingaku(d.total)}</span>
-    </div>
-
-    <div style="font-size:9pt;margin-bottom:6pt;">
-      工事名称: <strong>${escHtml(d.projectName)}</strong>
-      ${d.projectSite ? '　　工事場所: <strong>'+escHtml(d.projectSite)+'</strong>' : ''}
     </div>
 
     <table class="p-items">
