@@ -349,35 +349,32 @@
 
     @media print {
       body > *:not(#printArea) { display:none !important; }
+      body { font-size:10pt; }
       #printArea {
         display:block !important;
         font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
         color:#000; background:#fff;
-        font-size:10.5pt; line-height:1.7;
+        font-size:10pt; line-height:1.7;
       }
       .print-page {
         width:210mm; min-height:297mm;
-        padding:12mm 15mm 12mm 15mm;
+        padding:12mm 14mm 12mm 14mm;
         page-break-after:always;
         box-sizing:border-box;
       }
-      /* Date top-right */
       .p-date-wareki {
-        text-align:right; font-size:10pt; margin-bottom:8pt;
+        text-align:right; font-size:10pt; margin-bottom:6pt;
       }
-      /* Title */
       .p-title {
-        font-size:20pt; font-weight:900; text-align:center;
-        letter-spacing:6px; margin-bottom:10pt;
-        border:2pt solid #000; padding:8pt 0;
+        font-size:22pt; font-weight:900; text-align:center;
+        letter-spacing:8px; background:#e8e8e8;
+        padding:8pt 0; margin-bottom:8pt;
       }
-      /* Recipient centered */
       .p-recipient {
-        text-align:center; font-size:14pt; font-weight:700;
+        font-size:16pt; font-weight:700;
         margin-bottom:10pt; padding-bottom:4pt;
-        border-bottom:1pt solid #000;
+        border-bottom:1.5pt solid #000;
       }
-      /* Head: left text + right issuer */
       .p-head {
         display:flex; justify-content:space-between;
         margin-bottom:10pt; gap:16pt;
@@ -386,63 +383,57 @@
         flex:1; font-size:10pt; padding-top:6pt;
       }
       .p-head-right {
-        flex:1; text-align:right; font-size:9pt; line-height:1.8;
+        flex:1; text-align:right; font-size:9.5pt; line-height:1.9;
       }
-      /* Stamp boxes */
       .p-stamp-area {
-        display:flex; gap:0; border:1pt solid #000;
-        margin-left:auto; margin-bottom:10pt; width:fit-content;
+        display:inline-flex; gap:0;
+        margin-left:auto; margin-bottom:10pt; width:fit-content; margin-top:4pt;
       }
       .p-stamp-box {
-        width:55pt; height:55pt; border:1pt solid #000;
+        width:52pt; height:52pt; border:1pt solid #000;
         display:flex; align-items:flex-start; justify-content:center;
-        padding-top:4pt; font-size:8pt;
+        padding-top:3pt; font-size:8pt;
       }
-      /* Total amount display */
       .p-total-display {
         border:2pt solid #000; padding:8pt 14pt;
-        margin-bottom:12pt; text-align:center;
+        margin-bottom:10pt; text-align:center;
         font-size:10pt;
       }
       .p-total-display .p-total-amount {
-        font-size:16pt; font-weight:900; letter-spacing:2px;
+        font-size:18pt; font-weight:900; letter-spacing:2px;
       }
-      /* Detail table */
-      table.p-items { width:100%; border-collapse:collapse; margin-bottom:10pt; font-size:9.5pt; }
+      table.p-items { width:100%; border-collapse:collapse; margin-bottom:8pt; font-size:9.5pt; }
       table.p-items th {
-        background:#f0f0f0; border:1pt solid #ccc; padding:5pt 6pt;
-        font-weight:700; text-align:left;
+        background:#efefef; border:0.5pt solid #aaa; padding:4pt 5pt;
+        font-weight:700; font-size:9pt; text-align:left;
       }
       table.p-items th.right { text-align:right; }
       table.p-items th.center { text-align:center; }
-      table.p-items td { border:1pt solid #ccc; padding:5pt 6pt; }
+      table.p-items td { border:0.5pt solid #ccc; padding:4pt 5pt; line-height:1.4; }
       table.p-items td.right { text-align:right; }
       table.p-items td.center { text-align:center; }
       table.p-items tr.p-sep-row td {
-        height:8pt; padding:0; border-left:1pt solid #ccc; border-right:1pt solid #ccc;
+        height:8pt; padding:0; border-left:0.5pt solid #ccc; border-right:0.5pt solid #ccc;
       }
-      /* Totals */
       .p-totals {
         display:flex; flex-direction:column; gap:0;
-        max-width:260pt; margin-left:auto;
-        border:1pt solid #ccc; margin-bottom:10pt;
+        max-width:200pt; margin-left:auto;
+        border:0.5pt solid #ccc; margin-bottom:8pt; font-size:9.5pt;
       }
       .p-total-row {
         display:flex; justify-content:space-between;
-        padding:4pt 8pt; font-size:9.5pt; border-bottom:1pt solid #ccc;
+        padding:4pt 8pt; border-bottom:0.5pt solid #ccc;
       }
       .p-total-row:last-child { border-bottom:none; }
       .p-total-row.p-total-final {
         font-weight:700; font-size:12pt;
-        border-top:2pt double #000 !important; padding:6pt 8pt;
+        border-top:1.5pt solid #000 !important; padding:6pt 8pt; border-bottom:none;
       }
-      .p-total-row.p-discount-row .p-val-right {
-        color:#c00;
-      }
-      /* Notes */
+      .p-total-row.p-discount-row .p-val-right { color:#c00; }
       .p-remarks-box {
-        border:1pt solid #ccc; border-radius:3pt;
-        padding:7pt 10pt; font-size:9pt; line-height:1.8;
+        border:0.5pt solid #aaa;
+        padding:6pt 8pt; font-size:9pt; line-height:1.8;
+        margin-top:8pt; min-height:40pt;
       }
     }
 
@@ -642,6 +633,7 @@
 
   <div class="actions">
     <a href="admin.html" class="btn-secondary">← 戻る</a>
+    <button class="btn-secondary" id="clearDraftBtn" style="color:var(--red);border-color:rgba(239,68,68,.3);">🗑 下書きを削除</button>
     <button class="btn-save" id="saveBtn">💾 Supabaseに保存</button>
     <button class="btn-primary" id="previewBtn">プレビューを確認 →</button>
   </div>
@@ -928,8 +920,99 @@ function calcTotals() {
   return { rows, subtotal, tax, anzen, shiharai, nebiki, total };
 }
 
-$('addRowBtn').addEventListener('click', () => addRow());
-$('addSepBtn').addEventListener('click', () => addSeparator());
+$('addRowBtn').addEventListener('click', () => { addRow(); scheduleDraftSave(); });
+$('addSepBtn').addEventListener('click', () => { addSeparator(); scheduleDraftSave(); });
+
+// ── Draft auto-save ──────────────────────────────────────
+const DRAFT_KEY = 'mts_draft';
+let draftTimer = null;
+
+function scheduleDraftSave() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(saveDraft, 1000);
+}
+
+function saveDraft() {
+  try {
+    const rows = getRows();
+    const draft = {
+      recipientName: $('recipientName')?.value || '',
+      estimateNo: $('estimateNo')?.value || '',
+      estimateDate: $('estimateDate')?.value || '',
+      projectName: $('projectName')?.value || '',
+      projectSite: $('projectSite')?.value || '',
+      inputAnzen: $('inputAnzen')?.value || '0',
+      inputShiharai: $('inputShiharai')?.value || '0',
+      inputNebiki: $('inputNebiki')?.value || '0',
+      remarks: $('remarks')?.value || '',
+      rows: rows,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch(e) {}
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return false;
+    const draft = JSON.parse(raw);
+
+    const fields = {
+      recipientName: 'recipientName',
+      estimateNo: 'estimateNo',
+      estimateDate: 'estimateDate',
+      projectName: 'projectName',
+      projectSite: 'projectSite',
+      inputAnzen: 'inputAnzen',
+      inputShiharai: 'inputShiharai',
+      inputNebiki: 'inputNebiki',
+      remarks: 'remarks',
+    };
+    Object.entries(fields).forEach(([key, id]) => {
+      const el = $(id);
+      if (el && draft[key] !== undefined) el.value = draft[key];
+    });
+
+    if (draft.rows && draft.rows.length > 0) {
+      $('detailBody').innerHTML = '';
+      rowIdCounter = 0;
+      draft.rows.forEach(r => {
+        if (r.type === 'separator') {
+          addSeparator();
+        } else {
+          addRow({
+            month: r.month || '',
+            day: r.day || '',
+            kouji: r.kouji || '',
+            desc: r.desc || '',
+            qty: r.qty || '',
+            unit: r.unit || '',
+            price: r.price || '',
+            amt: r.amt || '',
+          });
+        }
+      });
+    }
+
+    calcTotals();
+    toast('下書きを復元しました', 'ok', 2000);
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+// Listen for all input changes for draft save
+document.addEventListener('input', (e) => {
+  if (e.target.closest('#step1')) scheduleDraftSave();
+});
+
+// Watch detail tbody for row additions/removals
+const _draftObs = new MutationObserver(() => scheduleDraftSave());
+_draftObs.observe($('detailBody'), { childList: true });
 
 // ── Step management ───────────────────────────────────────
 function setStep(n) {
@@ -1232,6 +1315,7 @@ async function saveToSupabase(d) {
       throw new Error(e.message || e.error || `HTTP ${res.status}`);
     }
     toast('Supabaseに保存しました', 'ok');
+    clearDraft();
     return true;
   } catch(e) {
     console.warn('[mitsumori] Supabase save failed:', e.message);
@@ -1288,14 +1372,25 @@ $('saveBtn2').addEventListener('click', async () => {
   $('saveBtn2').disabled = false;
 });
 
+$('clearDraftBtn').addEventListener('click', () => {
+  if (confirm('下書きを削除しますか？')) {
+    clearDraft();
+    location.reload();
+  }
+});
+
 // ── Init ──────────────────────────────────────────────────
 (function init() {
   loadIssuer();
   setDefaultDates();
-  // デフォルト明細行を3行追加
-  addRow({ month:'', day:'', kouji:'', desc:'', qty:1, unit:'式', price:0 });
-  addRow({ month:'', day:'', kouji:'', desc:'', qty:1, unit:'式', price:0 });
-  addRow({ month:'', day:'', kouji:'', desc:'', qty:1, unit:'式', price:0 });
+
+  // 下書き復元を試みる。なければデフォルト3行
+  const restored = loadDraft();
+  if (!restored) {
+    addRow({ month:'', day:'', kouji:'', desc:'', qty:1, unit:'式', price:0 });
+    addRow({ month:'', day:'', kouji:'', desc:'', qty:1, unit:'式', price:0 });
+    addRow({ month:'', day:'', kouji:'', desc:'', qty:1, unit:'式', price:0 });
+  }
 
   // URLクエリからプロジェクト名を自動入力
   const params = new URLSearchParams(location.search);
