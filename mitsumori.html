@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>建設AI｜御見積書作成</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     /* ═══════════════════════════════════════════════════════
        CSS Variables & Reset
@@ -660,6 +661,7 @@
   <div class="actions">
     <button class="btn-secondary" id="backToFormBtn">← 修正する</button>
     <button class="btn-save" id="saveBtn2">💾 Supabaseに保存</button>
+    <button class="btn-primary" onclick="downloadPDF()" style="background:linear-gradient(135deg,#22C55E,#16A34A);box-shadow:0 4px 14px rgba(34,197,94,.35);">📄 PDFで保存</button>
     <button class="btn-primary" id="printBtn">🖨️ 印刷 / PDF出力 →</button>
   </div>
 </div>
@@ -684,8 +686,9 @@
       </div>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
         <button class="btn-primary" id="doPrintBtn">🖨️ 印刷する</button>
+        <button class="btn-primary" id="pdfBtn" onclick="downloadPDF()" style="background:linear-gradient(135deg,#22C55E,#16A34A);box-shadow:0 4px 14px rgba(34,197,94,.35);">📄 PDFで保存</button>
         <button class="btn-secondary" id="backToPreviewBtn">← プレビューに戻る</button>
-        <a href="mitsumori.html" class="btn-secondary">📄 新規作成</a>
+        <a href="mitsumori.html" class="btn-secondary">📋 新規作成</a>
       </div>
     </div>
   </div>
@@ -1275,6 +1278,33 @@ function renderPrint(d) {
     </div>
     ` : ''}
   `;
+}
+
+// ── PDF Download ─────────────────────────────────────────
+function downloadPDF() {
+  const el = $('printPage');
+  if (!el || !el.innerHTML.trim()) {
+    toast('先にプレビューを確認してください', 'err');
+    return;
+  }
+
+  const d = _savedData || collectData();
+  const filename = `見積書_${d.recipientName || '相手先'}_${d.estimateNo || ''}.pdf`;
+
+  const opt = {
+    margin: 0,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  toast('PDF生成中...', '', 5000);
+  html2pdf().set(opt).from(el).save().then(() => {
+    toast('PDFを保存しました', 'ok');
+  }).catch(() => {
+    toast('PDF生成に失敗しました', 'err');
+  });
 }
 
 // ── Supabase Save ─────────────────────────────────────────
