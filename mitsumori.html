@@ -541,10 +541,6 @@
           <label>見積先会社名<span class="req">*</span></label>
           <input type="text" id="recipientName" class="f-input" placeholder="○○土木株式会社">
         </div>
-        <div class="f-group">
-          <label>担当者名</label>
-          <input type="text" id="recipientPerson" class="f-input" placeholder="工事部 鈴木 一郎">
-        </div>
       </div>
     </div>
   </div>
@@ -562,11 +558,6 @@
         <div class="f-group">
           <label>見積日</label>
           <input type="date" id="estimateDate" class="f-input">
-        </div>
-        <div class="f-group">
-          <label>有効期限</label>
-          <input type="date" id="validUntil" class="f-input">
-          <div class="f-hint">デフォルト: 見積日から1ヶ月後</div>
         </div>
         <div class="f-group">
           <label>工事名称<span class="req">*</span></label>
@@ -820,10 +811,6 @@ function setDefaultDates() {
   const now = new Date();
   const today = now.toISOString().slice(0,10);
   if (!$('estimateDate').value) $('estimateDate').value = today;
-
-  // 有効期限 = 1ヶ月後
-  const oneMonthLater = new Date(now.getFullYear(), now.getMonth()+1, now.getDate());
-  if (!$('validUntil').value) $('validUntil').value = oneMonthLater.toISOString().slice(0,10);
 }
 
 // ── Detail rows ───────────────────────────────────────────
@@ -842,10 +829,10 @@ function addRow(data = {}) {
     <td class="td-day"><input type="text" class="row-day" placeholder="15" value="${escHtml(data.day||'')}"></td>
     <td class="td-kouji"><input type="text" class="row-kouji" placeholder="法面工事" value="${escHtml(data.kouji||'')}"></td>
     <td><input type="text" class="row-desc" placeholder="切土・法枠工" value="${escHtml(data.desc||'')}" oninput="calcTotals()"></td>
-    <td class="td-num"><input type="number" class="row-qty" placeholder="1" min="0" step="0.01" value="${data.qty??''}" oninput="calcTotals()"></td>
+    <td class="td-num"><input type="number" class="row-qty" placeholder="1" min="0" step="0.01" value="${data.qty??''}" oninput="resetAmtManual(${id});calcTotals()"></td>
     <td class="td-unit"><input type="text" class="row-unit" placeholder="式" value="${escHtml(data.unit||'')}" style="text-align:center;"></td>
-    <td class="td-price"><input type="number" class="row-price" placeholder="0" min="0" value="${data.price??''}" oninput="calcTotals()"></td>
-    <td class="td-amt"><div class="amt-cell" id="amt_${id}">¥0</div></td>
+    <td class="td-price"><input type="number" class="row-price" placeholder="0" min="0" value="${data.price??''}" oninput="resetAmtManual(${id});calcTotals()"></td>
+    <td class="td-amt"><input type="number" class="row-amt" id="amt_${id}" data-manual="false" placeholder="0" min="0" value="${data.amt??''}" oninput="onAmtInput(${id})" style="text-align:right;font-weight:700;"></td>
     <td class="td-del"><button class="del-btn" onclick="deleteRow(${id})" title="削除">✕</button></td>
   `;
   tbody.appendChild(tr);
@@ -888,23 +875,46 @@ function getRows() {
     const qty   = parseFloat(tr.querySelector('.row-qty')?.value)   || 0;
     const unit  = tr.querySelector('.row-unit')?.value.trim()  || '';
     const price = parseFloat(tr.querySelector('.row-price')?.value) || 0;
-    const amt   = qty * price;
+    const amtEl = tr.querySelector('.row-amt');
+    const amt   = (amtEl && amtEl.dataset.manual === 'true') ? (parseFloat(amtEl.value) || 0) : qty * price;
     return { id, type:'detail', month, day, kouji, desc, qty, unit, price, amt };
   });
+}
+
+function resetAmtManual(id) {
+  const el = $('amt_' + id);
+  if (el) el.dataset.manual = 'false';
+}
+
+function onAmtInput(id) {
+  const el = $('amt_' + id);
+  if (el) el.dataset.manual = 'true';
+  calcTotals();
 }
 
 function calcTotals() {
   const rows = getRows();
 
-  // update per-row amount
+  // update per-row amount (only if not manually edited)
   rows.forEach(r => {
     if (r.type === 'detail') {
       const el = $('amt_' + r.id);
-      if (el) el.textContent = fmtMoney(r.amt);
+      if (el && el.dataset.manual !== 'true') {
+        el.value = r.amt || '';
+      }
     }
   });
 
-  const subtotal  = rows.reduce((s, r) => s + r.amt, 0);
+  // Re-read actual amounts from inputs
+  const actualRows = rows.map(r => {
+    if (r.type === 'detail') {
+      const el = $('amt_' + r.id);
+      r.amt = parseFloat(el?.value) || 0;
+    }
+    return r;
+  });
+
+  const subtotal  = actualRows.reduce((s, r) => s + r.amt, 0);
   const tax       = Math.floor(subtotal * 0.1);
   const anzen     = parseFloat($('inputAnzen').value)    || 0;
   const shiharai  = parseFloat($('inputShiharai').value) || 0;
@@ -944,10 +954,8 @@ function collectData() {
     issuerAddress:   $('issuerAddress').value.trim(),
     issuerTel:       $('issuerTel').value.trim(),
     recipientName:   $('recipientName').value.trim(),
-    recipientPerson: $('recipientPerson').value.trim(),
     estimateNo:      $('estimateNo').value.trim() || genEstimateNo(),
     estimateDate:    $('estimateDate').value,
-    validUntil:      $('validUntil').value,
     projectName:     $('projectName').value.trim(),
     projectSite:     $('projectSite').value.trim(),
     remarks:         $('remarks').value.trim(),
@@ -1005,14 +1013,9 @@ function renderPreview(d) {
       <div class="preview-to">
         <div class="preview-label">見積先</div>
         <div class="preview-company-name">${escHtml(d.recipientName)} 様</div>
-        ${d.recipientPerson ? `<div class="preview-info-line">担当: ${escHtml(d.recipientPerson)}</div>` : ''}
         <div style="margin-top:12px;">
           <div class="preview-label">見積日</div>
           <div style="font-size:14px;font-weight:700;">${fmtDate(d.estimateDate)}</div>
-        </div>
-        <div style="margin-top:8px;">
-          <div class="preview-label">有効期限</div>
-          <div style="font-size:14px;font-weight:700;color:var(--orange);">${fmtDate(d.validUntil)}</div>
         </div>
       </div>
       <div class="preview-from">
@@ -1120,8 +1123,7 @@ function renderPrint(d) {
       <div class="p-head-left">
         下記の通りご返答申し上げます
         <div style="margin-top:8pt;font-size:9pt;color:#555;">
-          見積番号: ${escHtml(d.estimateNo)}<br>
-          有効期限: ${toWareki(d.validUntil)}
+          見積番号: ${escHtml(d.estimateNo)}
         </div>
       </div>
       <div class="p-head-right">
@@ -1197,11 +1199,9 @@ async function saveToSupabase(d) {
     const payload = {
       estimate_no:      d.estimateNo,
       estimate_date:    d.estimateDate || null,
-      valid_until:      d.validUntil || null,
       project_name:     d.projectName || null,
       project_site:     d.projectSite || null,
       recipient_name:   d.recipientName || null,
-      recipient_person: d.recipientPerson || null,
       issuer_name:      d.issuerName || null,
       issuer_rep:       d.issuerRep || null,
       issuer_tanto:     d.issuerTanto || null,
