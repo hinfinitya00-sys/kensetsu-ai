@@ -348,98 +348,77 @@
       display:none;
     }
 
-    @page {
-      size: A4 portrait;
-      margin: 0;
-    }
+    @page { size: A4 portrait; margin: 0; }
     @media print {
       body > *:not(#printArea) { display:none !important; }
-      body { font-size:10pt; margin:0; }
-      #printArea {
-        display:block !important;
-        font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
-        color:#000; background:#fff;
-        font-size:10pt; line-height:1.7;
-      }
+      body { margin:0; }
+      #printArea { display:block !important; }
       .print-page {
-        width:210mm; min-height:297mm;
-        padding:14mm 16mm 14mm 16mm;
-        page-break-after:always;
-        box-sizing:border-box;
+        width:210mm; min-height:297mm; padding:10mm 14mm 10mm 14mm;
+        font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
+        color:#000; background:#fff; font-size:9.5pt; box-sizing:border-box;
       }
-      .p-date-wareki {
-        text-align:right; font-size:10pt; margin-bottom:6pt;
-      }
+      .p-date { text-align:right; font-size:9pt; margin-bottom:4pt; }
       .p-title {
-        font-size:22pt; font-weight:900; text-align:center;
-        letter-spacing:8px; background:#e8e8e8;
-        padding:8pt 0; margin-bottom:8pt;
+        background:#d8d8d8; text-align:center; font-size:20pt; font-weight:900;
+        letter-spacing:12px; padding:6pt 0; margin-bottom:8pt; border:0.5pt solid #aaa;
       }
+      .p-recipient-wrap { text-align:center; margin-bottom:8pt; }
       .p-recipient {
-        font-size:16pt; font-weight:700;
-        margin-bottom:10pt; padding-bottom:4pt;
-        border-bottom:1.5pt solid #000;
+        display:inline-block; text-align:center; font-size:15pt; font-weight:700;
+        border-bottom:1.5pt solid #000; padding-bottom:3pt; min-width:200pt;
       }
-      .p-head {
-        display:flex; justify-content:space-between;
-        margin-bottom:10pt; gap:16pt;
+      .p-header-row {
+        display:flex; align-items:flex-start; margin-bottom:8pt; gap:0;
       }
-      .p-head-left {
-        flex:1; font-size:10pt; padding-top:6pt;
-      }
-      .p-head-right {
-        flex:1; text-align:right; font-size:9.5pt; line-height:1.9;
-      }
-      .p-stamp-area {
-        display:inline-flex; gap:0;
-        margin-left:auto; margin-bottom:10pt; width:fit-content; margin-top:4pt;
-      }
+      .p-greeting { flex:1; font-size:9pt; padding-top:4pt; }
+      .p-issuer { flex:1; text-align:right; font-size:9pt; line-height:1.9; }
+      .p-stamps { display:flex; flex-direction:row; margin-left:8pt; gap:0; }
       .p-stamp-box {
-        width:52pt; height:52pt; border:1pt solid #000;
-        display:flex; align-items:flex-start; justify-content:center;
-        padding-top:3pt; font-size:8pt;
+        width:50pt; height:50pt; border:1pt solid #000; font-size:8pt;
+        display:flex; align-items:flex-start; justify-content:center; padding-top:3pt;
       }
-      .p-total-display {
-        border:2pt solid #000; padding:8pt 14pt;
-        margin-bottom:10pt; text-align:center;
-        font-size:10pt;
+      .p-amount-row {
+        display:flex; align-items:baseline; gap:16pt;
+        border-top:0.5pt solid #000; border-bottom:0.5pt solid #000;
+        padding:5pt 0; margin-bottom:8pt;
       }
-      .p-total-display .p-total-amount {
-        font-size:18pt; font-weight:900; letter-spacing:2px;
+      .p-amount-label { font-size:9pt; }
+      .p-amount-value { font-size:17pt; font-weight:900; letter-spacing:1px; }
+      table.p-items {
+        width:100%; border-collapse:collapse; font-size:9pt; margin-bottom:6pt;
       }
-      table.p-items { width:100%; border-collapse:collapse; margin-bottom:8pt; font-size:9.5pt; }
       table.p-items th {
-        background:#efefef; border:0.5pt solid #aaa; padding:4pt 5pt;
-        font-weight:700; font-size:9pt; text-align:left;
+        background:#efefef; border:0.5pt solid #999; padding:3pt 4pt;
+        font-weight:700; text-align:center; white-space:nowrap;
       }
-      table.p-items th.right { text-align:right; }
-      table.p-items th.center { text-align:center; }
-      table.p-items td { border:0.5pt solid #ccc; padding:4pt 5pt; line-height:1.4; }
+      table.p-items td {
+        border:0.5pt solid #ccc; padding:3pt 4pt; vertical-align:middle;
+      }
       table.p-items td.right { text-align:right; }
       table.p-items td.center { text-align:center; }
-      table.p-items tr.p-sep-row td {
-        height:8pt; padding:0; border-left:0.5pt solid #ccc; border-right:0.5pt solid #ccc;
+      table.p-items tr.separator td {
+        height:6pt; background:#fff; border-left:none; border-right:none;
       }
       .p-totals {
-        display:flex; flex-direction:column; gap:0;
-        max-width:200pt; margin-left:auto;
-        border:0.5pt solid #ccc; margin-bottom:8pt; font-size:9.5pt;
+        width:190pt; margin-left:auto; border:0.5pt solid #999; margin-bottom:8pt;
       }
       .p-total-row {
         display:flex; justify-content:space-between;
-        padding:4pt 8pt; border-bottom:0.5pt solid #ccc;
+        padding:3pt 8pt; font-size:9pt; border-bottom:0.5pt solid #ccc;
       }
       .p-total-row:last-child { border-bottom:none; }
       .p-total-row.p-total-final {
-        font-weight:700; font-size:12pt;
-        border-top:1.5pt solid #000 !important; padding:6pt 8pt; border-bottom:none;
+        font-weight:700; font-size:11pt;
+        border-top:1.5pt solid #000; padding:5pt 8pt;
       }
       .p-total-row.p-discount-row .p-val-right { color:#c00; }
-      .p-remarks-box {
-        border:0.5pt solid #aaa;
-        padding:6pt 8pt; font-size:9pt; line-height:1.8;
-        margin-top:8pt; min-height:40pt;
+      .p-notes-title { font-size:9pt; font-weight:700; margin-bottom:2pt; }
+      .p-notes-box {
+        border:0.5pt solid #999; padding:5pt 8pt;
+        font-size:9pt; line-height:1.8; min-height:36pt; margin-bottom:6pt;
       }
+      .p-footer-company { text-align:right; font-size:9pt; margin-top:4pt; }
     }
 
     /* ── Responsive ──────────────────────────────────────── */
@@ -1174,7 +1153,7 @@ function renderPreview(d) {
 function renderPrint(d) {
   const rowsHtml = d.rows.map(r => {
     if (r.type === 'separator') {
-      return '<tr class="p-sep-row"><td colspan="8"></td></tr>';
+      return '<tr class="separator"><td colspan="8"></td></tr>';
     }
     return `
       <tr>
@@ -1184,57 +1163,46 @@ function renderPrint(d) {
         <td>${escHtml(r.desc||'')}</td>
         <td class="right">${r.qty ? r.qty.toLocaleString('ja-JP') : ''}</td>
         <td class="center">${escHtml(r.unit)}</td>
-        <td class="right">${r.price ? '¥'+Math.round(r.price).toLocaleString('ja-JP') : ''}</td>
-        <td class="right">${r.amt ? '<strong>¥'+Math.round(r.amt).toLocaleString('ja-JP')+'</strong>' : ''}</td>
+        <td class="right">${r.price ? Math.round(r.price).toLocaleString('ja-JP') : ''}</td>
+        <td class="right">${r.amt ? '<strong>'+Math.round(r.amt).toLocaleString('ja-JP')+'</strong>' : ''}</td>
       </tr>
     `;
   }).join('');
 
-  // Extra total rows for print
-  let extraPrintRows = '';
-  if (d.anzen > 0) {
-    extraPrintRows += `<div class="p-total-row"><span>安全加入金費</span><span>¥${Math.round(d.anzen).toLocaleString('ja-JP')}</span></div>`;
-  }
-  if (d.shiharai > 0) {
-    extraPrintRows += `<div class="p-total-row"><span>支払及び日給金額</span><span>¥${Math.round(d.shiharai).toLocaleString('ja-JP')}</span></div>`;
-  }
-  if (d.nebiki > 0) {
-    extraPrintRows += `<div class="p-total-row p-discount-row"><span>値引き</span><span class="p-val-right">▲¥${Math.round(d.nebiki).toLocaleString('ja-JP')}</span></div>`;
-  }
+  const fmtP = n => Math.round(n||0).toLocaleString('ja-JP');
 
   $('printPage').innerHTML = `
-    <div class="p-date-wareki">${toWareki(d.estimateDate)}</div>
+    <div class="p-date">${toWareki(d.estimateDate)}</div>
 
     <div class="p-title">御　見　積　書</div>
 
-    <div class="p-recipient">${escHtml(d.recipientName)}　様</div>
+    <div class="p-recipient-wrap">
+      <div class="p-recipient">${escHtml(d.recipientName)}　様</div>
+    </div>
 
-    <div class="p-head">
-      <div class="p-head-left">
+    <div class="p-header-row">
+      <div class="p-greeting">
         下記の通りご返答申し上げます
-        <div style="margin-top:8pt;font-size:9pt;color:#555;">
-          見積番号: ${escHtml(d.estimateNo)}
-        </div>
+        <div style="margin-top:6pt;font-size:8pt;color:#555;">見積番号: ${escHtml(d.estimateNo)}</div>
       </div>
-      <div class="p-head-right">
+      <div class="p-issuer">
         ${d.issuerAddress ? escHtml(d.issuerAddress)+'<br>' : ''}
         <strong style="font-size:11pt;">${escHtml(d.issuerName)}</strong><br>
         ${d.issuerRep ? escHtml(d.issuerRep)+'<br>' : ''}
         ${d.issuerTel ? 'TEL: '+escHtml(d.issuerTel) : ''}
       </div>
+      <div class="p-stamps">
+        <div class="p-stamp-box">承認印</div>
+        <div class="p-stamp-box">担当印</div>
+      </div>
     </div>
 
-    <div class="p-stamp-area">
-      <div class="p-stamp-box">承認印</div>
-      <div class="p-stamp-box">担当印</div>
+    <div class="p-amount-row">
+      <span class="p-amount-label">金額（消費税込み）</span>
+      <span class="p-amount-value">${fmtKingaku(d.total)}</span>
     </div>
 
-    <div class="p-total-display">
-      金額（消費税込み）<br>
-      <span class="p-total-amount">${fmtKingaku(d.total)}</span>
-    </div>
-
-    <div style="font-size:9pt;margin-bottom:6pt;color:#555;">
+    <div style="font-size:9pt;margin-bottom:6pt;">
       工事名称: <strong>${escHtml(d.projectName)}</strong>
       ${d.projectSite ? '　　工事場所: <strong>'+escHtml(d.projectSite)+'</strong>' : ''}
     </div>
@@ -1242,41 +1210,34 @@ function renderPrint(d) {
     <table class="p-items">
       <thead>
         <tr>
-          <th class="center" style="width:30pt;">月</th>
-          <th class="center" style="width:30pt;">日</th>
+          <th style="width:28pt;">月</th>
+          <th style="width:28pt;">日</th>
           <th>工事名</th>
           <th>内容</th>
-          <th class="right" style="width:45pt;">数量</th>
-          <th class="center" style="width:35pt;">単位</th>
-          <th class="right" style="width:60pt;">単価</th>
-          <th class="right" style="width:70pt;">金額</th>
+          <th style="width:42pt;">数量</th>
+          <th style="width:30pt;">単位</th>
+          <th class="right" style="width:55pt;">単価</th>
+          <th class="right" style="width:65pt;">金額</th>
         </tr>
       </thead>
       <tbody>${rowsHtml}</tbody>
     </table>
 
     <div class="p-totals">
-      <div class="p-total-row">
-        <span>小計</span>
-        <span>¥${Math.round(d.subtotal).toLocaleString('ja-JP')}</span>
-      </div>
-      <div class="p-total-row">
-        <span>消費税（10%）</span>
-        <span>¥${Math.round(d.tax).toLocaleString('ja-JP')}</span>
-      </div>
-      ${extraPrintRows}
-      <div class="p-total-row p-total-final">
-        <span>税込合計</span>
-        <span>¥${Math.round(d.total).toLocaleString('ja-JP')}</span>
-      </div>
+      <div class="p-total-row"><span>小　計</span><span>${fmtP(d.subtotal)}</span></div>
+      <div class="p-total-row"><span>消費税（10%）</span><span>${fmtP(d.tax)}</span></div>
+      <div class="p-total-row"><span>安全加入金費</span><span>${fmtP(d.anzen)}</span></div>
+      <div class="p-total-row"><span>支払及び日給金額</span><span>${fmtP(d.shiharai)}</span></div>
+      <div class="p-total-row${d.nebiki > 0 ? ' p-discount-row' : ''}"><span>値引き金額</span><span class="p-val-right">${d.nebiki > 0 ? '▲'+fmtP(d.nebiki) : fmtP(0)}</span></div>
+      <div class="p-total-row p-total-final"><span>税込合計</span><span>${fmtP(d.total)}</span></div>
     </div>
 
     ${d.remarks ? `
-    <div class="p-remarks-box">
-      <strong>備考：</strong><br>
-      ${escHtml(d.remarks).replace(/\n/g,'<br>')}
-    </div>
+    <div class="p-notes-title">※ 特記事項</div>
+    <div class="p-notes-box">${escHtml(d.remarks).replace(/\n/g,'<br>')}</div>
     ` : ''}
+
+    <div class="p-footer-company">${escHtml(d.issuerName)}</div>
   `;
 }
 
