@@ -347,9 +347,13 @@
       display:none;
     }
 
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
     @media print {
       body > *:not(#printArea) { display:none !important; }
-      body { font-size:10pt; }
+      body { font-size:10pt; margin:0; }
       #printArea {
         display:block !important;
         font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
@@ -358,7 +362,7 @@
       }
       .print-page {
         width:210mm; min-height:297mm;
-        padding:12mm 14mm 12mm 14mm;
+        padding:14mm 16mm 14mm 16mm;
         page-break-after:always;
         box-sizing:border-box;
       }
