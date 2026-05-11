@@ -1245,58 +1245,100 @@ function downloadPDF() {
     return;
   }
 
-  // printAreaを構築
-  renderPrint(d);
+  const rowsHtml = d.rows.map(r => {
+    if (r.type === 'separator') {
+      return '<tr><td colspan="8" style="height:8px;border:none;"></td></tr>';
+    }
+    return `<tr>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;text-align:center;">${escHtml(r.month||'')}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;text-align:center;">${escHtml(r.day||'')}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;">${escHtml(r.kouji||'')}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;">${escHtml(r.desc||'')}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;text-align:right;">${r.qty||''}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;text-align:center;">${escHtml(r.unit||'')}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;text-align:right;">${r.price ? Math.round(r.price).toLocaleString('ja-JP') : ''}</td>
+      <td style="border:0.5pt solid #ccc;padding:3pt 4pt;text-align:right;font-weight:700;">${r.amt ? Math.round(r.amt).toLocaleString('ja-JP') : ''}</td>
+    </tr>`;
+  }).join('');
 
-  const printArea = $('printArea');
-  const printPage = $('printPage');
+  const totalRows = [
+    ['小　計', d.subtotal],
+    ['消費税（10%）', d.tax],
+    ['安全加入金費', d.anzen || 0],
+    ['支払及び日給金額', d.shiharai || 0],
+    ['値引き金額', d.nebiki || 0],
+  ].map(([label, val]) => `
+    <tr>
+      <td style="padding:3pt 8pt;border-bottom:0.5pt solid #ccc;">${label}</td>
+      <td style="padding:3pt 8pt;text-align:right;border-bottom:0.5pt solid #ccc;">${Math.round(val||0).toLocaleString('ja-JP')}</td>
+    </tr>
+  `).join('');
 
-  // 一時的にprintAreaを画面外に表示（html2pdfが読めるように）
-  printArea.style.display = 'block';
-  printArea.style.position = 'fixed';
-  printArea.style.top = '-9999px';
-  printArea.style.left = '0';
-  printArea.style.width = '210mm';
-  printArea.style.background = '#fff';
-  printArea.style.color = '#000';
-  printArea.style.fontFamily = "'Noto Sans JP', sans-serif";
-  printArea.style.zIndex = '-1';
+  const html = `
+  <div style="width:210mm;min-height:297mm;padding:12mm 14mm;font-family:'Noto Sans JP','Hiragino Sans',sans-serif;font-size:9.5pt;color:#000;background:#fff;box-sizing:border-box;">
+    <div style="text-align:right;font-size:9pt;margin-bottom:4pt;">${toWareki(d.estimateDate)}</div>
+    <div style="background:#d8d8d8;text-align:center;font-size:20pt;font-weight:900;letter-spacing:12px;padding:6pt 0;margin-bottom:8pt;border:0.5pt solid #aaa;">御　見　積　書</div>
+    <div style="text-align:center;margin-bottom:10pt;"><span style="font-size:15pt;font-weight:700;border-bottom:1.5pt solid #000;padding-bottom:3pt;">${escHtml(d.recipientName)}　様</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:0;padding:4pt 0;">
+      <div style="flex:1;font-size:9pt;">下記の通りご返答申し上げます</div>
+      <div style="flex:1;text-align:right;font-size:9pt;line-height:2;">
+        ${escHtml(d.issuerAddress||'')}<br>${escHtml(d.issuerName||'')}<br>${d.issuerRep ? '代表　'+escHtml(d.issuerRep)+'<br>' : ''}TEL：${escHtml(d.issuerTel||'')}
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:0.5pt solid #000;border-bottom:0.5pt solid #000;padding:6pt 0;margin-bottom:10pt;">
+      <div style="flex:1;">
+        <div style="font-size:9pt;margin-bottom:4pt;">金額（消費税込み）</div>
+        <div style="font-size:20pt;font-weight:900;">${fmtKingaku(d.total)}</div>
+      </div>
+      <div style="display:flex;">
+        <div style="width:60pt;height:60pt;border:1pt solid #000;display:flex;align-items:flex-start;justify-content:center;padding-top:4pt;font-size:8.5pt;font-weight:700;">承認印</div>
+        <div style="width:60pt;height:60pt;border:1pt solid #000;border-left:none;display:flex;align-items:flex-start;justify-content:center;padding-top:4pt;font-size:8.5pt;font-weight:700;">担当印</div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:8pt;">
+      <thead><tr style="background:#efefef;">
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:20pt;">月</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:20pt;">日</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:50pt;">工事名</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;">内容</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:30pt;">数量</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:20pt;">単位</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:45pt;">単価</th>
+        <th style="border:0.5pt solid #999;padding:3pt 4pt;text-align:center;width:50pt;">金額</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10pt;">
+      <table style="border-collapse:collapse;font-size:9pt;width:190pt;border:0.5pt solid #999;">
+        ${totalRows}
+        <tr style="border-top:1.5pt solid #000;">
+          <td style="padding:5pt 8pt;font-weight:700;font-size:11pt;">税込合計</td>
+          <td style="padding:5pt 8pt;font-weight:700;font-size:11pt;text-align:right;">${Math.round(d.total||0).toLocaleString('ja-JP')}</td>
+        </tr>
+      </table>
+    </div>
+    ${d.remarks ? `<div style="font-size:9pt;font-weight:700;margin-bottom:2pt;">※ 特記事項</div><div style="border:0.5pt solid #999;padding:5pt 8pt;font-size:9pt;line-height:1.8;min-height:36pt;">${escHtml(d.remarks)}</div>` : ''}
+    <div style="text-align:right;font-size:9pt;margin-top:8pt;">${escHtml(d.issuerName||'')}</div>
+  </div>`;
 
-  const filename = `見積書_${d.recipientName || '相手先'}_${d.estimateNo || 'MTR'}.pdf`;
+  const tmpDiv = document.createElement('div');
+  tmpDiv.style.cssText = 'position:fixed;top:-9999px;left:0;z-index:-1;background:#fff;';
+  tmpDiv.innerHTML = html;
+  document.body.appendChild(tmpDiv);
 
+  const filename = `見積書_${d.recipientName||'相手先'}_${d.estimateNo||'MTR'}.pdf`;
   const opt = {
-    margin: 0,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      letterRendering: true,
-      backgroundColor: '#ffffff',
-      width: printPage.scrollWidth,
-      windowWidth: 794
-    },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    margin: 0, filename: filename,
+    image: { type:'jpeg', quality:0.98 },
+    html2canvas: { scale:2, useCORS:true, backgroundColor:'#ffffff', windowWidth:794 },
+    jsPDF: { unit:'mm', format:'a4', orientation:'portrait' }
   };
 
   toast('PDF生成中...しばらくお待ちください', '', 8000);
-
-  html2pdf().set(opt).from(printPage).save()
-    .then(() => {
-      toast('PDFを保存しました ✅', 'ok');
-    })
-    .catch((err) => {
-      console.error(err);
-      toast('PDF生成に失敗しました', 'err');
-    })
-    .finally(() => {
-      printArea.style.display = 'none';
-      printArea.style.position = '';
-      printArea.style.top = '';
-      printArea.style.left = '';
-      printArea.style.width = '';
-      printArea.style.zIndex = '';
-    });
+  html2pdf().set(opt).from(tmpDiv).save()
+    .then(() => toast('PDFを保存しました ✅', 'ok'))
+    .catch(err => { console.error(err); toast('PDF生成に失敗しました', 'err'); })
+    .finally(() => document.body.removeChild(tmpDiv));
 }
 
 // ── Supabase Save ─────────────────────────────────────────
