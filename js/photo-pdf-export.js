@@ -228,18 +228,42 @@ const PHOTO_EXPORT = (() => {
     doc.line(MARGIN + 30, 72, PAGE_W - MARGIN - 30, 72);
 
     let cy = 82;
-    const coverRows = [
-      ['工事名称', info.projectName], ['工事番号', info.projectNumber],
-      ['発注者', info.clientName], ['施工業者', info.contractorName],
-      ['現場所在地', info.siteLocation],
-      ['工期', (info.startDate ? fmtDateJP(info.startDate) : '') +
-              (info.startDate && info.endDate ? ' ～ ' : '') +
-              (info.endDate ? fmtDateJP(info.endDate) : '')],
-      ['現場代理人', info.siteManager], ['監理技術者', info.supervisor],
+    const koki = (info.startDate ? fmtDateJP(info.startDate) : '') +
+                 (info.startDate && info.endDate ? ' ～ ' : '') +
+                 (info.endDate ? fmtDateJP(info.endDate) : '');
+    // 必須行（空でも表示）
+    const requiredRows = [
+      ['工事名称', info.projectName || '—'],
+      ['発注者', info.clientName || '—'],
+      ['施工業者', info.contractorName || '—'],
+      ['現場所在地', info.siteLocation || '—'],
+      ['工期', koki || '—'],
       ['作成日', fmtDateJP(new Date().toISOString().slice(0,10))],
     ];
-    coverRows.forEach(([label, val]) => {
-      if (!val) return;
+    // 省略可能行（値がある場合のみ）
+    const optionalRows = [
+      ['工事番号', info.projectNumber],
+      ['現場代理人', info.siteManager],
+      ['監理技術者', info.supervisor],
+    ].filter(([, val]) => !!val);
+
+    // 工事名称の直後に工事番号を挿入
+    const allRows = [];
+    requiredRows.forEach(row => {
+      allRows.push(row);
+      if (row[0] === '工事名称') {
+        const pnRow = optionalRows.find(r => r[0] === '工事番号');
+        if (pnRow) allRows.push(pnRow);
+      }
+    });
+    // 作成日の前に代理人・技術者を挿入
+    const insertIdx = allRows.findIndex(r => r[0] === '作成日');
+    const personRows = optionalRows.filter(r => r[0] !== '工事番号');
+    if (personRows.length && insertIdx >= 0) {
+      allRows.splice(insertIdx, 0, ...personRows);
+    }
+
+    allRows.forEach(([label, val]) => {
       addText(doc, label, MARGIN + 30, cy, 35, 5, { fontSize: 20, bold: true });
       addText(doc, ': ' + String(val), MARGIN + 68, cy, 90, 5, { fontSize: 20 });
       cy += 9;
