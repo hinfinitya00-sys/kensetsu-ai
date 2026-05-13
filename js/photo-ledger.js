@@ -43,6 +43,8 @@ const LEDGER = (() => {
       clientName: $('clientName')?.value.trim() || '',
       startDate: $('startDate')?.value || '',
       endDate: $('endDate')?.value || '',
+      siteManager: $('siteManager')?.value.trim() || '',
+      supervisor: $('supervisor')?.value.trim() || '',
     };
   }
 
@@ -524,6 +526,8 @@ const LEDGER = (() => {
       clientName: $('clientName')?.value || '',
       startDate: $('startDate')?.value || '',
       endDate: $('endDate')?.value || '',
+      siteManager: $('siteManager')?.value || '',
+      supervisor: $('supervisor')?.value || '',
       apiKey: $('apiKeyInput')?.value || '',
       savedAt: new Date().toISOString(),
     };
@@ -535,7 +539,7 @@ const LEDGER = (() => {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       const draft = JSON.parse(raw);
-      const fields = ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate'];
+      const fields = ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','siteManager','supervisor'];
       fields.forEach(id => { if ($(id) && draft[id]) $(id).value = draft[id]; });
       if ($('apiKeyInput') && draft.apiKey) $('apiKeyInput').value = draft.apiKey;
       if (draft.projectName) {
@@ -572,7 +576,7 @@ const LEDGER = (() => {
 
     // フォーム自動保存（500msデバウンス）
     let _draftTimer;
-    ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','apiKeyInput'].forEach(id => {
+    ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','siteManager','supervisor','apiKeyInput'].forEach(id => {
       const el = $(id);
       if (el) {
         el.addEventListener('input', () => {
