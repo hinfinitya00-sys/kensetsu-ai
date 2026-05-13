@@ -39,6 +39,10 @@ const LEDGER = (() => {
       projectName: $('projectName')?.value.trim() || '',
       contractorName: $('contractorName')?.value.trim() || '',
       siteLocation: $('siteLocation')?.value.trim() || '',
+      projectNumber: $('projectNumber')?.value.trim() || '',
+      clientName: $('clientName')?.value.trim() || '',
+      startDate: $('startDate')?.value || '',
+      endDate: $('endDate')?.value || '',
     };
   }
 
@@ -516,6 +520,10 @@ const LEDGER = (() => {
       projectName: $('projectName')?.value || '',
       contractorName: $('contractorName')?.value || '',
       siteLocation: $('siteLocation')?.value || '',
+      projectNumber: $('projectNumber')?.value || '',
+      clientName: $('clientName')?.value || '',
+      startDate: $('startDate')?.value || '',
+      endDate: $('endDate')?.value || '',
       apiKey: $('apiKeyInput')?.value || '',
       savedAt: new Date().toISOString(),
     };
@@ -527,9 +535,8 @@ const LEDGER = (() => {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       const draft = JSON.parse(raw);
-      if ($('projectName') && draft.projectName) $('projectName').value = draft.projectName;
-      if ($('contractorName') && draft.contractorName) $('contractorName').value = draft.contractorName;
-      if ($('siteLocation') && draft.siteLocation) $('siteLocation').value = draft.siteLocation;
+      const fields = ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate'];
+      fields.forEach(id => { if ($(id) && draft[id]) $(id).value = draft[id]; });
       if ($('apiKeyInput') && draft.apiKey) $('apiKeyInput').value = draft.apiKey;
       if (draft.projectName) {
         toast(`下書きを復元しました（${draft.savedAt.slice(0,10)}）`, 'ok');
@@ -565,7 +572,7 @@ const LEDGER = (() => {
 
     // フォーム自動保存（500msデバウンス）
     let _draftTimer;
-    ['projectName', 'contractorName', 'siteLocation', 'apiKeyInput'].forEach(id => {
+    ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','apiKeyInput'].forEach(id => {
       const el = $(id);
       if (el) {
         el.addEventListener('input', () => {
