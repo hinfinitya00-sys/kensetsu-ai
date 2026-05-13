@@ -43,6 +43,8 @@ const LEDGER = (() => {
       clientName: $('clientName')?.value.trim() || '',
       startDate: $('startDate')?.value || '',
       endDate: $('endDate')?.value || '',
+      siteManager: $('siteManager')?.value.trim() || '',
+      supervisor: $('supervisor')?.value.trim() || '',
     };
   }
 
@@ -52,6 +54,11 @@ const LEDGER = (() => {
     if (!files.length) { toast('画像ファイルを選択してください', 'err'); return; }
 
     apiKey = $('apiKeyInput')?.value.trim() || '';
+
+    // プリセット値を取得
+    const presetWork = $('presetWorkType')?.value || '';
+    const presetMeasure = $('presetMeasurement')?.value.trim() || '';
+    const presetPhotog = $('presetPhotographer')?.value.trim() || '';
 
     for (const file of files) {
       const { base64, mediaType, dataUrl } = await PHOTO_AI.fileToBase64(file);
@@ -65,13 +72,13 @@ const LEDGER = (() => {
         _analyzing: true,
         project_id: makeProjectId(getProjectInfo().projectName),
         project_name: getProjectInfo().projectName || 'default',
-        work_type: 'その他',
+        work_type: presetWork || 'その他',
         photo_category: 'その他',
         sub_category: '',
         detail_category: '',
-        measurement_point: '',
+        measurement_point: presetMeasure,
         shot_date: today,
-        photographer: '',
+        photographer: presetPhotog,
         description: '解析中...',
         file_path: file.name,
         sequence_order: photos.length,
@@ -88,6 +95,9 @@ const LEDGER = (() => {
           photo.work_type = result.estimated_work_type || 'その他';
           photo.sub_category = result.estimated_sub_type || '';
           photo.description = result.description || '';
+          if (result.measurement_point && !photo.measurement_point) {
+            photo.measurement_point = result.measurement_point;
+          }
           photo._alert = result.alert || null;
           photo._aiResult = result;
         } catch (e) {
@@ -275,6 +285,13 @@ const LEDGER = (() => {
     if (!photos.length) { toast('写真がありません', 'err'); return; }
     PHOTO_EXPORT.exportToExcel(photos, getProjectInfo());
     toast('Excel出力を開始しました', 'ok');
+  }
+
+  async function handleExportXMLZip() {
+    if (!photos.length) { toast('写真がありません', 'err'); return; }
+    toast('電子納品ZIP生成中...', '', 10000);
+    await PHOTO_XML.exportToXMLZip(photos, getProjectInfo());
+    toast('電子納品ZIPを保存しました ✅', 'ok');
   }
 
   /* ── Supabase Storage アップロード ────────────── */
@@ -524,6 +541,8 @@ const LEDGER = (() => {
       clientName: $('clientName')?.value || '',
       startDate: $('startDate')?.value || '',
       endDate: $('endDate')?.value || '',
+      siteManager: $('siteManager')?.value || '',
+      supervisor: $('supervisor')?.value || '',
       apiKey: $('apiKeyInput')?.value || '',
       savedAt: new Date().toISOString(),
     };
@@ -535,7 +554,7 @@ const LEDGER = (() => {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (!raw) return;
       const draft = JSON.parse(raw);
-      const fields = ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate'];
+      const fields = ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','siteManager','supervisor'];
       fields.forEach(id => { if ($(id) && draft[id]) $(id).value = draft[id]; });
       if ($('apiKeyInput') && draft.apiKey) $('apiKeyInput').value = draft.apiKey;
       if (draft.projectName) {
@@ -572,7 +591,7 @@ const LEDGER = (() => {
 
     // フォーム自動保存（500msデバウンス）
     let _draftTimer;
-    ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','apiKeyInput'].forEach(id => {
+    ['projectName','contractorName','siteLocation','projectNumber','clientName','startDate','endDate','siteManager','supervisor','apiKeyInput'].forEach(id => {
       const el = $(id);
       if (el) {
         el.addEventListener('input', () => {
@@ -589,7 +608,7 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handleExportPDF, handleExportExcel,
+    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip,
     saveToSupabase, loadFromSupabase, promptLoadFromDB,
     saveDraft, restoreDraft, clearDraft,
   };
