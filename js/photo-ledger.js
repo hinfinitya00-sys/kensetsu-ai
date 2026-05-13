@@ -95,6 +95,9 @@ const LEDGER = (() => {
           photo.work_type = result.estimated_work_type || 'その他';
           photo.sub_category = result.estimated_sub_type || '';
           photo.description = result.description || '';
+          if (result.measurement_point && !photo.measurement_point) {
+            photo.measurement_point = result.measurement_point;
+          }
           photo._alert = result.alert || null;
           photo._aiResult = result;
         } catch (e) {
