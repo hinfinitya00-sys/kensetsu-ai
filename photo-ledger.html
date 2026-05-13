@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script src="js/auth.js"></script>
+  <script>KS_AUTH.checkAuth();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>建設AI｜写真台帳</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/photo-ledger.css">
+
+  <!-- CDN Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      background:var(--black); color:var(--text);
+      font-family:'Noto Sans JP',sans-serif; min-height:100vh; overflow-x:hidden;
+    }
+    a { color:inherit; text-decoration:none; }
+    button { font-family:'Noto Sans JP',sans-serif; cursor:pointer; }
+    input, select, textarea { font-family:'Noto Sans JP',sans-serif; }
+
+    header {
+      background:var(--dark); border-bottom:2px solid var(--orange);
+      padding:0 24px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    .logo {
+      display:flex; align-items:center; gap:10px;
+      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
+      letter-spacing:1px; color:var(--text);
+    }
+    .logo-mark {
+      width:32px; height:32px; background:var(--orange);
+      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900; color:white;
+    }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .icon-btn {
+      background:rgba(255,255,255,.08); border:1px solid var(--border);
+      color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:18px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    .icon-btn:hover { background:rgba(255,107,0,.15); border-color:var(--orange); color:var(--orange); }
+
+    .container { max-width:1100px; margin:0 auto; padding:24px 24px 60px; }
+
+    .page-header { margin-bottom:24px; }
+    .page-title {
+      font-family:'Oswald',sans-serif; font-size:26px; font-weight:700;
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    .page-title span { color:var(--orange); }
+    .page-sub { font-size:13px; color:var(--muted); }
+
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; margin-bottom:20px; overflow:hidden;
+    }
+    .card-header {
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:8px;
+      font-size:14px; font-weight:700;
+    }
+    .card-header .dot { width:8px; height:8px; background:var(--orange); border-radius:50%; flex-shrink:0; }
+    .card-body { padding:20px; }
+
+    .form-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+    .f-group { display:flex; flex-direction:column; gap:5px; }
+    .f-group label {
+      font-size:11px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+    .f-input {
+      background:var(--card2); border:1px solid var(--border);
+      color:var(--text); padding:10px 12px; border-radius:8px;
+      font-size:14px; transition:border-color .2s; width:100%;
+    }
+    .f-input:focus { outline:none; border-color:var(--orange); }
+    .f-input::placeholder { color:var(--muted); opacity:.6; }
+
+    .btn-primary {
+      background:linear-gradient(135deg,var(--orange),var(--orange-dark));
+      color:#fff; border:none; padding:12px 28px; border-radius:10px;
+      font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;
+      box-shadow:0 4px 14px rgba(255,107,0,.35); transition:all .2s;
+    }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,107,0,.45); }
+    .btn-secondary {
+      background:var(--card2); color:var(--text); border:1px solid var(--border);
+      padding:10px 16px; border-radius:10px; font-size:14px; font-weight:700;
+      display:flex; align-items:center; gap:8px; transition:all .2s;
+    }
+    .btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
+
+    .toast {
+      position:fixed; bottom:24px; left:50%;
+      transform:translateX(-50%) translateY(80px);
+      padding:10px 22px; border-radius:100px; font-size:13px; font-weight:600;
+      color:#fff; background:var(--dark); z-index:400;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.4);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.ok  { background:var(--green); }
+    .toast.err { background:var(--red); }
+
+    .api-key-section {
+      display:flex; gap:10px; align-items:flex-end; margin-top:12px;
+    }
+    .api-key-section .f-group { flex:1; }
+
+    .section-header {
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:16px;
+    }
+
+    @media(max-width:640px){
+      .form-grid { grid-template-columns:1fr; }
+      .api-key-section { flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">建</div>
+    <span>KENSETSU<span style="color:var(--orange)">AI</span></span>
+  </div>
+  <div class="header-right">
+    <a href="admin.html" class="icon-btn" title="ダッシュボードへ戻る">🏠</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-title">📸 写真台帳 <span>AI自動分類</span></div>
+    <div class="page-sub">法面工事写真をアップロードすると、AIが自動で分類・説明を生成します</div>
+  </div>
+
+  <!-- 工事基本情報 -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div>工事基本情報</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="f-group">
+          <label>工事名称</label>
+          <input type="text" id="projectName" class="f-input" placeholder="○○法面崩壊防止工事">
+        </div>
+        <div class="f-group">
+          <label>施工業者</label>
+          <input type="text" id="contractorName" class="f-input" placeholder="○○建設株式会社">
+        </div>
+        <div class="f-group">
+          <label>現場所在地</label>
+          <input type="text" id="siteLocation" class="f-input" placeholder="福岡県○○市○○地内">
+        </div>
+      </div>
+      <div class="api-key-section">
+        <div class="f-group">
+          <label>Claude API Key（AI自動分類用・任意）</label>
+          <input type="password" id="apiKeyInput" class="f-input" placeholder="sk-ant-...">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- アップロードゾーン -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div>写真アップロード</div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone">
+        <span class="upload-icon">📸</span>
+        <div class="upload-title">写真をドラッグ&ドロップ または クリックして選択</div>
+        <div class="upload-sub">JPEG / PNG 対応・複数ファイル一括アップロード可能</div>
+        <input type="file" id="fileInput" multiple accept="image/*">
+      </div>
+    </div>
+  </div>
+
+  <!-- 写真グリッド -->
+  <div class="card">
+    <div class="card-header">
+      <div class="dot"></div>
+      写真一覧
+      <div class="photo-count" style="margin-left:auto;">
+        <span id="photoCount">0枚</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <!-- カテゴリタブ -->
+      <div class="category-tabs" id="categoryTabs"></div>
+
+      <!-- 写真グリッド -->
+      <div class="photo-grid" id="photoGrid">
+        <div class="empty-state" style="grid-column:1/-1;">
+          <span class="empty-icon">📷</span>
+          <div class="empty-title">写真がありません</div>
+          <div class="empty-sub">上のエリアから写真をアップロードしてください</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 出力ボタン -->
+  <div class="export-buttons">
+    <button class="btn-secondary" onclick="LEDGER.saveToSupabase()">💾 Supabaseに保存</button>
+    <button class="btn-export btn-excel" onclick="LEDGER.handleExportExcel()">📊 Excel出力</button>
+    <button class="btn-export btn-pdf" onclick="LEDGER.handleExportPDF()">📄 PDF出力</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- JS -->
+<script src="js/photo-ai-analyzer.js"></script>
+<script src="js/photo-pdf-export.js"></script>
+<script src="js/photo-ledger.js"></script>
+</body>
+</html>
