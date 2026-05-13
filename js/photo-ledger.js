@@ -12,6 +12,7 @@ const LEDGER = (() => {
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
   const $ = id => document.getElementById(id);
+  const DRAFT_KEY = 'kensetsu_photo_ledger_draft';
   let photos = [];
   let currentFilter = 'すべて';
   let sortableInstance = null;
@@ -356,6 +357,7 @@ const LEDGER = (() => {
         throw new Error(err.message || `HTTP ${res.status}`);
       }
 
+      clearDraft();
       toast('Supabaseに保存しました ✅', 'ok');
     } catch (e) {
       toast('保存に失敗: ' + e.message, 'err', 5000);
@@ -508,6 +510,37 @@ const LEDGER = (() => {
     });
   }
 
+  /* ── 下書き保存 ────────────────────────────────── */
+  function saveDraft() {
+    const draft = {
+      projectName: $('projectName')?.value || '',
+      contractorName: $('contractorName')?.value || '',
+      siteLocation: $('siteLocation')?.value || '',
+      apiKey: $('apiKeyInput')?.value || '',
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }
+
+  function restoreDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if ($('projectName') && draft.projectName) $('projectName').value = draft.projectName;
+      if ($('contractorName') && draft.contractorName) $('contractorName').value = draft.contractorName;
+      if ($('siteLocation') && draft.siteLocation) $('siteLocation').value = draft.siteLocation;
+      if ($('apiKeyInput') && draft.apiKey) $('apiKeyInput').value = draft.apiKey;
+      if (draft.projectName) {
+        toast(`下書きを復元しました（${draft.savedAt.slice(0,10)}）`, 'ok');
+      }
+    } catch(e) {}
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+  }
+
   /* ── 初期化 ────────────────────────────────────── */
   function init() {
     // ドラッグ&ドロップ
@@ -527,6 +560,21 @@ const LEDGER = (() => {
       fileInput.addEventListener('change', e => handleFiles(e.target.files));
     }
 
+    // 下書き復元
+    restoreDraft();
+
+    // フォーム自動保存（500msデバウンス）
+    let _draftTimer;
+    ['projectName', 'contractorName', 'siteLocation', 'apiKeyInput'].forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          clearTimeout(_draftTimer);
+          _draftTimer = setTimeout(saveDraft, 500);
+        });
+      }
+    });
+
     renderTabs();
     renderGrid();
     updateCount();
@@ -536,6 +584,7 @@ const LEDGER = (() => {
     init, handleFiles, deletePhoto, openEditModal,
     setFilter, handleExportPDF, handleExportExcel,
     saveToSupabase, loadFromSupabase, promptLoadFromDB,
+    saveDraft, restoreDraft, clearDraft,
   };
 })();
 
