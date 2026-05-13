@@ -427,10 +427,85 @@ const LEDGER = (() => {
     }
   }
 
-  /* ── 過去台帳を呼び出す ────────────────────────── */
-  function promptLoadFromDB() {
-    const name = prompt('読み込む工事名を入力してください:');
-    if (name) loadFromSupabase(name.trim());
+  /* ── 過去台帳を呼び出す（一覧モーダル） ──────── */
+  async function promptLoadFromDB() {
+    // 保存済み工事名一覧を取得
+    let data;
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/photo_reports?select=project_name,shot_date&order=created_at.desc`,
+        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+      );
+      data = await res.json();
+    } catch (e) {
+      toast('一覧の取得に失敗しました', 'err');
+      return;
+    }
+
+    // project_name の重複排除 + 最終撮影日を取得
+    const projectMap = new Map();
+    (data || []).forEach(r => {
+      if (!r.project_name) return;
+      const existing = projectMap.get(r.project_name);
+      if (!existing || (r.shot_date && r.shot_date > (existing.lastDate || ''))) {
+        projectMap.set(r.project_name, { name: r.project_name, lastDate: r.shot_date || '' });
+      }
+    });
+    const projects = Array.from(projectMap.values());
+
+    // モーダル生成
+    const modal = document.createElement('div');
+    modal.className = 'modal-backdrop';
+
+    if (!projects.length) {
+      modal.innerHTML = `
+        <div class="modal-content">
+          <h3>📂 保存済み台帳を選択</h3>
+          <div style="color:var(--muted);font-size:13px;padding:20px 0;text-align:center;">
+            保存済みの台帳がありません
+          </div>
+          <div class="modal-actions">
+            <button class="btn-secondary" onclick="this.closest('.modal-backdrop').remove()">閉じる</button>
+          </div>
+        </div>`;
+    } else {
+      const listHtml = projects.map((p, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;
+          padding:10px 12px;border:1px solid var(--border);border-radius:8px;
+          margin-bottom:8px;background:var(--card2);">
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;color:var(--text);">${escHtml(p.name)}</div>
+            <div style="font-size:11px;color:var(--muted);">最終撮影日: ${p.lastDate || '—'}</div>
+          </div>
+          <button class="btn-primary" style="padding:8px 16px;font-size:12px;"
+            data-idx="${i}">選択</button>
+        </div>
+      `).join('');
+
+      modal.innerHTML = `
+        <div class="modal-content">
+          <h3>📂 保存済み台帳を選択</h3>
+          <div id="_projectList">${listHtml}</div>
+          <div class="modal-actions">
+            <button class="btn-secondary" onclick="this.closest('.modal-backdrop').remove()">閉じる</button>
+          </div>
+        </div>`;
+    }
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    // 選択ボタンのイベント
+    modal.querySelectorAll('[data-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        const proj = projects[idx];
+        if (proj) {
+          modal.remove();
+          loadFromSupabase(proj.name);
+        }
+      });
+    });
   }
 
   /* ── 初期化 ────────────────────────────────────── */
