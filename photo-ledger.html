@@ -285,7 +285,8 @@
     <button class="btn-secondary" onclick="LEDGER.saveToSupabase()">💾 Supabaseに保存</button>
     <button class="btn-export btn-excel" onclick="LEDGER.handleExportExcel()">📊 Excel出力</button>
     <button class="btn-export btn-pdf" onclick="LEDGER.handleExportPDF()">📄 PDF出力</button>
-    <button class="btn-export" onclick="LEDGER.handleExportXMLZip()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);">📦 電子納品ZIP</button>
+    <button class="btn-export" onclick="LEDGER.checkElectronicSubmission()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);">📦 電子納品ZIP</button>
+    <button class="btn-export" onclick="LEDGER.shareLink()" style="background:linear-gradient(135deg,#3B82F6,#2563EB);color:#fff;box-shadow:0 4px 14px rgba(59,130,246,.35);">🔗 共有リンクをコピー</button>
   </div>
 
 </div>

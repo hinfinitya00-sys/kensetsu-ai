@@ -287,11 +287,79 @@ const LEDGER = (() => {
     toast('Excel出力を開始しました', 'ok');
   }
 
+  function shareLink() {
+    const projectId = makeProjectId(getProjectInfo().projectName);
+    if (!projectId || projectId === 'default') {
+      toast('工事名を入力してから共有リンクを生成してください', 'err');
+      return;
+    }
+    const url = `https://hinfinitya00-sys.github.io/kensetsu-ai/photo-view.html?project=${projectId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast('共有リンクをコピーしました ✅', 'ok');
+    }).catch(() => {
+      prompt('以下のURLをコピーしてください:', url);
+    });
+  }
+
   async function handleExportXMLZip() {
     if (!photos.length) { toast('写真がありません', 'err'); return; }
     toast('電子納品ZIP生成中...', '', 10000);
     await PHOTO_XML.exportToXMLZip(photos, getProjectInfo());
     toast('電子納品ZIPを保存しました ✅', 'ok');
+  }
+
+  /* ── 電子納品チェック ──────────────────────────── */
+  function checkElectronicSubmission() {
+    const info = getProjectInfo();
+    const checks = [
+      { label: '工事名が入力されている', ok: !!info.projectName, level: 'error' },
+      { label: '工事番号が入力されている', ok: !!info.projectNumber, level: 'warn' },
+      { label: '施工業者名が入力されている', ok: !!info.contractorName, level: 'error' },
+      { label: '工期（着手・完成）が入力されている', ok: !!(info.startDate && info.endDate), level: 'warn' },
+      { label: '写真が1枚以上ある', ok: photos.length > 0, level: 'error' },
+      { label: '着手前・完成写真が含まれている', ok: photos.some(p => p.photo_category === '着手前・完成写真'), level: 'warn' },
+      { label: '全写真に工種が設定されている', ok: photos.every(p => p.work_type && p.work_type !== 'その他'), level: 'warn' },
+      { label: '全写真に撮影日が設定されている', ok: photos.every(p => !!p.shot_date), level: 'error' },
+      { label: '写真ファイルがJPEG/PNG形式', ok: photos.every(p => !p._file || p._file.type.startsWith('image/')), level: 'error' },
+    ];
+
+    const hasError = checks.some(c => !c.ok && c.level === 'error');
+    const hasWarn = checks.some(c => !c.ok && c.level === 'warn');
+
+    const listHtml = checks.map(c => {
+      const icon = c.ok ? '✅' : (c.level === 'error' ? '❌' : '⚠️');
+      const color = c.ok ? 'var(--green)' : (c.level === 'error' ? 'var(--red)' : 'var(--yellow)');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;">
+        <span style="font-size:16px;">${icon}</span>
+        <span style="color:${color};">${c.label}</span>
+      </div>`;
+    }).join('');
+
+    let actionHtml;
+    if (hasError) {
+      actionHtml = `
+        <button class="btn-primary" disabled style="opacity:.5;cursor:not-allowed;">❌ エラーを解決してください</button>
+        <button class="btn-secondary" onclick="this.closest('.modal-backdrop').remove()">閉じる</button>`;
+    } else if (hasWarn) {
+      actionHtml = `
+        <button class="btn-primary" onclick="this.closest('.modal-backdrop').remove();handleExportXMLZip();" style="background:linear-gradient(135deg,var(--yellow),#D97706);">⚠️ 警告を確認して出力</button>
+        <button class="btn-secondary" onclick="this.closest('.modal-backdrop').remove()">閉じる</button>`;
+    } else {
+      actionHtml = `
+        <button class="btn-primary" onclick="this.closest('.modal-backdrop').remove();handleExportXMLZip();">✅ 電子納品ZIPを出力</button>
+        <button class="btn-secondary" onclick="this.closest('.modal-backdrop').remove()">閉じる</button>`;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-backdrop';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <h3>📋 電子納品チェック結果</h3>
+        <div style="margin-bottom:16px;">${listHtml}</div>
+        <div class="modal-actions">${actionHtml}</div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   }
 
   /* ── Supabase Storage アップロード ────────────── */
@@ -608,7 +676,7 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip,
+    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink, checkElectronicSubmission,
     saveToSupabase, loadFromSupabase, promptLoadFromDB,
     saveDraft, restoreDraft, clearDraft,
   };
