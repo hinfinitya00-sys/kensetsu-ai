@@ -275,10 +275,11 @@ const LEDGER = (() => {
   }
 
   /* ── 出力 ──────────────────────────────────────── */
-  function handleExportPDF() {
+  async function handleExportPDF() {
     if (!photos.length) { toast('写真がありません', 'err'); return; }
-    PHOTO_EXPORT.exportToPDF(photos, getProjectInfo());
-    toast('PDF出力を開始しました', 'ok');
+    toast('PDF生成中...しばらくお待ちください', '', 15000);
+    await PHOTO_EXPORT.exportToPDF(photos, getProjectInfo());
+    toast('PDFを保存しました ✅', 'ok');
   }
 
   function handleExportExcel() {

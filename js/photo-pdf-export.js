@@ -1,7 +1,8 @@
 /**
  * photo-pdf-export.js
- * 工事写真台帳 PDF / Excel 出力（元請け提出レベル）
- * 日本語テキストはCanvas経由で画像化してPDFに貼り付ける
+ * 工事写真台帳 PDF / Excel 出力
+ * 日本語: Canvas画像化 → addImage（jsPDF text()不使用）
+ * 写真: Image/fetch → Canvas → dataURL（CORS対策）
  * 依存: jsPDF (CDN), SheetJS (CDN)
  */
 'use strict';
@@ -9,7 +10,7 @@
 const PHOTO_EXPORT = (() => {
 
   const PAGE_W = 210, PAGE_H = 297, MARGIN = 15;
-  const FOOTER_H = 10, HEADER_H = 12;
+  const HEADER_H = 12;
   const CW = PAGE_W - MARGIN * 2;
 
   const CATEGORY_ORDER = [
@@ -34,77 +35,124 @@ const PHOTO_EXPORT = (() => {
 
   function truncate(s, max) { return (s||'').length > max ? s.substring(0,max)+'…' : (s||''); }
 
-  /* ── 日本語テキスト → Canvas画像 → PDF貼付 ──── */
-  const _canvas = document.createElement('canvas');
-  const _ctx = _canvas.getContext('2d');
+  /* ═══ テキスト → Canvas → dataURL ═══════════════ */
+  function textToImage(text, options = {}) {
+    const fontSize = options.fontSize || 20;
+    const color = options.color || '#000000';
+    const bgColor = options.bgColor || null;
+    const maxWidth = options.maxWidth || 600;
+    const padding = options.padding || 8;
+    const fontWeight = options.fontWeight || '';
 
-  function addJPText(doc, text, x, y, w, h, options = {}) {
-    if (!text) return;
-    const {
-      color = '#000000',
-      bgColor = null,
-      fontSize = 24,
-      fontWeight = 'normal',
-      align = 'left',
-    } = options;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const fontStr = `${fontWeight} ${fontSize}px "Noto Sans JP", "Hiragino Sans", sans-serif`.trim();
+    ctx.font = fontStr;
 
-    const scale = 4;
-    const canvasW = Math.max(Math.ceil(w * scale * 2.5), 100);
-    const canvasH = Math.max(Math.ceil(h * scale * 2.5), 30);
-    _canvas.width = canvasW;
-    _canvas.height = canvasH;
+    // 折り返し処理
+    const chars = Array.from(text || '');
+    const lines = [];
+    let line = '';
+    for (const ch of chars) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxWidth - padding * 2 && line !== '') {
+        lines.push(line);
+        line = ch;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+    if (!lines.length) lines.push('');
 
-    // 背景
+    const lineHeight = fontSize * 1.4;
+    canvas.width = maxWidth;
+    canvas.height = Math.ceil(lines.length * lineHeight + padding * 2);
+
     if (bgColor) {
-      _ctx.fillStyle = bgColor;
-      _ctx.fillRect(0, 0, canvasW, canvasH);
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
-      _ctx.clearRect(0, 0, canvasW, canvasH);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // テキスト描画
-    _ctx.fillStyle = color;
-    const fontStr = `${fontWeight === 'bold' ? 'bold ' : ''}${fontSize * scale}px "Noto Sans JP", "Hiragino Sans", sans-serif`;
-    _ctx.font = fontStr;
-    _ctx.textBaseline = 'middle';
+    ctx.font = fontStr;
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'top';
+    lines.forEach((l, i) => {
+      ctx.fillText(l, padding, padding + i * lineHeight);
+    });
 
-    let tx = 4;
-    if (align === 'center') {
-      _ctx.textAlign = 'center';
-      tx = canvasW / 2;
-    } else if (align === 'right') {
-      _ctx.textAlign = 'right';
-      tx = canvasW - 4;
-    } else {
-      _ctx.textAlign = 'left';
-    }
-    _ctx.fillText(text, tx, canvasH / 2);
-
-    const imgData = _canvas.toDataURL('image/png');
-    doc.addImage(imgData, 'PNG', x, y, w, h);
+    return canvas.toDataURL('image/png');
   }
 
-  /* ── 小黒板テキスト（白文字・背景なし） ────────── */
-  function addBBText(doc, text, x, y, w, h) {
-    addJPText(doc, text, x, y, w, h, { color: '#ffffff', fontSize: 14 });
+  /* テキスト画像をPDFに貼る */
+  function addText(doc, text, x, y, w, h, opts = {}) {
+    if (!text) return;
+    const img = textToImage(text, {
+      fontSize: opts.fontSize || 20,
+      color: opts.color || '#000000',
+      bgColor: opts.bgColor || null,
+      maxWidth: Math.ceil(w * 8),
+      padding: 4,
+      fontWeight: opts.bold ? 'bold' : '',
+    });
+    doc.addImage(img, 'PNG', x, y, w, h);
   }
 
-  /* ── ヘッダー描画 ──────────────────────────────── */
+  /* ═══ 画像URL → dataURL（CORS対策） ════════════ */
+  async function loadImageAsDataURL(url) {
+    if (!url) return null;
+    if (url.startsWith('data:')) return url;
+
+    return new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth;
+          c.height = img.naturalHeight;
+          c.getContext('2d').drawImage(img, 0, 0);
+          resolve(c.toDataURL('image/jpeg', 0.85));
+        } catch (e) {
+          fetchAsDataURL(url).then(resolve);
+        }
+      };
+      img.onerror = () => fetchAsDataURL(url).then(resolve);
+      img.src = url;
+    });
+  }
+
+  function fetchAsDataURL(url) {
+    return fetch(url)
+      .then(r => r.blob())
+      .then(blob => new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      }))
+      .catch(() => null);
+  }
+
+  /* ═══ 描画ヘルパー ═════════════════════════════ */
+
   function drawHeader(doc, info, categoryLabel) {
-    addJPText(doc, truncate(info.projectName, 50), MARGIN, MARGIN - 4, 80, 3.5, { color: '#666666', fontSize: 16 });
+    addText(doc, truncate(info.projectName, 45), MARGIN, MARGIN - 4.5, 75, 3.5, { fontSize: 16, color: '#666666' });
     if (categoryLabel) {
-      addJPText(doc, categoryLabel, PAGE_W - MARGIN - 40, MARGIN - 4, 40, 3.5, { color: '#666666', fontSize: 16, align: 'right' });
+      addText(doc, categoryLabel, PAGE_W - MARGIN - 40, MARGIN - 4.5, 40, 3.5, { fontSize: 16, color: '#666666' });
     }
     doc.setDrawColor(200);
     doc.line(MARGIN, MARGIN, PAGE_W - MARGIN, MARGIN);
   }
 
-  /* ── フッター描画 ──────────────────────────────── */
   function drawFooter(doc, info, pageNum, totalPages) {
     const fy = PAGE_H - MARGIN + 2;
     doc.setDrawColor(200);
     doc.line(MARGIN, fy, PAGE_W - MARGIN, fy);
-    addJPText(doc, truncate(info.contractorName, 40), MARGIN, fy + 1, 70, 3.5, { color: '#777777', fontSize: 14 });
+    addText(doc, truncate(info.contractorName, 35), MARGIN, fy + 1, 60, 3.5, { fontSize: 14, color: '#777777' });
+    // ページ番号は英数字のみなのでdoc.textでOK
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(120);
@@ -112,56 +160,43 @@ const PHOTO_EXPORT = (() => {
     doc.setTextColor(0);
   }
 
-  /* ── 電子小黒板描画 ────────────────────────────── */
-  function drawBlackboard(doc, x, y, imgW, imgH, photo, info) {
-    const bbW = imgW * 0.75;
-    const bbH = imgH * 0.28;
-    const bx = x;
-    const by = y + imgH - bbH;
-
+  function drawBlackboard(doc, bx, by, bbW, bbH, photo, info) {
     doc.setFillColor(0, 0, 0);
     doc.setGState(new doc.GState({ opacity: 0.65 }));
     doc.rect(bx, by, bbW, bbH, 'F');
     doc.setGState(new doc.GState({ opacity: 1 }));
 
-    const lineH = bbH / 4.5;
+    const lh = bbH / 4.5;
     const lines = [
-      truncate(info.projectName, 35),
+      truncate(info.projectName, 30),
       `${photo.work_type||''} / ${photo.sub_category||''}`,
       photo.measurement_point || '',
       photo.shot_date || '',
     ].filter(l => l);
     let ly = by + 0.5;
     lines.forEach(line => {
-      addBBText(doc, line, bx + 1, ly, bbW - 2, lineH);
-      ly += lineH;
+      addText(doc, line, bx + 1, ly, bbW - 2, lh, { fontSize: 14, color: '#ffffff' });
+      ly += lh;
     });
   }
 
-  /* ── 写真描画ヘルパー ──────────────────────────── */
-  function drawPhoto(doc, photo, x, y, w, h) {
-    if (photo._dataUrl) {
-      try { doc.addImage(photo._dataUrl, 'JPEG', x, y, w, h); return; } catch(e) {}
+  async function drawPhoto(doc, photo, x, y, w, h) {
+    const src = photo._dataUrl || photo.file_url;
+    if (src) {
+      const dataUrl = await loadImageAsDataURL(src);
+      if (dataUrl) {
+        try { doc.addImage(dataUrl, 'JPEG', x, y, w, h); return; } catch(e) {}
+      }
     }
     doc.setDrawColor(200);
     doc.rect(x, y, w, h);
-    doc.setFontSize(9);
-    doc.setTextColor(150);
-    doc.text('(no image)', x + w/2, y + h/2, { align: 'center' });
-    doc.setTextColor(0);
   }
 
-  /* ── セクション見出しページ ────────────────────── */
   function drawSectionTitle(doc, title, info, pageNum, totalPages) {
     doc.addPage();
     drawHeader(doc, info, title);
     drawFooter(doc, info, pageNum, totalPages);
-    addJPText(doc, title, MARGIN, PAGE_H / 2 - 15, CW, 10, { fontSize: 40, fontWeight: 'bold', align: 'center' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120);
-    doc.text('Construction Photo Ledger', PAGE_W / 2, PAGE_H / 2 + 5, { align: 'center' });
-    doc.setTextColor(0);
+    addText(doc, title, MARGIN, PAGE_H / 2 - 15, CW, 12, { fontSize: 42, bold: true });
   }
 
   /* ═══ メイン: PDF出力 ═══════════════════════════ */
@@ -183,140 +218,108 @@ const PHOTO_EXPORT = (() => {
 
     let totalPages = 1;
     if (beforeAfter.length) totalPages += 1 + Math.ceil(beforeAfter.length / 2);
-    Object.entries(grouped).forEach(([, items]) => {
-      totalPages += 1 + Math.ceil(items.length / 4);
-    });
+    Object.entries(grouped).forEach(([, items]) => { totalPages += 1 + Math.ceil(items.length / 4); });
     totalPages += 1;
     let pn = 1;
 
     // ── 表紙 ──
-    addJPText(doc, '工事写真台帳', MARGIN, 55, CW, 14, { fontSize: 48, fontWeight: 'bold', align: 'center' });
-
+    addText(doc, '工事写真台帳', MARGIN, 55, CW, 14, { fontSize: 48, bold: true });
     doc.setDrawColor(0); doc.setLineWidth(0.5);
     doc.line(MARGIN + 30, 72, PAGE_W - MARGIN - 30, 72);
 
     let cy = 82;
     const coverRows = [
-      ['工事名称', info.projectName],
-      ['工事番号', info.projectNumber],
-      ['発注者', info.clientName],
-      ['施工業者', info.contractorName],
+      ['工事名称', info.projectName], ['工事番号', info.projectNumber],
+      ['発注者', info.clientName], ['施工業者', info.contractorName],
       ['現場所在地', info.siteLocation],
       ['工期', (info.startDate ? fmtDateJP(info.startDate) : '') +
               (info.startDate && info.endDate ? ' ～ ' : '') +
               (info.endDate ? fmtDateJP(info.endDate) : '')],
-      ['現場代理人', info.siteManager],
-      ['監理技術者', info.supervisor],
+      ['現場代理人', info.siteManager], ['監理技術者', info.supervisor],
       ['作成日', fmtDateJP(new Date().toISOString().slice(0,10))],
     ];
     coverRows.forEach(([label, val]) => {
       if (!val) return;
-      addJPText(doc, label, MARGIN + 30, cy, 35, 5, { fontSize: 20, fontWeight: 'bold' });
-      addJPText(doc, ': ' + String(val), MARGIN + 68, cy, 90, 5, { fontSize: 20 });
+      addText(doc, label, MARGIN + 30, cy, 35, 5, { fontSize: 20, bold: true });
+      addText(doc, ': ' + String(val), MARGIN + 68, cy, 90, 5, { fontSize: 20 });
       cy += 9;
     });
-
-    doc.setDrawColor(0);
     doc.line(MARGIN + 30, cy + 4, PAGE_W - MARGIN - 30, cy + 4);
     pn++;
 
-    // ── 着手前・完成写真（見開き） ──
+    // ── 着手前・完成写真 ──
     if (beforeAfter.length) {
-      drawSectionTitle(doc, '着手前・完成写真', info, pn, totalPages);
-      pn++;
-
-      const halfW = (CW - 6) / 2;
-      const halfH = halfW * 0.75;
+      drawSectionTitle(doc, '着手前・完成写真', info, pn, totalPages); pn++;
+      const halfW = (CW - 6) / 2, halfH = halfW * 0.75;
       for (let i = 0; i < beforeAfter.length; i += 2) {
         doc.addPage();
         drawHeader(doc, info, '着手前・完成写真');
-        drawFooter(doc, info, pn, totalPages);
-        pn++;
-
+        drawFooter(doc, info, pn, totalPages); pn++;
         for (let j = 0; j < 2; j++) {
           const photo = beforeAfter[i + j];
           if (!photo) continue;
-          const x = MARGIN + j * (halfW + 6);
-          const y = MARGIN + HEADER_H;
-
-          drawPhoto(doc, photo, x, y, halfW, halfH);
-          drawBlackboard(doc, x, y, halfW, halfH, photo, info);
-
-          addJPText(doc, j === 0 ? '【施工前】' : '【施工後】', x, y + halfH + 2, 30, 4, { fontSize: 16, fontWeight: 'bold' });
-          addJPText(doc, truncate(photo.description, 50), x, y + halfH + 6, halfW, 3.5, { fontSize: 14, color: '#333333' });
+          const x = MARGIN + j * (halfW + 6), y = MARGIN + HEADER_H;
+          await drawPhoto(doc, photo, x, y, halfW, halfH);
+          drawBlackboard(doc, x, y + halfH - halfH * 0.28, halfW * 0.75, halfH * 0.28, photo, info);
+          addText(doc, j === 0 ? '【施工前】' : '【施工後】', x, y + halfH + 2, 30, 4, { fontSize: 16, bold: true });
+          addText(doc, truncate(photo.description, 50), x, y + halfH + 6, halfW, 3.5, { fontSize: 14, color: '#333' });
         }
       }
     }
 
-    // ── カテゴリ別写真ページ ──
-    const imgW = (CW - 8) / 2;
-    const imgH = imgW * 0.75;
-    const captionH = 14;
-    const blockH = imgH + captionH + 4;
+    // ── カテゴリ別 ──
+    const imgW = (CW - 8) / 2, imgH = imgW * 0.75;
+    const blockH = imgH + 18;
 
-    Object.entries(grouped).forEach(([cat, items]) => {
-      drawSectionTitle(doc, cat, info, pn, totalPages);
-      pn++;
-
+    for (const [cat, items] of Object.entries(grouped)) {
+      drawSectionTitle(doc, cat, info, pn, totalPages); pn++;
       for (let i = 0; i < items.length; i++) {
         if (i % 4 === 0) {
           doc.addPage();
           drawHeader(doc, info, cat);
-          drawFooter(doc, info, pn, totalPages);
-          pn++;
+          drawFooter(doc, info, pn, totalPages); pn++;
         }
-
-        const col = (i % 4) % 2;
-        const row = Math.floor((i % 4) / 2);
+        const col = (i % 4) % 2, row = Math.floor((i % 4) / 2);
         const x = MARGIN + col * (imgW + 8);
         const y = MARGIN + HEADER_H + row * (blockH + 4);
         const photo = items[i];
 
-        drawPhoto(doc, photo, x, y, imgW, imgH);
-        drawBlackboard(doc, x, y, imgW, imgH, photo, info);
+        await drawPhoto(doc, photo, x, y, imgW, imgH);
+        drawBlackboard(doc, x, y + imgH - imgH * 0.28, imgW * 0.75, imgH * 0.28, photo, info);
 
         let ty = y + imgH + 1;
-        addJPText(doc, `${photo.work_type||''} / ${photo.sub_category||''}`, x, ty, imgW, 3, { fontSize: 14, color: '#333333' });
+        addText(doc, `${photo.work_type||''} / ${photo.sub_category||''}`, x, ty, imgW, 3, { fontSize: 14, color: '#333' });
         ty += 3.5;
-        addJPText(doc, `${photo.measurement_point||''} | ${photo.shot_date||''}`, x, ty, imgW, 3, { fontSize: 14, color: '#555555' });
+        addText(doc, `${photo.measurement_point||''} | ${photo.shot_date||''}`, x, ty, imgW, 3, { fontSize: 14, color: '#555' });
         ty += 3.5;
-        addJPText(doc, truncate(photo.description, 70), x, ty, imgW, 3, { fontSize: 13, color: '#333333' });
+        addText(doc, truncate(photo.description, 65), x, ty, imgW, 3, { fontSize: 13, color: '#333' });
       }
-    });
+    }
 
-    // ── 写真管理一覧表（横向き） ──
+    // ── 一覧表（横向き） ──
     doc.addPage('a4', 'landscape');
+    addText(doc, '写真管理一覧', 15, 10, 60, 6, { fontSize: 24, bold: true });
     const lw = 297;
-    addJPText(doc, '写真管理一覧', 15, 10, 60, 6, { fontSize: 24, fontWeight: 'bold' });
-
     const cols = ['No','写真区分','工種','種別','測点','撮影日','撮影者','説明'];
     const colW = [10, 30, 22, 26, 18, 20, 16, lw - 30 - 10 - 30 - 22 - 26 - 18 - 20 - 16];
-    let tx = 15, ty2 = 20;
 
-    // ヘッダー
+    let tx2 = 15, ty2 = 20;
     doc.setFillColor(240, 240, 240);
     doc.rect(15, ty2 - 1, lw - 30, 5, 'F');
     cols.forEach((c, ci) => {
-      addJPText(doc, c, tx, ty2 - 1, colW[ci], 4, { fontSize: 14, fontWeight: 'bold' });
-      tx += colW[ci];
+      addText(doc, c, tx2, ty2 - 1, colW[ci], 4, { fontSize: 14, bold: true });
+      tx2 += colW[ci];
     });
     ty2 += 5;
 
-    // 行データ
     sorted.forEach((p, i) => {
-      if (ty2 > 195) {
-        doc.addPage('a4', 'landscape');
-        ty2 = 15;
-      }
-      tx = 15;
-      const vals = [
-        String(i + 1), p.photo_category||'', p.work_type||'',
-        p.sub_category||'', p.measurement_point||'',
-        p.shot_date||'', p.photographer||'', truncate(p.description, 50),
-      ];
-      vals.forEach((v, ci) => {
-        addJPText(doc, v, tx, ty2, colW[ci], 3.5, { fontSize: 13 });
-        tx += colW[ci];
+      if (ty2 > 195) { doc.addPage('a4', 'landscape'); ty2 = 15; }
+      tx2 = 15;
+      [String(i+1), p.photo_category||'', p.work_type||'', p.sub_category||'',
+       p.measurement_point||'', p.shot_date||'', p.photographer||'', truncate(p.description, 45)
+      ].forEach((v, ci) => {
+        addText(doc, v, tx2, ty2, colW[ci], 3.5, { fontSize: 13 });
+        tx2 += colW[ci];
       });
       doc.setDrawColor(220);
       doc.line(15, ty2 + 4, lw - 15, ty2 + 4);
@@ -326,12 +329,12 @@ const PHOTO_EXPORT = (() => {
     doc.save(`写真台帳_${info.projectName||'report'}.pdf`);
   }
 
-  /* ── Excel 出力 ────────────────────────────────── */
+  /* ── Excel ─────────────────────────────────────── */
   function exportToExcel(photos, info) {
     if (typeof XLSX === 'undefined') { alert('SheetJSが読み込まれていません'); return; }
     const sorted = sortPhotos(photos);
     const rows = sorted.map((p, i) => ({
-      'No': i + 1, '写真区分': p.photo_category||'', '工種': p.work_type||'',
+      'No': i+1, '写真区分': p.photo_category||'', '工種': p.work_type||'',
       '種別': p.sub_category||'', '細別': p.detail_category||'', '測点': p.measurement_point||'',
       '撮影日': p.shot_date||'', '撮影者': p.photographer||'', '説明': p.description||'',
       'ファイル名': p.file_path||'',
