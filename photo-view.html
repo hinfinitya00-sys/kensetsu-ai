@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>建設AI｜写真台帳（閲覧）</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/photo-ledger.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:var(--black); color:var(--text);
+      font-family:'Noto Sans JP',sans-serif; min-height:100vh;
+    }
+    header {
+      background:var(--dark); border-bottom:2px solid var(--orange);
+      padding:0 24px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    .logo {
+      display:flex; align-items:center; gap:10px;
+      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
+      letter-spacing:1px; color:var(--text);
+    }
+    .logo-mark {
+      width:32px; height:32px; background:var(--orange);
+      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900; color:white;
+    }
+    .container { max-width:1100px; margin:0 auto; padding:24px 24px 60px; }
+    .info-grid {
+      display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+      gap:12px; margin-bottom:24px;
+    }
+    .info-item { font-size:13px; }
+    .info-item .key { color:var(--muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+    .info-item .val { color:var(--text); font-weight:600; margin-top:2px; }
+    .view-title {
+      font-family:'Oswald',sans-serif; font-size:24px; font-weight:700;
+      margin-bottom:4px; letter-spacing:1px;
+    }
+    .view-title span { color:var(--orange); }
+    .view-sub { font-size:13px; color:var(--muted); margin-bottom:20px; }
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; margin-bottom:20px; overflow:hidden;
+    }
+    .card-header {
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700;
+    }
+    .card-header .dot { width:8px; height:8px; background:var(--orange); border-radius:50%; }
+    .card-body { padding:20px; }
+    .btn-primary {
+      background:linear-gradient(135deg,var(--orange),#CC5500);
+      color:#fff; border:none; padding:12px 28px; border-radius:10px;
+      font-size:15px; font-weight:700; display:inline-flex; align-items:center; gap:8px;
+      cursor:pointer; box-shadow:0 4px 14px rgba(255,107,0,.35); transition:all .2s;
+    }
+    .btn-primary:hover { transform:translateY(-2px); }
+    .loading-center {
+      text-align:center; padding:60px 20px; color:var(--muted); font-size:15px;
+    }
+    .toast {
+      position:fixed; bottom:24px; left:50%;
+      transform:translateX(-50%) translateY(80px);
+      padding:10px 22px; border-radius:100px; font-size:13px; font-weight:600;
+      color:#fff; background:var(--dark); z-index:400;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.4);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.ok  { background:var(--green); }
+    .toast.err { background:var(--red); }
+    @media(max-width:640px) { .info-grid { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">建</div>
+    <span>KENSETSU<span style="color:var(--orange)">AI</span> — 写真台帳</span>
+  </div>
+</header>
+
+<div class="container">
+  <div id="viewContent">
+    <div class="loading-center">📷 写真台帳を読み込み中...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/photo-pdf-export.js"></script>
+<script>
+'use strict';
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+
+let _photos = [];
+let _info = {};
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+let _tt;
+function toast(msg, type='', dur=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' '+type : '');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => { t.className = 'toast'; }, dur);
+}
+
+async function loadProject() {
+  const params = new URLSearchParams(location.search);
+  const projectId = params.get('project');
+  if (!projectId) {
+    document.getElementById('viewContent').innerHTML =
+      '<div class="loading-center">⚠️ URLにproject パラメータがありません</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/photo_reports?project_id=eq.${encodeURIComponent(projectId)}&order=sequence_order.asc`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+    );
+    const data = await res.json();
+
+    if (!data || !data.length) {
+      document.getElementById('viewContent').innerHTML =
+        '<div class="loading-center">📭 該当する写真台帳が見つかりませんでした</div>';
+      return;
+    }
+
+    const first = data[0];
+    _info = {
+      projectName: first.project_name || '',
+      contractorName: first.contractor_name || '',
+      siteLocation: first.site_location || '',
+    };
+    _photos = data.map((r, i) => ({
+      _id: r.id, _dataUrl: r.file_url || '', _file: null,
+      photo_category: r.photo_category || '', work_type: r.work_type || '',
+      sub_category: r.sub_category || '', measurement_point: r.measurement_point || '',
+      shot_date: r.shot_date || '', photographer: r.photographer || '',
+      description: r.description || '', file_path: r.file_path || '',
+      file_url: r.file_url || '', sequence_order: r.sequence_order ?? i,
+    }));
+
+    renderView();
+  } catch (e) {
+    document.getElementById('viewContent').innerHTML =
+      `<div class="loading-center">❌ 読み込みエラー: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderView() {
+  const infoHtml = [
+    ['工事名称', _info.projectName],
+    ['施工業者', _info.contractorName],
+    ['現場所在地', _info.siteLocation],
+    ['写真枚数', _photos.length + '枚'],
+  ].filter(([,v]) => v).map(([k,v]) =>
+    `<div class="info-item"><div class="key">${k}</div><div class="val">${escHtml(v)}</div></div>`
+  ).join('');
+
+  const gridHtml = _photos.map(p => `
+    <div class="photo-card">
+      <div class="card-img-wrap">
+        ${p._dataUrl ? `<img src="${escHtml(p._dataUrl)}" alt="" loading="lazy">` : '<div style="width:100%;aspect-ratio:4/3;background:var(--card2);display:flex;align-items:center;justify-content:center;color:var(--muted);">No Image</div>'}
+      </div>
+      <div class="card-body">
+        <div class="card-category">${escHtml(p.photo_category)}</div>
+        <div class="card-desc">${escHtml(p.description)}</div>
+      </div>
+      <div class="card-meta">
+        <span>${escHtml(p.shot_date)}</span>
+        <span>${escHtml(p.work_type)}</span>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('viewContent').innerHTML = `
+    <div class="view-title">📸 写真台帳 <span>閲覧</span></div>
+    <div class="view-sub">${escHtml(_info.projectName)}</div>
+
+    <div class="card">
+      <div class="card-header"><div class="dot"></div>工事情報</div>
+      <div class="card-body">
+        <div class="info-grid">${infoHtml}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="dot"></div>写真一覧（${_photos.length}枚）</div>
+      <div class="card-body">
+        <div class="photo-grid">${gridHtml}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+      <button class="btn-primary" onclick="handlePDF()">📄 PDF出力</button>
+    </div>
+  `;
+}
+
+function handlePDF() {
+  if (!_photos.length) { toast('写真がありません', 'err'); return; }
+  PHOTO_EXPORT.exportToPDF(_photos, _info);
+  toast('PDF出力を開始しました', 'ok');
+}
+
+document.addEventListener('DOMContentLoaded', loadProject);
+</script>
+</body>
+</html>

@@ -287,6 +287,20 @@ const LEDGER = (() => {
     toast('Excel出力を開始しました', 'ok');
   }
 
+  function shareLink() {
+    const projectId = makeProjectId(getProjectInfo().projectName);
+    if (!projectId || projectId === 'default') {
+      toast('工事名を入力してから共有リンクを生成してください', 'err');
+      return;
+    }
+    const url = `https://hinfinitya00-sys.github.io/kensetsu-ai/photo-view.html?project=${projectId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      toast('共有リンクをコピーしました ✅', 'ok');
+    }).catch(() => {
+      prompt('以下のURLをコピーしてください:', url);
+    });
+  }
+
   async function handleExportXMLZip() {
     if (!photos.length) { toast('写真がありません', 'err'); return; }
     toast('電子納品ZIP生成中...', '', 10000);
@@ -608,7 +622,7 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip,
+    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink,
     saveToSupabase, loadFromSupabase, promptLoadFromDB,
     saveDraft, restoreDraft, clearDraft,
   };
