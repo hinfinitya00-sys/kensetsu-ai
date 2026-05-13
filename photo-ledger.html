@@ -13,6 +13,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -284,6 +285,7 @@
     <button class="btn-secondary" onclick="LEDGER.saveToSupabase()">💾 Supabaseに保存</button>
     <button class="btn-export btn-excel" onclick="LEDGER.handleExportExcel()">📊 Excel出力</button>
     <button class="btn-export btn-pdf" onclick="LEDGER.handleExportPDF()">📄 PDF出力</button>
+    <button class="btn-export" onclick="LEDGER.handleExportXMLZip()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);">📦 電子納品ZIP</button>
   </div>
 
 </div>
@@ -293,6 +295,7 @@
 <!-- JS -->
 <script src="js/photo-ai-analyzer.js"></script>
 <script src="js/photo-pdf-export.js"></script>
+<script src="js/photo-xml-export.js"></script>
 <script src="js/photo-ledger.js"></script>
 </body>
 </html>

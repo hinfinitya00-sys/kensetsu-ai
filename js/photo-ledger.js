@@ -284,6 +284,13 @@ const LEDGER = (() => {
     toast('Excel出力を開始しました', 'ok');
   }
 
+  async function handleExportXMLZip() {
+    if (!photos.length) { toast('写真がありません', 'err'); return; }
+    toast('電子納品ZIP生成中...', '', 10000);
+    await PHOTO_XML.exportToXMLZip(photos, getProjectInfo());
+    toast('電子納品ZIPを保存しました ✅', 'ok');
+  }
+
   /* ── Supabase Storage アップロード ────────────── */
   async function uploadFileToStorage(file, projectId) {
     const today = new Date().toISOString().slice(0, 10);
@@ -598,7 +605,7 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handleExportPDF, handleExportExcel,
+    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip,
     saveToSupabase, loadFromSupabase, promptLoadFromDB,
     saveDraft, restoreDraft, clearDraft,
   };
