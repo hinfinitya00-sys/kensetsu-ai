@@ -394,12 +394,13 @@ const LEDGER = (() => {
   async function saveToSupabase() {
     if (!photos.length) { toast('保存する写真がありません', 'err'); return; }
     const info = getProjectInfo();
+    if (!info.projectName) { toast('工事名を入力してください', 'err'); return; }
     const projectId = makeProjectId(info.projectName);
 
-    toast('写真をアップロード中...', '', 15000);
+    toast('保存中...', '', 15000);
 
     try {
-      // Step1: 各写真をStorageにアップロード
+      // Step1: 新しいファイルをStorageにアップロード
       for (const p of photos) {
         if (p._file && !p.file_url) {
           try {
@@ -407,15 +408,15 @@ const LEDGER = (() => {
             p.file_path = filePath;
             p.file_url = fileUrl;
           } catch (e) {
-            console.warn('Storage upload failed for', p.file_path, e.message);
+            console.warn('Storage upload failed:', p.file_path, e.message);
           }
         }
       }
 
-      // Step2: DBにINSERT
+      // Step2: UPSERT（同じproject_id+file_pathなら更新、なければ追加）
       const rows = photos.map(p => ({
         project_id: projectId,
-        project_name: info.projectName || 'default',
+        project_name: info.projectName,
         contractor_name: info.contractorName || null,
         site_location: info.siteLocation || null,
         work_type: p.work_type || 'その他',
@@ -438,7 +439,7 @@ const LEDGER = (() => {
           'apikey': SB_KEY,
           'Authorization': 'Bearer ' + SB_KEY,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation',
+          'Prefer': 'resolution=merge-duplicates,return=representation',
         },
         body: JSON.stringify(rows),
       });
@@ -449,7 +450,7 @@ const LEDGER = (() => {
       }
 
       clearDraft();
-      toast('Supabaseに保存しました ✅', 'ok');
+      toast(`${photos.length}枚を保存しました ✅`, 'ok');
     } catch (e) {
       toast('保存に失敗: ' + e.message, 'err', 5000);
     }
