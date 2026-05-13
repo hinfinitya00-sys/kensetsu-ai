@@ -17,6 +17,10 @@ const LEDGER = (() => {
   let sortableInstance = null;
   let apiKey = '';
 
+  function makeProjectId(name) {
+    return (name || 'default').toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') || 'default';
+  }
+
   /* ── Toast ─────────────────────────────────────── */
   let _tt;
   function toast(msg, type = '', dur = 3000) {
@@ -54,7 +58,7 @@ const LEDGER = (() => {
         _dataUrl: dataUrl,
         _file: file,
         _analyzing: true,
-        project_id: 'default',
+        project_id: makeProjectId(getProjectInfo().projectName),
         project_name: getProjectInfo().projectName || 'default',
         work_type: 'その他',
         photo_category: 'その他',
@@ -268,14 +272,57 @@ const LEDGER = (() => {
     toast('Excel出力を開始しました', 'ok');
   }
 
-  /* ── Supabase保存 ──────────────────────────────── */
+  /* ── Supabase Storage アップロード ────────────── */
+  async function uploadFileToStorage(file, projectId) {
+    const today = new Date().toISOString().slice(0, 10);
+    const uuid = crypto.randomUUID();
+    const safeName = file.name.replace(/[^\w.\-]/g, '_');
+    const filePath = `${projectId}/${today}/${uuid}_${safeName}`;
+
+    const res = await fetch(`${SB_URL}/storage/v1/object/site-photos/${filePath}`, {
+      method: 'PUT',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': file.type || 'image/jpeg',
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `Storage upload failed: ${res.status}`);
+    }
+
+    const fileUrl = `${SB_URL}/storage/v1/object/public/site-photos/${filePath}`;
+    return { filePath, fileUrl };
+  }
+
+  /* ── Supabase保存（Storage + DB） ────────────── */
   async function saveToSupabase() {
     if (!photos.length) { toast('保存する写真がありません', 'err'); return; }
     const info = getProjectInfo();
+    const projectId = makeProjectId(info.projectName);
+
+    toast('写真をアップロード中...', '', 15000);
 
     try {
+      // Step1: 各写真をStorageにアップロード
+      for (const p of photos) {
+        if (p._file && !p.file_url) {
+          try {
+            const { filePath, fileUrl } = await uploadFileToStorage(p._file, projectId);
+            p.file_path = filePath;
+            p.file_url = fileUrl;
+          } catch (e) {
+            console.warn('Storage upload failed for', p.file_path, e.message);
+          }
+        }
+      }
+
+      // Step2: DBにINSERT
       const rows = photos.map(p => ({
-        project_id: p.project_id || 'default',
+        project_id: projectId,
         project_name: info.projectName || 'default',
         contractor_name: info.contractorName || null,
         site_location: info.siteLocation || null,
@@ -288,6 +335,7 @@ const LEDGER = (() => {
         photographer: p.photographer || null,
         description: p.description || null,
         file_path: p.file_path || '',
+        file_url: p.file_url || null,
         ai_analysis: p._aiResult || null,
         sequence_order: p.sequence_order || 0,
       }));
@@ -308,10 +356,81 @@ const LEDGER = (() => {
         throw new Error(err.message || `HTTP ${res.status}`);
       }
 
-      toast('Supabaseに保存しました', 'ok');
+      toast('Supabaseに保存しました ✅', 'ok');
     } catch (e) {
       toast('保存に失敗: ' + e.message, 'err', 5000);
     }
+  }
+
+  /* ── Supabaseから読み込み ──────────────────────── */
+  async function loadFromSupabase(projectName) {
+    if (!projectName) { toast('工事名を入力してください', 'err'); return; }
+
+    toast('読み込み中...', '', 5000);
+
+    try {
+      const encoded = encodeURIComponent(projectName);
+      const res = await fetch(
+        `${SB_URL}/rest/v1/photo_reports?project_name=eq.${encoded}&order=sequence_order.asc`,
+        {
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!data.length) {
+        toast('該当する台帳が見つかりませんでした', 'err');
+        return;
+      }
+
+      // フォームに工事情報を復元
+      const first = data[0];
+      if ($('projectName'))     $('projectName').value = first.project_name || '';
+      if ($('contractorName'))  $('contractorName').value = first.contractor_name || '';
+      if ($('siteLocation'))    $('siteLocation').value = first.site_location || '';
+
+      // photos配列にセット
+      photos = data.map((r, i) => ({
+        _id: r.id || crypto.randomUUID(),
+        _dataUrl: r.file_url || '',
+        _file: null,
+        _analyzing: false,
+        project_id: r.project_id || 'default',
+        project_name: r.project_name || '',
+        work_type: r.work_type || 'その他',
+        photo_category: r.photo_category || 'その他',
+        sub_category: r.sub_category || '',
+        detail_category: r.detail_category || '',
+        measurement_point: r.measurement_point || '',
+        shot_date: r.shot_date || '',
+        photographer: r.photographer || '',
+        description: r.description || '',
+        file_path: r.file_path || '',
+        file_url: r.file_url || '',
+        _aiResult: r.ai_analysis || null,
+        sequence_order: r.sequence_order ?? i,
+      }));
+
+      renderGrid();
+      updateCount();
+      toast(`${data.length}枚の写真を読み込みました ✅`, 'ok');
+    } catch (e) {
+      toast('読み込みに失敗: ' + e.message, 'err', 5000);
+    }
+  }
+
+  /* ── 過去台帳を呼び出す ────────────────────────── */
+  function promptLoadFromDB() {
+    const name = prompt('読み込む工事名を入力してください:');
+    if (name) loadFromSupabase(name.trim());
   }
 
   /* ── 初期化 ────────────────────────────────────── */
@@ -340,7 +459,8 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handleExportPDF, handleExportExcel, saveToSupabase,
+    setFilter, handleExportPDF, handleExportExcel,
+    saveToSupabase, loadFromSupabase, promptLoadFromDB,
   };
 })();
 
