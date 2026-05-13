@@ -207,6 +207,39 @@
     </button>
   </div>
 
+  <!-- 電子小黒板テンプレート -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div>📋 電子小黒板テンプレート設定</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="f-group">
+          <label>工種プリセット</label>
+          <select id="presetWorkType" class="f-input">
+            <option value="">（選択なし）</option>
+            <option value="植生工">植生工</option>
+            <option value="吹付工">吹付工</option>
+            <option value="法枠工">法枠工</option>
+            <option value="アンカー工">アンカー工</option>
+            <option value="法面清掃工">法面清掃工</option>
+            <option value="仮設工">仮設工</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label>測点の初期値</label>
+          <input type="text" id="presetMeasurement" class="f-input" placeholder="例: No.10+5.0">
+        </div>
+        <div class="f-group">
+          <label>撮影者の初期値</label>
+          <input type="text" id="presetPhotographer" class="f-input" placeholder="氏名">
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+        ※ ここで設定した値は、次にアップロードする写真のデフォルト値になります
+      </div>
+    </div>
+  </div>
+
   <!-- アップロードゾーン -->
   <div class="card">
     <div class="card-header"><div class="dot"></div>写真アップロード</div>

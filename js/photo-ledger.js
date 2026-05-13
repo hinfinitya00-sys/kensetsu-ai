@@ -55,6 +55,11 @@ const LEDGER = (() => {
 
     apiKey = $('apiKeyInput')?.value.trim() || '';
 
+    // プリセット値を取得
+    const presetWork = $('presetWorkType')?.value || '';
+    const presetMeasure = $('presetMeasurement')?.value.trim() || '';
+    const presetPhotog = $('presetPhotographer')?.value.trim() || '';
+
     for (const file of files) {
       const { base64, mediaType, dataUrl } = await PHOTO_AI.fileToBase64(file);
       const id = crypto.randomUUID();
@@ -67,13 +72,13 @@ const LEDGER = (() => {
         _analyzing: true,
         project_id: makeProjectId(getProjectInfo().projectName),
         project_name: getProjectInfo().projectName || 'default',
-        work_type: 'その他',
+        work_type: presetWork || 'その他',
         photo_category: 'その他',
         sub_category: '',
         detail_category: '',
-        measurement_point: '',
+        measurement_point: presetMeasure,
         shot_date: today,
-        photographer: '',
+        photographer: presetPhotog,
         description: '解析中...',
         file_path: file.name,
         sequence_order: photos.length,
