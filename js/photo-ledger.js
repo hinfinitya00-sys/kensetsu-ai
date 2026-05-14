@@ -433,7 +433,7 @@ const LEDGER = (() => {
         sequence_order: p.sequence_order || 0,
       }));
 
-      const res = await fetch(`${SB_URL}/rest/v1/photo_reports`, {
+      const res = await fetch(`${SB_URL}/rest/v1/photo_reports?on_conflict=project_id,file_path`, {
         method: 'POST',
         headers: {
           'apikey': SB_KEY,
@@ -671,7 +671,7 @@ const LEDGER = (() => {
         sequence_order: i,
       }));
 
-      const res = await fetch(`${SB_URL}/rest/v1/photo_reports`, {
+      const res = await fetch(`${SB_URL}/rest/v1/photo_reports?on_conflict=project_id,file_path`, {
         method: 'POST',
         headers: {
           'apikey': SB_KEY,
