@@ -104,36 +104,32 @@ const PHOTO_EXPORT = (() => {
   async function loadImageAsDataURL(url) {
     if (!url) return null;
     if (url.startsWith('data:')) return url;
-
-    return new Promise(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const c = document.createElement('canvas');
-          c.width = img.naturalWidth;
-          c.height = img.naturalHeight;
-          c.getContext('2d').drawImage(img, 0, 0);
-          resolve(c.toDataURL('image/jpeg', 0.85));
-        } catch (e) {
-          fetchAsDataURL(url).then(resolve);
-        }
-      };
-      img.onerror = () => fetchAsDataURL(url).then(resolve);
-      img.src = url;
-    });
+    try {
+      const response = await fetch(url, { mode: 'cors', cache: 'force-cache' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const blob = await response.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('FileReader failed'));
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('画像読み込み失敗:', url, e.message);
+      return null;
+    }
   }
 
   function fetchAsDataURL(url) {
-    return fetch(url)
-      .then(r => r.blob())
+    return fetch(url, { mode: 'cors', cache: 'force-cache' })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
       .then(blob => new Promise((res, rej) => {
         const reader = new FileReader();
         reader.onload = () => res(reader.result);
         reader.onerror = rej;
         reader.readAsDataURL(blob);
       }))
-      .catch(() => null);
+      .catch(e => { console.error('fetchAsDataURL失敗:', url, e.message); return null; });
   }
 
   /* ═══ 描画ヘルパー ═════════════════════════════ */
@@ -185,11 +181,19 @@ const PHOTO_EXPORT = (() => {
     if (src) {
       const dataUrl = await loadImageAsDataURL(src);
       if (dataUrl) {
-        try { doc.addImage(dataUrl, 'JPEG', x, y, w, h); return; } catch(e) {}
+        try {
+          const format = dataUrl.includes('image/png') ? 'PNG' : 'JPEG';
+          doc.addImage(dataUrl, format, x, y, w, h);
+          return;
+        } catch(e) { console.error('addImage失敗:', e.message); }
       }
     }
-    doc.setDrawColor(200);
+    doc.setFillColor(240, 240, 240);
+    doc.rect(x, y, w, h, 'F');
+    doc.setDrawColor(180);
     doc.rect(x, y, w, h);
+    doc.line(x, y, x + w, y + h);
+    doc.line(x + w, y, x, y + h);
   }
 
   function drawSectionTitle(doc, title, info, pageNum, totalPages) {
