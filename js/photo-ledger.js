@@ -281,6 +281,20 @@ const LEDGER = (() => {
   }
 
   /* ── 出力 ──────────────────────────────────────── */
+  function handlePrint() {
+    if (!photos.length) { toast('印刷する写真がありません', 'err'); return; }
+    const info = getProjectInfo();
+    const today = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
+    const pcEl = (id, val) => { const el = $(id); if (el) el.textContent = val || '—'; };
+    pcEl('pc-name', info.projectName);
+    pcEl('pc-contractor', info.contractorName);
+    pcEl('pc-client', info.clientName);
+    pcEl('pc-location', info.siteLocation);
+    pcEl('pc-period', (info.startDate && info.endDate) ? `${info.startDate} 〜 ${info.endDate}` : info.startDate);
+    pcEl('pc-date', today);
+    window.print();
+  }
+
   async function handleExportPDF() {
     if (!photos.length) { toast('写真がありません', 'err'); return; }
     toast('PDF生成中...しばらくお待ちください', '', 15000);
@@ -799,7 +813,7 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink, checkElectronicSubmission,
+    setFilter, handlePrint, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink, checkElectronicSubmission,
     saveToSupabase, loadFromSupabase, promptLoadFromDB, restoreFromStorage,
     saveDraft, restoreDraft, clearDraft,
   };

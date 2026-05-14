@@ -128,6 +128,56 @@
       .api-key-section { flex-direction:column; }
     }
   </style>
+  <style id="print-styles">
+    @page { size: A4 portrait; margin: 15mm; }
+    @media print {
+      header, .card:has(.upload-zone), .card:has(.form-grid),
+      .card:has(.category-tabs), .export-buttons,
+      .card-actions, .toast, .btn-secondary,
+      .card:has(#categoryTabs), [onclick*="promptLoadFromDB"],
+      [onclick*="restoreFromStorage"] { display: none !important; }
+
+      body { background: #fff !important; color: #000 !important; }
+
+      #print-cover {
+        display: block !important;
+        page-break-after: always;
+        text-align: center;
+        padding: 60px 30px;
+        font-family: "Noto Sans JP", sans-serif;
+      }
+
+      .container { padding: 0 !important; max-width: none !important; }
+
+      .card { background: #fff !important; border: none !important; box-shadow: none !important; }
+      .card-header { display: none !important; }
+
+      #photoGrid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        padding: 0 !important;
+      }
+
+      .photo-card {
+        background: #fff !important;
+        border: 1px solid #ccc !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border-radius: 4px !important;
+      }
+      .photo-card .card-img-wrap img {
+        width: 100% !important;
+        height: 160px !important;
+        object-fit: cover !important;
+      }
+      .photo-card .card-category { color: #333 !important; font-size: 9pt !important; }
+      .photo-card .card-desc { color: #000 !important; font-size: 8pt !important; }
+      .photo-card .card-meta { color: #666 !important; font-size: 8pt !important; border-top-color: #ccc !important; }
+      .empty-state { display: none !important; }
+    }
+    #print-cover { display: none; }
+  </style>
 </head>
 <body>
 
@@ -257,6 +307,21 @@
     </div>
   </div>
 
+  <!-- 印刷用表紙 -->
+  <div id="print-cover">
+    <h1 style="font-size:28pt;font-weight:bold;margin-bottom:20px;">工事写真台帳</h1>
+    <hr style="border:2px solid #333;margin:20px 0;">
+    <table style="width:100%;font-size:13pt;line-height:2.2;text-align:left;border-collapse:collapse;">
+      <tr><td style="width:140px;font-weight:bold;">工事名称</td><td id="pc-name">—</td></tr>
+      <tr><td style="font-weight:bold;">施工業者</td><td id="pc-contractor">—</td></tr>
+      <tr><td style="font-weight:bold;">発注者名</td><td id="pc-client">—</td></tr>
+      <tr><td style="font-weight:bold;">現場所在地</td><td id="pc-location">—</td></tr>
+      <tr><td style="font-weight:bold;">工期</td><td id="pc-period">—</td></tr>
+      <tr><td style="font-weight:bold;">作成日</td><td id="pc-date">—</td></tr>
+    </table>
+    <hr style="border:2px solid #333;margin:20px 0;">
+  </div>
+
   <!-- 写真グリッド -->
   <div class="card">
     <div class="card-header">
@@ -288,6 +353,7 @@
     <button class="btn-secondary" onclick="LEDGER.saveToSupabase()">💾 保存・更新</button>
     <button class="btn-export btn-excel" onclick="LEDGER.handleExportExcel()">📊 Excel出力</button>
     <button class="btn-export btn-pdf" onclick="LEDGER.handleExportPDF()">📄 PDF出力</button>
+    <button class="btn-export btn-pdf" onclick="LEDGER.handlePrint()">🖨️ 印刷</button>
     <button class="btn-export" onclick="LEDGER.checkElectronicSubmission()" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35);">📦 電子納品ZIP</button>
     <button class="btn-export" onclick="LEDGER.shareLink()" style="background:linear-gradient(135deg,#3B82F6,#2563EB);color:#fff;box-shadow:0 4px 14px rgba(59,130,246,.35);">🔗 共有リンクをコピー</button>
   </div>
