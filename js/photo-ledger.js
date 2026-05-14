@@ -18,6 +18,8 @@ const LEDGER = (() => {
   let currentFilter = 'すべて';
   let sortableInstance = null;
   let apiKey = '';
+  let selectMode = false;
+  const selectedIds = new Set();
 
   function makeProjectId(name) {
     return (name || 'default').toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') || 'default';
@@ -125,6 +127,50 @@ const LEDGER = (() => {
     updateCount();
   }
 
+  /* ── 複数選択・一括削除 ─────────────────────────── */
+  function toggleSelectMode() {
+    selectMode = !selectMode;
+    selectedIds.clear();
+    const btn = $('selectModeBtn');
+    const bulkBtn = $('bulkDeleteBtn');
+    if (btn) { btn.textContent = selectMode ? '✖️ 選択解除' : '☑️ 選択モード'; btn.style.background = selectMode ? 'var(--red)' : ''; }
+    if (bulkBtn) bulkBtn.style.display = selectMode ? 'inline-flex' : 'none';
+    updateBulkDeleteBtn();
+    renderGrid();
+  }
+
+  function updateBulkDeleteBtn() {
+    const btn = $('bulkDeleteBtn');
+    if (btn) btn.textContent = `🗑️ 選択削除（${selectedIds.size}枚）`;
+  }
+
+  function toggleSelect(id) {
+    if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+    updateBulkDeleteBtn();
+    const card = document.querySelector(`.photo-card[data-id="${id}"]`);
+    if (card) {
+      card.classList.toggle('selected', selectedIds.has(id));
+      const icon = card.querySelector('.check-icon');
+      if (icon) icon.textContent = selectedIds.has(id) ? '☑️' : '☐';
+    }
+  }
+
+  function bulkDelete() {
+    if (!selectedIds.size) { toast('写真を選択してください', 'err'); return; }
+    if (!confirm(`選択した${selectedIds.size}枚を削除しますか？`)) return;
+    photos = photos.filter(p => !selectedIds.has(p._id));
+    photos.forEach((p, i) => { p.sequence_order = i; });
+    selectedIds.clear();
+    selectMode = false;
+    const btn = $('selectModeBtn');
+    const bulkBtn = $('bulkDeleteBtn');
+    if (btn) { btn.textContent = '☑️ 選択モード'; btn.style.background = ''; }
+    if (bulkBtn) bulkBtn.style.display = 'none';
+    renderGrid();
+    updateCount();
+    toast('削除しました。「保存・更新」で確定してください', 'ok');
+  }
+
   /* ── 写真編集モーダル ──────────────────────────── */
   function openEditModal(id) {
     const photo = photos.find(p => p._id === id);
@@ -213,13 +259,18 @@ const LEDGER = (() => {
     }
 
     grid.innerHTML = filtered.map(p => `
-      <div class="photo-card" data-id="${p._id}">
+      <div class="photo-card${selectedIds.has(p._id) ? ' selected' : ''}" data-id="${p._id}">
         <div class="card-img-wrap">
           <img src="${p._dataUrl || ''}" alt="" loading="lazy">
           ${p._analyzing ? `
             <div class="progress-overlay">
               <div class="spinner"></div>
               <div class="progress-text">AI解析中...</div>
+            </div>
+          ` : ''}
+          ${selectMode ? `
+            <div class="select-overlay" onclick="event.stopPropagation();LEDGER.toggleSelect('${p._id}')">
+              <span class="check-icon">${selectedIds.has(p._id) ? '☑️' : '☐'}</span>
             </div>
           ` : ''}
         </div>
@@ -229,10 +280,11 @@ const LEDGER = (() => {
         </div>
         <div class="card-meta">
           <span>${p.shot_date || ''}</span>
+          ${selectMode ? '' : `
           <div class="card-actions">
             <button class="card-btn" onclick="LEDGER.openEditModal('${p._id}')" title="編集">✏️</button>
             <button class="card-btn del" onclick="LEDGER.deletePhoto('${p._id}')" title="削除">🗑</button>
-          </div>
+          </div>`}
         </div>
       </div>
     `).join('');
@@ -832,7 +884,8 @@ const LEDGER = (() => {
 
   return {
     init, handleFiles, deletePhoto, openEditModal,
-    setFilter, handlePrint, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink, checkElectronicSubmission,
+    setFilter, toggleSelectMode, toggleSelect, bulkDelete,
+    handlePrint, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink, checkElectronicSubmission,
     saveToSupabase, loadFromSupabase, promptLoadFromDB, restoreFromStorage,
     saveDraft, restoreDraft, clearDraft,
   };

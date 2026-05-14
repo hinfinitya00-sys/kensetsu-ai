@@ -334,7 +334,11 @@
     <div class="card-body">
 
       <!-- カテゴリタブ -->
-      <div class="category-tabs" id="categoryTabs"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div class="category-tabs" id="categoryTabs" style="flex:1;margin-bottom:0;"></div>
+        <button id="selectModeBtn" onclick="LEDGER.toggleSelectMode()">☑️ 選択モード</button>
+        <button id="bulkDeleteBtn" onclick="LEDGER.bulkDelete()" style="display:none">🗑️ 選択削除（0枚）</button>
+      </div>
 
       <!-- 写真グリッド -->
       <div class="photo-grid" id="photoGrid">

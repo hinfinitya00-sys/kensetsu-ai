@@ -353,6 +353,45 @@
   }
 }
 
+/* ── Select Mode ─────────────────────────────────── */
+.select-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  cursor: pointer;
+  font-size: 28px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+}
+.photo-card.selected {
+  border: 3px solid #4a9eff !important;
+  background: rgba(74,158,255,0.1) !important;
+}
+#selectModeBtn {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all .2s;
+}
+#selectModeBtn:hover { border-color: var(--orange); color: var(--orange); }
+#bulkDeleteBtn {
+  background: var(--red);
+  border: none;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* ── Print hide ──────────────────────────────────── */
 @media print {
   .upload-zone,
