@@ -242,12 +242,17 @@ const LEDGER = (() => {
       sortableInstance = Sortable.create(grid, {
         animation: 200,
         ghostClass: 'sortable-ghost',
-        onEnd: (evt) => {
-          const ids = Array.from(grid.children).map(el => el.dataset.id);
-          ids.forEach((id, i) => {
+        onEnd: () => {
+          const cards = Array.from(grid.children);
+          const newOrder = [];
+          cards.forEach((card, idx) => {
+            const id = card.dataset.id;
             const p = photos.find(pp => pp._id === id);
-            if (p) p.sequence_order = i;
+            if (p) { p.sequence_order = idx; newOrder.push(p); }
           });
+          photos.length = 0;
+          newOrder.forEach(p => photos.push(p));
+          saveOrderToSupabase();
         },
       });
     }
@@ -362,6 +367,29 @@ const LEDGER = (() => {
       </div>`;
     document.body.appendChild(modal);
     modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  }
+
+  /* ── 並び順をDBに保存 ───────────────────────────── */
+  async function saveOrderToSupabase() {
+    const saved = photos.filter(p => p.file_url && p.file_path);
+    if (!saved.length) return;
+    for (const p of saved) {
+      const fp = encodeURIComponent(p.file_path);
+      const pid = encodeURIComponent(p.project_id || 'default');
+      await fetch(
+        `${SB_URL}/rest/v1/photo_reports?file_path=eq.${fp}&project_id=eq.${pid}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ sequence_order: p.sequence_order }),
+        }
+      ).catch(() => {});
+    }
   }
 
   /* ── Supabase Storage アップロード ────────────── */
