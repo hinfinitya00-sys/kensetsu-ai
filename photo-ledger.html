@@ -130,54 +130,41 @@
   </style>
   <style id="print-styles">
     @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+      /* ヘッダー・ナビ・フォーム・ボタンを全部非表示 */
       header,
-      .form-section,
-      #uploadSection,
-      .blackboard-template,
-      .tab-bar,
-      .action-buttons,
+      .page-header,
+      .export-buttons,
       #selectModeBtn,
       #bulkDeleteBtn,
-      .edit-btn,
-      .delete-btn,
-      .select-overlay,
-      .toast-container,
-      .toast,
-      .export-buttons,
-      .card-actions,
-      .btn-secondary,
-      .page-header,
-      .page-sub,
-      .empty-state,
-      .progress-overlay,
-      .card-header,
-      .upload-zone,
-      .category-tabs,
-      .api-key-section,
-      nav { display: none !important; }
+      #restoreStorageBtn,
+      #print-page-header,
+      .toast { display: none !important; }
 
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      body { background: white !important; color: black !important; margin: 0; padding: 0; }
+      /* container内のcardを全部非表示にしてから写真cardだけ表示 */
+      .container > .card { display: none !important; }
+      .container > div:not(.card):not(#print-cover) { display: none !important; }
 
+      /* 表紙だけ表示 */
       #print-cover {
         display: block !important;
-        page-break-after: always;
+        page-break-after: always !important;
         padding: 40px;
+        font-family: "Noto Sans JP", "Hiragino Sans", sans-serif;
       }
 
-      #print-page-header {
+      /* 写真グリッドを含むcardを特定して表示 */
+      .card:has(#photoGrid) {
         display: block !important;
-        font-size: 9pt;
-        color: #666;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 3px;
-        margin-bottom: 6px;
+        background: white !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
 
-      .container { padding: 0 10px !important; max-width: none !important; }
-      .card { background: white !important; border: none !important; box-shadow: none !important; margin: 0 !important; }
-      .card-body { padding: 0 !important; }
-
+      /* 写真グリッドの印刷レイアウト */
       #photoGrid {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
@@ -186,32 +173,41 @@
         background: white !important;
       }
 
+      /* カテゴリタブ・ヘッダー非表示 */
+      .card:has(#photoGrid) > *:not(#photoGrid):not(#print-page-header) {
+        display: none !important;
+      }
+
+      /* 写真カード印刷スタイル */
       .photo-card {
-        display: block !important;
         background: white !important;
-        border: 1px solid #999 !important;
+        border: 1px solid #aaa !important;
         break-inside: avoid !important;
         page-break-inside: avoid !important;
+        box-shadow: none !important;
         margin: 0 !important;
         padding: 4px !important;
-        box-shadow: none !important;
       }
 
       .photo-card img {
         width: 100% !important;
-        height: 140px !important;
+        height: 150px !important;
         object-fit: cover !important;
         display: block !important;
       }
 
-      .card-category { font-size: 9pt !important; color: #333 !important; font-weight: bold !important; margin: 2px 0 !important; }
-      .card-desc { font-size: 8pt !important; color: #444 !important; margin: 1px 0 !important; }
-      .card-meta { font-size: 8pt !important; color: #666 !important; }
+      .card-category { font-size: 9pt !important; font-weight: bold !important; color: #222 !important; }
+      .card-desc { font-size: 8pt !important; color: #333 !important; }
+      .card-date { font-size: 8pt !important; color: #555 !important; }
+      .edit-btn, .delete-btn, .select-overlay, .card-actions { display: none !important; }
+
+      body { background: white !important; }
 
       @page { size: A4 portrait; margin: 12mm; }
     }
 
-    #print-cover, #print-page-header { display: none; }
+    /* 通常表示時は非表示 */
+    #print-cover { display: none; }
   </style>
 </head>
 <body>
