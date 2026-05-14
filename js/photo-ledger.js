@@ -338,13 +338,15 @@ const LEDGER = (() => {
     if (!photos.length) { toast('印刷する写真がありません', 'err'); return; }
     const info = getProjectInfo();
     const today = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
-    const pcEl = (id, val) => { const el = $(id); if (el) el.textContent = val || '—'; };
-    pcEl('pc-name', info.projectName);
-    pcEl('pc-contractor', info.contractorName);
-    pcEl('pc-client', info.clientName);
-    pcEl('pc-location', info.siteLocation);
-    pcEl('pc-period', (info.startDate && info.endDate) ? `${info.startDate} 〜 ${info.endDate}` : info.startDate);
-    pcEl('pc-date', today);
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+    setTxt('pc-name', info.projectName);
+    setTxt('pc-contractor', info.contractorName);
+    setTxt('pc-client', info.clientName);
+    setTxt('pc-location', info.siteLocation);
+    setTxt('pc-period', (info.startDate && info.endDate) ? `${info.startDate} ～ ${info.endDate}` : info.startDate || '');
+    setTxt('pc-date', today);
+    const ph = document.getElementById('print-header-project');
+    if (ph) ph.textContent = info.projectName || '';
     window.print();
   }
 
