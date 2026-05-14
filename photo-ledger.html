@@ -130,22 +130,39 @@
   </style>
   <style id="print-styles">
     @media print {
-      header, .card:has(.upload-zone), .card:has(.form-grid),
-      .export-buttons, .card-actions, .toast, .btn-secondary,
-      .select-overlay, #selectModeBtn, #bulkDeleteBtn,
-      [onclick*="promptLoadFromDB"], [onclick*="restoreFromStorage"],
-      .page-header, .page-sub, .empty-state,
-      .card:has(.api-key-section), .card:has(.category-tabs) { display: none !important; }
+      header,
+      .form-section,
+      #uploadSection,
+      .blackboard-template,
+      .tab-bar,
+      .action-buttons,
+      #selectModeBtn,
+      #bulkDeleteBtn,
+      .edit-btn,
+      .delete-btn,
+      .select-overlay,
+      .toast-container,
+      .toast,
+      .export-buttons,
+      .card-actions,
+      .btn-secondary,
+      .page-header,
+      .page-sub,
+      .empty-state,
+      .progress-overlay,
+      .card-header,
+      .upload-zone,
+      .category-tabs,
+      .api-key-section,
+      nav { display: none !important; }
 
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; }
+      body { background: white !important; color: black !important; margin: 0; padding: 0; }
 
       #print-cover {
         display: block !important;
         page-break-after: always;
         padding: 40px;
-        text-align: center;
-        font-family: "Noto Sans JP", sans-serif;
       }
 
       #print-page-header {
@@ -158,8 +175,7 @@
       }
 
       .container { padding: 0 10px !important; max-width: none !important; }
-      .card { background: #fff !important; border: none !important; box-shadow: none !important; margin: 0 !important; }
-      .card-header { display: none !important; }
+      .card { background: white !important; border: none !important; box-shadow: none !important; margin: 0 !important; }
       .card-body { padding: 0 !important; }
 
       #photoGrid {
@@ -167,32 +183,30 @@
         grid-template-columns: 1fr 1fr !important;
         gap: 6px !important;
         padding: 0 !important;
-        background: #fff !important;
+        background: white !important;
       }
 
       .photo-card {
         display: block !important;
-        background: #fff !important;
+        background: white !important;
         border: 1px solid #999 !important;
         break-inside: avoid !important;
         page-break-inside: avoid !important;
         margin: 0 !important;
         padding: 4px !important;
         box-shadow: none !important;
-        border-radius: 2px !important;
       }
-      .photo-card .card-img-wrap { aspect-ratio: auto !important; }
-      .photo-card .card-img-wrap img {
+
+      .photo-card img {
         width: 100% !important;
         height: 140px !important;
         object-fit: cover !important;
         display: block !important;
       }
-      .photo-card .card-body { padding: 3px 4px !important; }
-      .photo-card .card-category { font-size: 9pt !important; color: #333 !important; font-weight: bold !important; margin: 2px 0 !important; }
-      .photo-card .card-desc { font-size: 8pt !important; color: #444 !important; margin: 1px 0 !important; }
-      .photo-card .card-meta { font-size: 8pt !important; color: #666 !important; border-top-color: #ccc !important; padding: 3px 4px !important; }
-      .photo-card .progress-overlay { display: none !important; }
+
+      .card-category { font-size: 9pt !important; color: #333 !important; font-weight: bold !important; margin: 2px 0 !important; }
+      .card-desc { font-size: 8pt !important; color: #444 !important; margin: 1px 0 !important; }
+      .card-meta { font-size: 8pt !important; color: #666 !important; }
 
       @page { size: A4 portrait; margin: 12mm; }
     }
