@@ -492,6 +492,24 @@ const LEDGER = (() => {
         throw new Error(err.message || `HTTP ${res.status}`);
       }
 
+      // Step3: UIにない写真をDBから削除
+      const currentFilePaths = photos.map(p => p.file_path).filter(Boolean);
+      const encodedProject = encodeURIComponent(info.projectName || 'default');
+      const dbRes = await fetch(
+        `${SB_URL}/rest/v1/photo_reports?project_name=eq.${encodedProject}&select=id,file_path`,
+        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+      );
+      if (dbRes.ok) {
+        const dbRecords = await dbRes.json();
+        const toDelete = dbRecords.filter(r => !currentFilePaths.includes(r.file_path));
+        for (const rec of toDelete) {
+          await fetch(`${SB_URL}/rest/v1/photo_reports?id=eq.${rec.id}`, {
+            method: 'DELETE',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY },
+          });
+        }
+      }
+
       clearDraft();
       toast(`${photos.length}枚を保存しました ✅`, 'ok');
     } catch (e) {
