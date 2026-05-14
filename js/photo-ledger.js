@@ -120,6 +120,7 @@ const LEDGER = (() => {
   function deletePhoto(id) {
     if (!confirm('この写真を削除しますか？')) return;
     photos = photos.filter(p => p._id !== id);
+    photos.forEach((p, i) => { p.sequence_order = i; });
     renderGrid();
     updateCount();
   }
