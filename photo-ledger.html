@@ -155,7 +155,7 @@
       }
 
       /* 写真グリッドを含むcardを特定して表示 */
-      .card:has(#photoGrid) {
+      #photoSection {
         display: block !important;
         background: white !important;
         border: none !important;
@@ -174,7 +174,7 @@
       }
 
       /* カテゴリタブ・ヘッダー非表示 */
-      .card:has(#photoGrid) > *:not(#photoGrid):not(#print-page-header) {
+      #photoSection > *:not(#photoGrid) {
         display: none !important;
       }
 
@@ -354,7 +354,7 @@
   </div>
 
   <!-- 写真グリッド -->
-  <div class="card">
+  <div class="card" id="photoSection">
     <div class="card-header">
       <div class="dot"></div>
       写真一覧
