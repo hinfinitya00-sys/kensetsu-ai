@@ -398,9 +398,17 @@ window.addEventListener('load',function(){
 });
 <\/script></body></html>`;
 
-    const win = window.open('', '_blank', 'width=800,height=900');
-    win.document.write(html);
-    win.document.close();
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    toast('新しいタブで台帳が開きます。印刷ダイアログが自動的に表示されます', 'ok', 4000);
   }
 
   async function handleExportPDF() {
