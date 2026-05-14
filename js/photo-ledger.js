@@ -335,19 +335,72 @@ const LEDGER = (() => {
 
   /* ── 出力 ──────────────────────────────────────── */
   function handlePrint() {
-    if (!photos.length) { toast('印刷する写真がありません', 'err'); return; }
+    if (!photos.length) { toast('先に台帳を読み込んでください', 'err'); return; }
     const info = getProjectInfo();
     const today = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' });
-    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
-    setTxt('pc-name', info.projectName);
-    setTxt('pc-contractor', info.contractorName);
-    setTxt('pc-client', info.clientName);
-    setTxt('pc-location', info.siteLocation);
-    setTxt('pc-period', (info.startDate && info.endDate) ? `${info.startDate} ～ ${info.endDate}` : info.startDate || '');
-    setTxt('pc-date', today);
-    const ph = document.getElementById('print-header-project');
-    if (ph) ph.textContent = info.projectName || '';
-    window.print();
+    const koki = [info.startDate, info.endDate].filter(Boolean).join(' ～ ');
+
+    const photoHTML = photos.map(p => `
+      <div class="p-card">
+        <img src="${escHtml(p._dataUrl || p.file_url || '')}" alt=""
+             onerror="this.style.background='#eee';this.style.height='120px'">
+        <div class="p-cat">${escHtml(p.photo_category || '')}</div>
+        <div class="p-desc">${escHtml(p.description || '')}</div>
+        <div class="p-date">${escHtml(p.shot_date || '')} ${p.measurement_point ? '｜' + escHtml(p.measurement_point) : ''}</div>
+      </div>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8">
+<title>工事写真台帳 - ${escHtml(info.projectName || '')}</title>
+<style>
+  body{font-family:"Noto Sans JP","Hiragino Sans",sans-serif;margin:0;padding:0;background:#fff;}
+  .cover{padding:60px 50px;page-break-after:always;}
+  .cover h1{font-size:28pt;font-weight:bold;margin-bottom:16px;}
+  .cover hr{border:2px solid #333;margin:16px 0;}
+  .cover table{width:100%;font-size:13pt;line-height:2.2;border-collapse:collapse;}
+  .cover td:first-child{width:130px;font-weight:bold;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;}
+  .p-card{border:1px solid #aaa;padding:4px;break-inside:avoid;page-break-inside:avoid;}
+  .p-card img{width:100%;height:150px;object-fit:cover;display:block;background:#ddd;}
+  .p-cat{font-size:8pt;font-weight:bold;color:#333;margin-top:2px;}
+  .p-desc{font-size:8pt;color:#444;}
+  .p-date{font-size:7pt;color:#666;}
+  .page-header{font-size:9pt;color:#666;border-bottom:1px solid #ccc;padding:4px 10px;display:flex;justify-content:space-between;}
+  @page{size:A4 portrait;margin:12mm;}
+  @media print{button{display:none;}}
+</style></head><body>
+<div class="cover">
+  <h1>工事写真台帳</h1><hr>
+  <table>
+    <tr><td>工事名称</td><td>${escHtml(info.projectName || '—')}</td></tr>
+    <tr><td>施工業者</td><td>${escHtml(info.contractorName || '—')}</td></tr>
+    <tr><td>発注者名</td><td>${escHtml(info.clientName || '—')}</td></tr>
+    <tr><td>現場所在地</td><td>${escHtml(info.siteLocation || '—')}</td></tr>
+    <tr><td>工期</td><td>${escHtml(koki || '—')}</td></tr>
+    ${info.siteManager ? '<tr><td>現場代理人</td><td>' + escHtml(info.siteManager) + '</td></tr>' : ''}
+    <tr><td>作成日</td><td>${escHtml(today)}</td></tr>
+  </table><hr>
+</div>
+<div class="page-header"><span>${escHtml(info.projectName || '')}</span><span>工事写真台帳</span></div>
+<div class="grid">${photoHTML}</div>
+<script>
+window.addEventListener('load',function(){
+  var imgs=document.querySelectorAll('img'),loaded=0;
+  if(!imgs.length){window.print();return;}
+  imgs.forEach(function(img){
+    if(img.complete){loaded++;if(loaded>=imgs.length)window.print();}
+    else{
+      img.addEventListener('load',function(){loaded++;if(loaded>=imgs.length)window.print();});
+      img.addEventListener('error',function(){loaded++;if(loaded>=imgs.length)window.print();});
+    }
+  });
+});
+<\/script></body></html>`;
+
+    const win = window.open('', '_blank', 'width=800,height=900');
+    win.document.write(html);
+    win.document.close();
   }
 
   async function handleExportPDF() {
