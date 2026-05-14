@@ -100,7 +100,28 @@ const PHOTO_EXPORT = (() => {
     doc.addImage(img, 'PNG', x, y, w, h);
   }
 
-  /* ═══ 全画像を事前にbase64キャッシュ ═════════════ */
+  /* ═══ 画像圧縮（Canvas経由リサイズ） ═════════════ */
+  function compressDataUrl(dataUrl) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
+  }
+
+  /* ═══ 全画像を事前にbase64キャッシュ（圧縮付き） ═ */
   const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
   async function preloadAllImages(photos) {
@@ -109,19 +130,22 @@ const PHOTO_EXPORT = (() => {
       const key = photo.file_path || photo._id;
       const url = photo._dataUrl || photo.file_url;
       if (!url) { cache[key] = null; continue; }
-      if (url.startsWith('data:')) { cache[key] = url; continue; }
       try {
-        const res = await fetch(url, {
-          headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY },
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const blob = await res.blob();
-        cache[key] = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
+        let raw = url;
+        if (!url.startsWith('data:')) {
+          const res = await fetch(url, {
+            headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY },
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const blob = await res.blob();
+          raw = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+        cache[key] = await compressDataUrl(raw);
       } catch (e) {
         console.warn('画像プリロード失敗:', url, e.message);
         cache[key] = null;
