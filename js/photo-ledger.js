@@ -602,6 +602,98 @@ const LEDGER = (() => {
     });
   }
 
+  /* ── Storageから写真を復元 ──────────────────────── */
+  async function restoreFromStorage() {
+    const info = getProjectInfo();
+    if (!info.projectName) { toast('工事名を入力してください', 'err'); return; }
+    const projectId = makeProjectId(info.projectName);
+
+    toast('Storageからファイル一覧を取得中...', '', 10000);
+
+    try {
+      // フォルダ一覧を再帰的に取得
+      const listRes = await fetch(`${SB_URL}/storage/v1/object/list/site-photos`, {
+        method: 'POST',
+        headers: {
+          'apikey': SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prefix: projectId + '/', limit: 1000 }),
+      });
+
+      if (!listRes.ok) throw new Error(`Storage list failed: ${listRes.status}`);
+      const folders = await listRes.json();
+
+      // 各サブフォルダ内のファイルを取得
+      const allFiles = [];
+      for (const folder of folders) {
+        if (!folder.name) continue;
+        const subRes = await fetch(`${SB_URL}/storage/v1/object/list/site-photos`, {
+          method: 'POST',
+          headers: {
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prefix: `${projectId}/${folder.name}/`, limit: 1000 }),
+        });
+        if (subRes.ok) {
+          const files = await subRes.json();
+          files.forEach(f => {
+            if (f.name && f.metadata) {
+              allFiles.push({
+                path: `${projectId}/${folder.name}/${f.name}`,
+                name: f.name,
+              });
+            }
+          });
+        }
+      }
+
+      if (!allFiles.length) {
+        toast('Storageに写真が見つかりませんでした', 'err');
+        return;
+      }
+
+      // photo_reportsにUPSERT
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = allFiles.map((f, i) => ({
+        project_id: projectId,
+        project_name: info.projectName,
+        contractor_name: info.contractorName || null,
+        site_location: info.siteLocation || null,
+        work_type: 'その他',
+        photo_category: 'その他',
+        shot_date: today,
+        file_path: f.path,
+        file_url: `${SB_URL}/storage/v1/object/public/site-photos/${f.path}`,
+        sequence_order: i,
+      }));
+
+      const res = await fetch(`${SB_URL}/rest/v1/photo_reports`, {
+        method: 'POST',
+        headers: {
+          'apikey': SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=representation',
+        },
+        body: JSON.stringify(rows),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+
+      toast(`${allFiles.length}枚の写真を復元しました。✏️で区分を編集してください`, 'ok', 5000);
+      await loadFromSupabase(info.projectName);
+    } catch (e) {
+      toast('復元に失敗: ' + e.message, 'err', 5000);
+    }
+  }
+
   /* ── 下書き保存 ────────────────────────────────── */
   function saveDraft() {
     const draft = {
@@ -680,7 +772,7 @@ const LEDGER = (() => {
   return {
     init, handleFiles, deletePhoto, openEditModal,
     setFilter, handleExportPDF, handleExportExcel, handleExportXMLZip, shareLink, checkElectronicSubmission,
-    saveToSupabase, loadFromSupabase, promptLoadFromDB,
+    saveToSupabase, loadFromSupabase, promptLoadFromDB, restoreFromStorage,
     saveDraft, restoreDraft, clearDraft,
   };
 })();

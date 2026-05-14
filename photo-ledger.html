@@ -202,9 +202,12 @@
   </div>
 
   <!-- 過去台帳読み込み -->
-  <div style="margin-bottom:20px;">
-    <button class="btn-secondary" onclick="LEDGER.promptLoadFromDB()" style="width:100%;justify-content:center;">
+  <div style="margin-bottom:20px;display:flex;gap:10px;">
+    <button class="btn-secondary" onclick="LEDGER.promptLoadFromDB()" style="flex:1;justify-content:center;">
       📂 保存済み台帳を読み込む
+    </button>
+    <button class="btn-secondary" onclick="LEDGER.restoreFromStorage()" style="flex:1;justify-content:center;">
+      🔄 Storageから写真を復元
     </button>
   </div>
 
