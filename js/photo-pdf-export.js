@@ -100,36 +100,34 @@ const PHOTO_EXPORT = (() => {
     doc.addImage(img, 'PNG', x, y, w, h);
   }
 
-  /* ═══ 画像URL → dataURL（CORS対策） ════════════ */
-  async function loadImageAsDataURL(url) {
-    if (!url) return null;
-    if (url.startsWith('data:')) return url;
-    try {
-      const response = await fetch(url, { mode: 'cors', cache: 'force-cache' });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const blob = await response.blob();
-      return await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('FileReader failed'));
-        reader.readAsDataURL(blob);
-      });
-    } catch (e) {
-      console.error('画像読み込み失敗:', url, e.message);
-      return null;
-    }
-  }
+  /* ═══ 全画像を事前にbase64キャッシュ ═════════════ */
+  const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
-  function fetchAsDataURL(url) {
-    return fetch(url, { mode: 'cors', cache: 'force-cache' })
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); })
-      .then(blob => new Promise((res, rej) => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result);
-        reader.onerror = rej;
-        reader.readAsDataURL(blob);
-      }))
-      .catch(e => { console.error('fetchAsDataURL失敗:', url, e.message); return null; });
+  async function preloadAllImages(photos) {
+    const cache = {};
+    for (const photo of photos) {
+      const key = photo.file_path || photo._id;
+      const url = photo._dataUrl || photo.file_url;
+      if (!url) { cache[key] = null; continue; }
+      if (url.startsWith('data:')) { cache[key] = url; continue; }
+      try {
+        const res = await fetch(url, {
+          headers: { 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY },
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        cache[key] = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn('画像プリロード失敗:', url, e.message);
+        cache[key] = null;
+      }
+    }
+    return cache;
   }
 
   /* ═══ 描画ヘルパー ═════════════════════════════ */
@@ -176,19 +174,18 @@ const PHOTO_EXPORT = (() => {
     });
   }
 
-  async function drawPhoto(doc, photo, x, y, w, h) {
-    const src = photo._dataUrl || photo.file_url;
-    if (src) {
-      const dataUrl = await loadImageAsDataURL(src);
-      if (dataUrl) {
-        try {
-          const format = dataUrl.includes('image/png') ? 'PNG' : 'JPEG';
-          doc.addImage(dataUrl, format, x, y, w, h);
-          return;
-        } catch(e) { console.error('addImage失敗:', e.message); }
-      }
+  function drawPhoto(doc, photo, x, y, w, h, imageCache) {
+    const key = photo.file_path || photo._id;
+    const dataUrl = (imageCache && imageCache[key]) || photo._dataUrl;
+
+    if (dataUrl && dataUrl.startsWith('data:')) {
+      try {
+        const format = dataUrl.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(dataUrl, format, x, y, w, h);
+        return;
+      } catch(e) { console.error('addImage失敗:', e.message); }
     }
-    doc.setFillColor(240, 240, 240);
+    doc.setFillColor(230, 230, 230);
     doc.rect(x, y, w, h, 'F');
     doc.setDrawColor(180);
     doc.rect(x, y, w, h);
@@ -212,6 +209,10 @@ const PHOTO_EXPORT = (() => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
     const sorted = sortPhotos(photos);
+
+    /* 全画像を事前キャッシュ */
+    const imageCache = await preloadAllImages(sorted);
+
     const beforeAfter = sorted.filter(p => p.photo_category === '着手前・完成写真');
     const grouped = {};
     CATEGORY_ORDER.forEach(cat => {
@@ -287,7 +288,7 @@ const PHOTO_EXPORT = (() => {
           const photo = beforeAfter[i + j];
           if (!photo) continue;
           const x = MARGIN + j * (halfW + 6), y = MARGIN + HEADER_H;
-          await drawPhoto(doc, photo, x, y, halfW, halfH);
+          drawPhoto(doc, photo, x, y, halfW, halfH, imageCache);
           drawBlackboard(doc, x, y + halfH - halfH * 0.28, halfW * 0.75, halfH * 0.28, photo, info);
           addText(doc, j === 0 ? '【施工前】' : '【施工後】', x, y + halfH + 2, 30, 4, { fontSize: 16, bold: true });
           addText(doc, truncate(photo.description, 50), x, y + halfH + 6, halfW, 3.5, { fontSize: 14, color: '#333' });
@@ -312,7 +313,7 @@ const PHOTO_EXPORT = (() => {
         const y = MARGIN + HEADER_H + row * (blockH + 4);
         const photo = items[i];
 
-        await drawPhoto(doc, photo, x, y, imgW, imgH);
+        drawPhoto(doc, photo, x, y, imgW, imgH, imageCache);
         drawBlackboard(doc, x, y + imgH - imgH * 0.28, imgW * 0.75, imgH * 0.28, photo, info);
 
         let ty = y + imgH + 1;
