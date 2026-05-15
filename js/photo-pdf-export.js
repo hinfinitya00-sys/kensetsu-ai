@@ -248,7 +248,6 @@ const PHOTO_EXPORT = (() => {
     let totalPages = 1;
     if (beforeAfter.length) totalPages += 1 + Math.ceil(beforeAfter.length / 2);
     Object.entries(grouped).forEach(([, items]) => { totalPages += 1 + Math.ceil(items.length / 4); });
-    totalPages += 1;
     let pn = 1;
 
     // ── 表紙 ──
@@ -348,36 +347,6 @@ const PHOTO_EXPORT = (() => {
         addText(doc, truncate(photo.description, 65), x, ty, imgW, 3, { fontSize: 13, color: '#333' });
       }
     }
-
-    // ── 一覧表（横向き） ──
-    doc.addPage('a4', 'landscape');
-    addText(doc, '写真管理一覧', 15, 10, 60, 6, { fontSize: 24, bold: true });
-    const lw = 297;
-    const cols = ['No','写真区分','工種','種別','測点','撮影日','撮影者','説明'];
-    const colW = [10, 30, 22, 26, 18, 20, 16, lw - 30 - 10 - 30 - 22 - 26 - 18 - 20 - 16];
-
-    let tx2 = 15, ty2 = 20;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(15, ty2 - 1, lw - 30, 5, 'F');
-    cols.forEach((c, ci) => {
-      addText(doc, c, tx2, ty2 - 1, colW[ci], 4, { fontSize: 14, bold: true });
-      tx2 += colW[ci];
-    });
-    ty2 += 5;
-
-    sorted.forEach((p, i) => {
-      if (ty2 > 195) { doc.addPage('a4', 'landscape'); ty2 = 15; }
-      tx2 = 15;
-      [String(i+1), p.photo_category||'', p.work_type||'', p.sub_category||'',
-       p.measurement_point||'', p.shot_date||'', p.photographer||'', truncate(p.description, 45)
-      ].forEach((v, ci) => {
-        addText(doc, v, tx2, ty2, colW[ci], 3.5, { fontSize: 13 });
-        tx2 += colW[ci];
-      });
-      doc.setDrawColor(220);
-      doc.line(15, ty2 + 4, lw - 15, ty2 + 4);
-      ty2 += 4.5;
-    });
 
     doc.save(`写真台帳_${info.projectName||'report'}.pdf`);
   }
