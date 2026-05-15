@@ -14,7 +14,7 @@ const PHOTO_EXPORT = (() => {
   const CW = PAGE_W - MARGIN * 2;
 
   const CATEGORY_ORDER = [
-    '着手前・完成写真', '施工状況写真', '安全管理写真',
+    '着手前写真', '完成写真', '施工状況写真', '安全管理写真',
     '使用材料写真', '品質管理写真', '出来形管理写真', 'その他'
   ];
 
@@ -237,10 +237,10 @@ const PHOTO_EXPORT = (() => {
     /* 全画像を事前キャッシュ */
     const imageCache = await preloadAllImages(sorted);
 
-    const beforeAfter = sorted.filter(p => p.photo_category === '着手前・完成写真');
+    const beforeAfter = sorted.filter(p => p.photo_category === '着手前写真' || p.photo_category === '完成写真');
     const grouped = {};
     CATEGORY_ORDER.forEach(cat => {
-      if (cat === '着手前・完成写真') return;
+      if (cat === '着手前写真' || cat === '完成写真') return;
       const items = sorted.filter(p => p.photo_category === cat);
       if (items.length) grouped[cat] = items;
     });
@@ -302,11 +302,11 @@ const PHOTO_EXPORT = (() => {
 
     // ── 着手前・完成写真 ──
     if (beforeAfter.length) {
-      drawSectionTitle(doc, '着手前・完成写真', info, pn, totalPages); pn++;
+      drawSectionTitle(doc, '着手前写真・完成写真', info, pn, totalPages); pn++;
       const halfW = (CW - 6) / 2, halfH = halfW * 0.75;
       for (let i = 0; i < beforeAfter.length; i += 2) {
         doc.addPage();
-        drawHeader(doc, info, '着手前・完成写真');
+        drawHeader(doc, info, '着手前写真・完成写真');
         drawFooter(doc, info, pn, totalPages); pn++;
         for (let j = 0; j < 2; j++) {
           const photo = beforeAfter[i + j];
@@ -390,10 +390,9 @@ const PHOTO_EXPORT = (() => {
       'No': i+1, '写真区分': p.photo_category||'', '工種': p.work_type||'',
       '種別': p.sub_category||'', '細別': p.detail_category||'', '測点': p.measurement_point||'',
       '撮影日': p.shot_date||'', '撮影者': p.photographer||'', '説明': p.description||'',
-      'ファイル名': p.file_path||'',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{wch:5},{wch:16},{wch:12},{wch:14},{wch:12},{wch:10},{wch:12},{wch:10},{wch:40},{wch:20}];
+    ws['!cols'] = [{wch:5},{wch:16},{wch:12},{wch:14},{wch:12},{wch:10},{wch:12},{wch:10},{wch:40}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '写真管理一覧');
     XLSX.writeFile(wb, `写真管理_${info.projectName||'report'}.xlsx`);

@@ -454,7 +454,7 @@ window.addEventListener('load',function(){
       { label: '施工業者名が入力されている', ok: !!info.contractorName, level: 'error' },
       { label: '工期（着手・完成）が入力されている', ok: !!(info.startDate && info.endDate), level: 'warn' },
       { label: '写真が1枚以上ある', ok: photos.length > 0, level: 'error' },
-      { label: '着手前・完成写真が含まれている', ok: photos.some(p => p.photo_category === '着手前・完成写真'), level: 'warn' },
+      { label: '着手前写真または完成写真が含まれている', ok: photos.some(p => p.photo_category === '着手前写真' || p.photo_category === '完成写真'), level: 'warn' },
       { label: '全写真に工種が設定されている', ok: photos.every(p => p.work_type && p.work_type !== 'その他'), level: 'warn' },
       { label: '全写真に撮影日が設定されている', ok: photos.every(p => !!p.shot_date), level: 'error' },
       { label: '写真ファイルがJPEG/PNG形式', ok: photos.every(p => !p._file || p._file.type.startsWith('image/')), level: 'error' },
