@@ -483,6 +483,13 @@
     <div class="page-sub">インボイス制度対応（適格請求書）｜建設工事専用フォーマット</div>
   </div>
 
+  <!-- 過去の請求書から読み込む -->
+  <div style="margin-bottom:20px;">
+    <button class="btn-secondary" id="loadPastInvoiceBtn" onclick="loadPastInvoiceList()" style="width:100%;justify-content:center;">
+      📂 過去の請求書から読み込む
+    </button>
+  </div>
+
   <!-- 発行者情報 -->
   <div class="card">
     <div class="card-header"><div class="dot"></div>発行者情報（自社）</div>
@@ -1284,6 +1291,73 @@ $('saveBtn2').addEventListener('click', async () => {
   $('saveBtn2').textContent = '💾 Supabaseに保存';
   $('saveBtn2').disabled = false;
 });
+
+// ── 過去の請求書から読み込む ──────────────────────────────
+async function loadPastInvoiceList() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/invoices?select=id,recipient_name,project_name,invoice_date,issuer_name,issuer_reg_num,issuer_address,issuer_tel,issuer_bank,recipient_person&order=created_at.desc&limit=30`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+    );
+    const data = await res.json();
+    if (!data || !data.length) {
+      toast('保存済みの請求書がありません', 'err');
+      return;
+    }
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;';
+    const listHtml = data.map((item, i) => {
+      const date = item.invoice_date ? new Date(item.invoice_date).toLocaleDateString('ja-JP') : '—';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--card2);cursor:pointer;" data-idx="${i}">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${escHtml(item.recipient_name||'（相手先未入力）')}</div>
+          <div style="font-size:11px;color:var(--muted);">${escHtml(item.project_name||'')}　${date}</div>
+        </div>
+        <button style="background:rgba(255,107,0,.15);color:var(--orange);border:1px solid rgba(255,107,0,.3);padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;" data-idx="${i}">読込</button>
+      </div>`;
+    }).join('');
+
+    modal.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;padding:24px;">
+      <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;">📂 過去の請求書から読み込む</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">発行者情報・請求先のみ反映されます（明細は反映されません）</div>
+      ${listHtml}
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <button class="btn-secondary" onclick="this.closest('div[style*=fixed]').remove()">閉じる</button>
+      </div>
+    </div>`;
+
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelectorAll('[data-idx]').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.idx);
+        const item = data[idx];
+        if (!item) return;
+
+        // 発行者情報を反映
+        if (item.issuer_name)    $('issuerName').value    = item.issuer_name;
+        if (item.issuer_reg_num) $('issuerRegNum').value  = item.issuer_reg_num;
+        if (item.issuer_address) $('issuerAddress').value = item.issuer_address;
+        if (item.issuer_tel)     $('issuerTel').value     = item.issuer_tel;
+        if (item.issuer_bank)    $('issuerBank').value    = item.issuer_bank;
+
+        // 請求先情報を反映
+        if (item.recipient_name)   $('recipientName').value   = item.recipient_name;
+        if (item.recipient_person) $('recipientPerson').value = item.recipient_person;
+
+        // localStorageにも保存
+        saveIssuer();
+
+        modal.remove();
+        toast('発行者情報・請求先を反映しました ✅', 'ok');
+      });
+    });
+  } catch (e) {
+    toast('読み込みに失敗しました: ' + e.message, 'err', 5000);
+  }
+}
 
 // ── Init ──────────────────────────────────────────────────
 (function init() {
