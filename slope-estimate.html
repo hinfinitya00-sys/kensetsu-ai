@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+<script src="js/auth.js"></script>
+  <script>KS_AUTH.checkAuth();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>建設AI｜法面概算計算機</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       CSS Variables & Reset
+    ═══════════════════════════════════════════════════════ */
+    :root {
+      --orange:       #FF6B00;
+      --orange-dark:  #CC5500;
+      --orange-light: #FF8C33;
+      --black:        #0A0A0A;
+      --dark:         #111418;
+      --card:         #181C22;
+      --card2:        #1E232B;
+      --border:       #2A3040;
+      --text:         #E8EAF0;
+      --muted:        #7A8499;
+      --green:        #22C55E;
+      --blue:         #3B82F6;
+      --yellow:       #F59E0B;
+      --red:          #EF4444;
+      --purple:       #7c3aed;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      background:var(--black); color:var(--text);
+      font-family:'Noto Sans JP',sans-serif; min-height:100vh; overflow-x:hidden;
+    }
+    a { color:inherit; text-decoration:none; }
+    button { font-family:'Noto Sans JP',sans-serif; cursor:pointer; }
+    input, select, textarea { font-family:'Noto Sans JP',sans-serif; }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background:var(--dark); border-bottom:2px solid var(--orange);
+      padding:0 24px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    .logo {
+      display:flex; align-items:center; gap:10px;
+      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
+      letter-spacing:1px; color:var(--text);
+    }
+    .logo-mark {
+      width:32px; height:32px; background:var(--orange);
+      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900; color:white;
+    }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .icon-btn {
+      background:rgba(255,255,255,.08); border:1px solid var(--border);
+      color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:18px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    .icon-btn:hover { background:rgba(255,107,0,.15); border-color:var(--orange); color:var(--orange); }
+
+    /* ── Step Indicator ─────────────────────────────────── */
+    .step-bar {
+      background:var(--dark); border-bottom:1px solid var(--border);
+      padding:0 24px;
+      display:flex; align-items:center; justify-content:center;
+      height:50px; gap:0;
+    }
+    .step-item {
+      display:flex; align-items:center; gap:8px;
+      padding:0 20px; color:var(--muted); font-size:13px; font-weight:500;
+    }
+    .step-item.active { color:var(--orange); }
+    .step-item.done { color:var(--green); }
+    .step-num {
+      width:24px; height:24px; border-radius:50%; border:2px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:700; flex-shrink:0;
+    }
+    .step-item.active .step-num { background:var(--orange); border-color:var(--orange); color:#fff; }
+    .step-item.done .step-num { background:var(--green); border-color:var(--green); color:#fff; }
+    .step-sep { width:40px; height:1px; background:var(--border); }
+    @media(max-width:480px){
+      .step-item { padding:0 10px; font-size:12px; }
+      .step-sep { width:20px; }
+    }
+
+    /* ── Container ───────────────────────────────────────── */
+    .container { max-width:900px; margin:0 auto; padding:24px 24px 60px; }
+
+    /* ── Page Header ─────────────────────────────────────── */
+    .page-header { margin-bottom:24px; }
+    .page-title {
+      font-family:'Oswald',sans-serif; font-size:26px; font-weight:700;
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    .page-title span { color:var(--orange); }
+    .page-sub { font-size:13px; color:var(--muted); }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; margin-bottom:20px; overflow:hidden;
+    }
+    .card-header {
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:8px;
+      font-size:14px; font-weight:700;
+    }
+    .card-header .dot { width:8px; height:8px; background:var(--orange); border-radius:50%; flex-shrink:0; }
+    .card-body { padding:20px; }
+
+    /* ── Form Grid ───────────────────────────────────────── */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .form-grid.cols3 { grid-template-columns:1fr 1fr 1fr; }
+    .form-grid.col1  { grid-template-columns:1fr; }
+    .span2 { grid-column:span 2; }
+    .span3 { grid-column:span 3; }
+    .f-group { display:flex; flex-direction:column; gap:5px; }
+    .f-group label {
+      font-size:11px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+    .f-group label .req { color:var(--orange); margin-left:2px; }
+    .f-input {
+      background:var(--card2); border:1px solid var(--border);
+      color:var(--text); padding:10px 12px; border-radius:8px;
+      font-size:14px; transition:border-color .2s; width:100%;
+    }
+    .f-input:focus { outline:none; border-color:var(--orange); }
+    .f-input::placeholder { color:var(--muted); opacity:.6; }
+    select.f-input { cursor:pointer; }
+    .f-hint { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.5; }
+
+    /* ── Checkbox Options ────────────────────────────────── */
+    .option-group {
+      display:flex; flex-direction:column; gap:10px; margin-top:4px;
+    }
+    .option-item {
+      display:flex; align-items:center; gap:10px;
+      font-size:14px; color:var(--text); cursor:pointer;
+    }
+    .option-item input[type="checkbox"] {
+      accent-color:var(--orange); width:18px; height:18px; cursor:pointer;
+    }
+
+    /* ── Collapsible Details ─────────────────────────────── */
+    details.price-details {
+      background:var(--card2); border:1px solid var(--border);
+      border-radius:10px; margin-top:16px;
+    }
+    details.price-details summary {
+      padding:12px 16px; cursor:pointer; font-size:14px; font-weight:700;
+      color:var(--text); list-style:none; display:flex; align-items:center; gap:8px;
+    }
+    details.price-details summary::-webkit-details-marker { display:none; }
+    details.price-details summary::before {
+      content:'▶'; font-size:10px; color:var(--orange); transition:transform .2s;
+    }
+    details.price-details[open] summary::before { transform:rotate(90deg); }
+    details.price-details .price-body {
+      padding:4px 16px 16px;
+    }
+    .price-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    }
+    @media(max-width:600px){
+      .price-grid { grid-template-columns:1fr; }
+    }
+    .price-item {
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .price-item label {
+      font-size:11px; font-weight:700; color:var(--muted);
+      letter-spacing:.3px;
+    }
+    .price-item input {
+      background:var(--card); border:1px solid var(--border);
+      color:var(--text); padding:8px 10px; border-radius:6px;
+      font-size:13px; width:100%; transition:border-color .2s;
+    }
+    .price-item input:focus { outline:none; border-color:var(--orange); }
+
+    /* ── Result Tables ───────────────────────────────────── */
+    .result-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:20px;
+    }
+    @media(max-width:700px){
+      .result-grid { grid-template-columns:1fr; }
+      .form-grid { grid-template-columns:1fr; }
+      .span2 { grid-column:span 1; }
+    }
+    .result-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden;
+    }
+    .result-card.accent { border-color:var(--orange); }
+    .result-card-header {
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      font-size:14px; font-weight:700;
+      display:flex; align-items:center; gap:8px;
+    }
+    .result-card.accent .result-card-header {
+      background:rgba(255,107,0,.06);
+      border-bottom-color:var(--orange);
+    }
+    .result-card-body { padding:20px; }
+    .result-card-header .dot {
+      width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    }
+    .result-card.accent .result-card-header .dot { background:var(--orange); }
+    .result-card:not(.accent) .result-card-header .dot { background:var(--blue); }
+
+    .breakdown-table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+    .breakdown-table th {
+      background:var(--card2); padding:8px 10px;
+      font-size:11px; font-weight:700; color:var(--muted);
+      border-bottom:1px solid var(--border); text-align:left;
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+    .breakdown-table th.right { text-align:right; }
+    .breakdown-table td {
+      padding:7px 10px; border-bottom:1px solid var(--border); font-size:13px;
+    }
+    .breakdown-table td.right { text-align:right; font-family:'Oswald',sans-serif; font-weight:600; }
+    .breakdown-table tr:last-child td { border-bottom:none; }
+    .breakdown-table .section-header td {
+      background:rgba(255,255,255,.03); font-weight:700; font-size:12px;
+      color:var(--muted); padding:6px 10px; text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    /* ── Totals Block ────────────────────────────────────── */
+    .totals-block {
+      background:var(--card2); border:1px solid var(--border);
+      border-radius:10px; padding:16px 20px; margin-top:12px;
+    }
+    .total-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:6px 0; font-size:14px;
+    }
+    .total-row + .total-row { border-top:1px solid var(--border); }
+    .total-row.subtotal { color:var(--muted); font-size:13px; }
+    .total-row.tax      { color:var(--muted); font-size:13px; }
+    .total-row.total    {
+      font-weight:700; font-size:18px; padding:12px 0;
+      border-top:2px solid var(--orange) !important;
+    }
+    .total-row.total .total-val { color:var(--orange); font-size:24px; font-family:'Oswald',sans-serif; }
+    .total-row.per-sqm { color:var(--muted); font-size:13px; }
+    .total-val { font-weight:700; }
+
+    /* ── Diff Display ────────────────────────────────────── */
+    .diff-display {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; padding:20px; margin-top:20px; text-align:center;
+    }
+    .diff-display .diff-label {
+      font-size:13px; color:var(--muted); margin-bottom:6px;
+    }
+    .diff-display .diff-value {
+      font-family:'Oswald',sans-serif; font-size:28px; font-weight:700;
+    }
+    .diff-display .diff-sub {
+      font-size:12px; color:var(--muted); margin-top:4px;
+    }
+    .diff-positive { color:var(--green); }
+    .diff-negative { color:var(--red); }
+    .diff-neutral  { color:var(--yellow); }
+
+    /* ── Action Buttons ──────────────────────────────────── */
+    .actions {
+      display:flex; gap:12px; margin-top:24px; flex-wrap:wrap; justify-content:flex-end;
+    }
+    .btn-primary {
+      background:linear-gradient(135deg,var(--orange),var(--orange-dark));
+      color:#fff; border:none; padding:12px 28px; border-radius:10px;
+      font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;
+      box-shadow:0 4px 14px rgba(255,107,0,.35); transition:all .2s;
+    }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,107,0,.45); }
+    .btn-secondary {
+      background:var(--card2); color:var(--text); border:1px solid var(--border);
+      padding:12px 20px; border-radius:10px; font-size:14px; font-weight:700;
+      display:flex; align-items:center; gap:8px; transition:all .2s;
+    }
+    .btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
+    .btn-save {
+      background:rgba(59,130,246,.15); color:var(--blue); border:1px solid rgba(59,130,246,.3);
+      padding:12px 20px; border-radius:10px; font-size:14px; font-weight:700;
+      display:flex; align-items:center; gap:8px; transition:all .2s;
+    }
+    .btn-save:hover { background:rgba(59,130,246,.25); }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position:fixed; bottom:24px; left:50%;
+      transform:translateX(-50%) translateY(80px);
+      padding:10px 22px; border-radius:100px; font-size:13px; font-weight:600;
+      color:#fff; background:var(--dark); z-index:400;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.4);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.ok  { background:var(--green); }
+    .toast.err { background:var(--red); }
+
+    /* ════════════════════════════════════════════════════════
+       STEP Visibility
+    ════════════════════════════════════════════════════════ */
+    #step1 { display:block; }
+    #step2 { display:none; }
+    #step3 { display:none; }
+
+    /* ── Step 3 Complete ─────────────────────────────────── */
+    .complete-icon { font-size:56px; margin-bottom:16px; }
+    .complete-title { font-size:20px; font-weight:700; margin-bottom:8px; }
+    .complete-sub { font-size:14px; color:var(--muted); margin-bottom:24px; line-height:1.8; }
+    .complete-links { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+    /* ── Source Label ─────────────────────────────────────── */
+    .source-label {
+      font-size:11px; color:var(--muted); margin-top:8px;
+      padding:6px 10px; background:rgba(255,255,255,.03);
+      border-radius:6px; text-align:center;
+    }
+
+    /* ── Quick result big number ──────────────────────────── */
+    .quick-total-wrap {
+      text-align:center; padding:20px 0 8px;
+    }
+    .quick-total-label {
+      font-size:12px; color:var(--muted); margin-bottom:4px; text-transform:uppercase;
+      letter-spacing:1px; font-weight:700;
+    }
+    .quick-total-value {
+      font-family:'Oswald',sans-serif; font-size:36px; font-weight:700;
+      color:var(--orange);
+    }
+    .quick-sub-row {
+      display:flex; justify-content:space-between; padding:6px 0; font-size:13px;
+      color:var(--muted);
+    }
+    .quick-sub-row + .quick-sub-row { border-top:1px solid var(--border); }
+  </style>
+</head>
+
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">建</div>
+    <span>KENSETSU<span style="color:var(--orange)">AI</span></span>
+  </div>
+  <div class="header-right">
+    <a href="admin.html" class="icon-btn" title="ダッシュボードへ戻る">🏠</a>
+  </div>
+</header>
+
+<!-- Step Bar -->
+<div class="step-bar">
+  <div class="step-item active" id="stepItem1">
+    <div class="step-num">1</div>
+    <span>入力</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step-item" id="stepItem2">
+    <div class="step-num">2</div>
+    <span>結果</span>
+  </div>
+  <div class="step-sep"></div>
+  <div class="step-item" id="stepItem3">
+    <div class="step-num">3</div>
+    <span>完了</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     STEP 1 — Form
+════════════════════════════════════════════════════════ -->
+<div class="container" id="step1">
+
+  <div class="page-header">
+    <div class="page-title">⚡ 法面概算 <span>計算機</span></div>
+    <div class="page-sub">施工パッケージ＋歩掛積算で即時概算</div>
+  </div>
+
+  <!-- 工種・面積 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="dot"></div>
+      工種・施工条件
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="f-group span2">
+          <label>工種選択 <span class="req">*</span></label>
+          <select id="workType" class="f-input" onchange="onWorkTypeChange()">
+            <option value="mortar_with_las">モルタル吹付工（ラス有）</option>
+            <option value="seed_spray">種子吹付工</option>
+            <option value="mat_laying">植生マット工</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label>施工面積（m²） <span class="req">*</span></label>
+          <input type="number" id="areaSqm" class="f-input" placeholder="520" required min="1" step="any">
+        </div>
+        <div class="f-group" id="thicknessGroup">
+          <label>吹付厚（cm）</label>
+          <input type="number" id="thicknessCm" class="f-input" placeholder="7" value="7" min="1" step="any">
+        </div>
+        <div class="f-group">
+          <label>現場名</label>
+          <input type="text" id="siteName" class="f-input" placeholder="例：○○地区法面復旧工事">
+        </div>
+        <div class="f-group">
+          <label>元請会社名</label>
+          <input type="text" id="clientName" class="f-input" placeholder="例：○○建設株式会社">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- オプション -->
+  <div class="card">
+    <div class="card-header">
+      <div class="dot"></div>
+      オプション工種
+    </div>
+    <div class="card-body">
+      <div id="optionsSection" class="option-group">
+        <label class="option-item" id="optLasWrap">
+          <input type="checkbox" id="optLas" checked>
+          ラス張工を含む
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optCleaning" checked>
+          法面清掃工を含む
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optShaping" checked>
+          法面整形工を含む
+        </label>
+        <label class="option-item" id="optMachineWrap">
+          <input type="checkbox" id="optMachine" checked>
+          機械搬入搬出を含む
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 材料単価 -->
+  <div class="card">
+    <div class="card-body" style="padding:0;">
+      <details class="price-details">
+        <summary>📦 材料単価を確認・変更</summary>
+        <div class="price-body">
+          <div id="priceInputs" class="price-grid">
+            <!-- Dynamically populated -->
+          </div>
+          <div class="f-hint" style="margin-top:12px;">
+            ※ 単価はprice_masterテーブルから自動取得されます。手動変更した場合は今回の計算のみに適用されます。
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- 計算ボタン -->
+  <div class="actions">
+    <button class="btn-primary" onclick="calculate()">⚡ 計算する</button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     STEP 2 — Results
+════════════════════════════════════════════════════════ -->
+<div class="container" id="step2">
+
+  <div class="page-header">
+    <div class="page-title">📊 概算 <span>結果</span></div>
+    <div class="page-sub" id="resultSubHeader">—</div>
+  </div>
+
+  <div class="result-grid">
+
+    <!-- Card 1: Quick Estimate -->
+    <div class="result-card accent">
+      <div class="result-card-header">
+        <div class="dot"></div>
+        クイック概算
+      </div>
+      <div class="result-card-body">
+        <div class="quick-total-wrap">
+          <div class="quick-total-label">合計（税込）</div>
+          <div class="quick-total-value" id="quickTotal">—</div>
+        </div>
+        <div style="padding:8px 0;">
+          <div class="quick-sub-row">
+            <span>小計</span>
+            <span id="quickSubtotal">—</span>
+          </div>
+          <div class="quick-sub-row">
+            <span>消費税（10%）</span>
+            <span id="quickTax">—</span>
+          </div>
+          <div class="quick-sub-row">
+            <span>m²単価</span>
+            <span id="quickPerSqm">—</span>
+          </div>
+        </div>
+        <div class="source-label">国交省施工パッケージ基準（地域補正済）</div>
+      </div>
+    </div>
+
+    <!-- Card 2: Detail Estimate -->
+    <div class="result-card">
+      <div class="result-card-header">
+        <div class="dot"></div>
+        詳細積算
+      </div>
+      <div class="result-card-body">
+
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">材料費</div>
+        <table class="breakdown-table" id="materialTable">
+          <thead><tr><th>品名</th><th>数量</th><th>単位</th><th class="right">単価</th><th class="right">金額</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="total-row subtotal" style="margin-bottom:12px;">
+          <span>材料費 小計</span>
+          <span class="total-val" id="detailMaterialTotal">—</span>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">労務費</div>
+        <table class="breakdown-table" id="laborTable">
+          <thead><tr><th>項目</th><th>数量</th><th>単位</th><th class="right">単価</th><th class="right">金額</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="total-row subtotal" style="margin-bottom:12px;">
+          <span>労務費 小計</span>
+          <span class="total-val" id="detailLaborTotal">—</span>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">固定費</div>
+        <table class="breakdown-table" id="fixedTable">
+          <thead><tr><th>項目</th><th>数量</th><th>単位</th><th class="right">単価</th><th class="right">金額</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="total-row subtotal" style="margin-bottom:12px;">
+          <span>固定費 小計</span>
+          <span class="total-val" id="detailFixedTotal">—</span>
+        </div>
+
+        <div class="totals-block">
+          <div class="total-row subtotal">
+            <span>小計</span>
+            <span class="total-val" id="detailSubtotal">—</span>
+          </div>
+          <div class="total-row tax">
+            <span>消費税（10%）</span>
+            <span class="total-val" id="detailTax">—</span>
+          </div>
+          <div class="total-row total">
+            <span>合計（税込）</span>
+            <span class="total-val" id="detailTotal">—</span>
+          </div>
+          <div class="total-row per-sqm">
+            <span>m²単価</span>
+            <span class="total-val" id="detailPerSqm">—</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Difference Display -->
+  <div class="diff-display" id="diffDisplay">
+    <div class="diff-label">クイック概算と詳細積算の差額</div>
+    <div class="diff-value" id="diffValue">—</div>
+    <div class="diff-sub" id="diffSub">—</div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-secondary" onclick="setStep(1)">← やり直す</button>
+    <button class="btn-save" onclick="saveEstimate()">💾 この結果を保存</button>
+    <button class="btn-primary" onclick="transferToMitsumori()">📋 見積書に展開する</button>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     STEP 3 — Complete
+════════════════════════════════════════════════════════ -->
+<div class="container" id="step3">
+
+  <div class="page-header">
+    <div class="page-title">✅ <span>完了</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="text-align:center;padding:40px 20px;">
+      <div class="complete-icon">🎉</div>
+      <div class="complete-title">概算が保存されました</div>
+      <div class="complete-sub">
+        保存した概算データはダッシュボードから確認できます。<br>
+        見積書に展開して正式な見積書を作成することもできます。
+      </div>
+      <div class="complete-links">
+        <a href="mitsumori.html" class="btn-primary">📋 見積書を作成</a>
+        <a href="admin.html" class="btn-secondary">🏠 ダッシュボードへ</a>
+        <button class="btn-secondary" onclick="setStep(1)">🔄 新規計算</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     JavaScript
+════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Supabase Config ────────────────────────────────────
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+
+// ── Utils ─────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+let _tt;
+function toast(msg, type='', dur=3000) {
+  const t = $('toast'); t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(_tt); _tt = setTimeout(() => { t.className = 'toast'; }, dur);
+}
+function fmtMoney(n) { return '\u00A5' + Math.round(n || 0).toLocaleString('ja-JP'); }
+
+// ── HAKADATE Constant ─────────────────────────────────────
+// 施工パッケージ型積算用の歩掛データ
+const HAKADATE = {
+  mortar_with_las: {
+    name: 'モルタル吹付工（ラス有）',
+    // クイック概算: 施工パッケージ単価（m²あたり, 厚さ7cm基準）
+    package_unit_price: 6800,
+    thickness_base_cm: 7,
+    // 材料（per_sqm = m²あたり使用量）
+    per_sqm: [
+      { code: 'cement',     name: 'セメント',          qty_per_sqm: 1.33,  unit: 'kg' },
+      { code: 'sand',       name: '砂（洗砂）',         qty_per_sqm: 0.0012, unit: 'm³' },
+      { code: 'water',      name: '水',                qty_per_sqm: 0.0008, unit: 'm³' },
+      { code: 'wire_mesh',  name: 'ラス金網',           qty_per_sqm: 1.05,  unit: 'm²' },
+      { code: 'anchor_pin', name: 'アンカーピン',       qty_per_sqm: 4.0,   unit: '本' },
+      { code: 'spacer',     name: 'スペーサー',         qty_per_sqm: 2.0,   unit: '個' },
+    ],
+    // 労務費（1日あたりの施工面積で人工を算出）
+    labor: [
+      { name: '法面工（特殊作業員）', daily_output_sqm: 65, unit_price: 25500 },
+      { name: '普通作業員',          daily_output_sqm: 65, unit_price: 21000 },
+      { name: '法面工（世話役）',     daily_output_sqm: 130, unit_price: 27000 },
+    ],
+    // 固定費（1現場あたり）
+    fixed: [
+      { name: 'モルタル吹付機 運搬・設置・撤去', unit_price: 180000 },
+      { name: 'コンプレッサー損料',              unit_price: 85000 },
+      { name: '足場仮設・撤去',                  unit_price: 250000 },
+      { name: '安全対策費',                      unit_price: 120000 },
+    ],
+    // オプション工種
+    options: {
+      las:      { name: 'ラス張工',       per_sqm_price: 1200 },
+      cleaning: { name: '法面清掃工',     per_sqm_price: 350 },
+      shaping:  { name: '法面整形工',     per_sqm_price: 580 },
+      machine:  { name: '機械搬入搬出',   fixed_price: 150000 },
+    }
+  },
+  seed_spray: {
+    name: '種子吹付工',
+    package_unit_price: 1850,
+    thickness_base_cm: null,
+    per_sqm: [
+      { code: 'seed_mix',      name: '種子（混合）',      qty_per_sqm: 0.03,  unit: 'kg' },
+      { code: 'fertilizer',    name: '肥料',              qty_per_sqm: 0.05,  unit: 'kg' },
+      { code: 'fiber',         name: 'ファイバー',         qty_per_sqm: 0.08,  unit: 'kg' },
+      { code: 'adhesive',      name: '接着剤',            qty_per_sqm: 0.02,  unit: 'kg' },
+      { code: 'coloring',      name: '着色剤',            qty_per_sqm: 0.005, unit: 'kg' },
+      { code: 'water_seed',    name: '水',                qty_per_sqm: 0.003, unit: 'm³' },
+    ],
+    labor: [
+      { name: '法面工（特殊作業員）', daily_output_sqm: 300, unit_price: 25500 },
+      { name: '普通作業員',          daily_output_sqm: 300, unit_price: 21000 },
+    ],
+    fixed: [
+      { name: 'ハイドロシーダー運搬・設置・撤去', unit_price: 120000 },
+      { name: '安全対策費',                       unit_price: 80000 },
+    ],
+    options: {
+      cleaning: { name: '法面清掃工',     per_sqm_price: 350 },
+      shaping:  { name: '法面整形工',     per_sqm_price: 580 },
+      machine:  { name: '機械搬入搬出',   fixed_price: 120000 },
+    }
+  },
+  mat_laying: {
+    name: '植生マット工',
+    package_unit_price: 2400,
+    thickness_base_cm: null,
+    per_sqm: [
+      { code: 'veg_mat',       name: '植生マット',        qty_per_sqm: 1.05,  unit: 'm²' },
+      { code: 'anchor_pin_m',  name: 'アンカーピン',      qty_per_sqm: 3.0,   unit: '本' },
+      { code: 'staple',        name: '止め釘',            qty_per_sqm: 2.0,   unit: '本' },
+    ],
+    labor: [
+      { name: '法面工（特殊作業員）', daily_output_sqm: 120, unit_price: 25500 },
+      { name: '普通作業員',          daily_output_sqm: 120, unit_price: 21000 },
+    ],
+    fixed: [
+      { name: '運搬費',        unit_price: 80000 },
+      { name: '安全対策費',    unit_price: 80000 },
+    ],
+    options: {
+      cleaning: { name: '法面清掃工',     per_sqm_price: 350 },
+      shaping:  { name: '法面整形工',     per_sqm_price: 580 },
+      machine:  { name: '機械搬入搬出',   fixed_price: 100000 },
+    }
+  }
+};
+
+// ── Price Master ──────────────────────────────────────────
+let prices = {};         // code -> unit_price
+let priceNames = {};     // code -> name
+
+async function loadPrices() {
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/price_master?select=code,name,unit_price', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      rows.forEach(r => {
+        prices[r.code] = r.unit_price;
+        priceNames[r.code] = r.name;
+      });
+    }
+  } catch (e) {
+    console.warn('price_master取得失敗（デフォルト単価を使用）:', e);
+  }
+  // Set default prices for codes that weren't in DB
+  const defaults = {
+    cement: 18, sand: 3500, water: 200, wire_mesh: 480, anchor_pin: 45, spacer: 35,
+    seed_mix: 1800, fertilizer: 120, fiber: 350, adhesive: 800, coloring: 600, water_seed: 200,
+    veg_mat: 650, anchor_pin_m: 45, staple: 15
+  };
+  for (const [code, price] of Object.entries(defaults)) {
+    if (!prices[code]) prices[code] = price;
+    if (!priceNames[code]) priceNames[code] = code;
+  }
+  buildPriceInputs($('workType').value);
+}
+
+function getPriceName(code) {
+  return priceNames[code] || code;
+}
+
+// ── Work Type Change ──────────────────────────────────────
+function onWorkTypeChange() {
+  const wt = $('workType').value;
+  const spec = HAKADATE[wt];
+
+  // Show/hide thickness input (mortar only)
+  $('thicknessGroup').style.display = spec.thickness_base_cm ? '' : 'none';
+
+  // Show/hide las option (mortar only)
+  $('optLasWrap').style.display = spec.options.las ? '' : 'none';
+  if (!spec.options.las) $('optLas').checked = false;
+
+  // Show/hide machine option
+  $('optMachineWrap').style.display = spec.options.machine ? '' : 'none';
+
+  // Rebuild price inputs
+  buildPriceInputs(wt);
+}
+
+function buildPriceInputs(workType) {
+  const spec = HAKADATE[workType];
+  const container = $('priceInputs');
+  container.innerHTML = '';
+
+  spec.per_sqm.forEach(mat => {
+    const div = document.createElement('div');
+    div.className = 'price-item';
+    const currentPrice = prices[mat.code] || 0;
+    div.innerHTML = `
+      <label>${mat.name}（${mat.unit}）</label>
+      <input type="number" class="f-input" data-code="${mat.code}"
+             value="${currentPrice}" min="0" step="any"
+             onchange="prices['${mat.code}']=Number(this.value)">
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ── Step Management ───────────────────────────────────────
+function setStep(n) {
+  $('step1').style.display = n === 1 ? 'block' : 'none';
+  $('step2').style.display = n === 2 ? 'block' : 'none';
+  $('step3').style.display = n === 3 ? 'block' : 'none';
+
+  for (let i = 1; i <= 3; i++) {
+    const el = $('stepItem' + i);
+    el.className = 'step-item' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Calculate ─────────────────────────────────────────────
+let lastResult = null;
+
+function calculate() {
+  const wt = $('workType').value;
+  const area = parseFloat($('areaSqm').value);
+  if (!area || area <= 0) {
+    toast('施工面積を入力してください', 'err');
+    return;
+  }
+
+  const spec = HAKADATE[wt];
+  const thickness = spec.thickness_base_cm ? (parseFloat($('thicknessCm').value) || 7) : null;
+  const thicknessRatio = thickness && spec.thickness_base_cm ? thickness / spec.thickness_base_cm : 1;
+
+  // ──────────────────────────────────────────────
+  // Pattern A: Quick Estimate (施工パッケージ)
+  // ──────────────────────────────────────────────
+  let quickSubtotal = spec.package_unit_price * area * thicknessRatio;
+
+  // Add option costs to quick estimate
+  if ($('optLas').checked && spec.options.las) {
+    quickSubtotal += spec.options.las.per_sqm_price * area;
+  }
+  if ($('optCleaning').checked && spec.options.cleaning) {
+    quickSubtotal += spec.options.cleaning.per_sqm_price * area;
+  }
+  if ($('optShaping').checked && spec.options.shaping) {
+    quickSubtotal += spec.options.shaping.per_sqm_price * area;
+  }
+  if ($('optMachine').checked && spec.options.machine) {
+    quickSubtotal += spec.options.machine.fixed_price;
+  }
+
+  const quickTax = Math.round(quickSubtotal * 0.10);
+  const quickTotal = Math.round(quickSubtotal) + quickTax;
+  const quickPerSqm = Math.round(quickTotal / area);
+
+  // ──────────────────────────────────────────────
+  // Pattern B: Detail Estimate (歩掛積算)
+  // ──────────────────────────────────────────────
+
+  // --- Materials ---
+  const materialRows = [];
+  spec.per_sqm.forEach(mat => {
+    let qty = mat.qty_per_sqm * area;
+    // Adjust cement/sand/water by thickness ratio for mortar
+    if (wt === 'mortar_with_las' && ['cement', 'sand', 'water'].includes(mat.code)) {
+      qty *= thicknessRatio;
+    }
+    const unitPrice = prices[mat.code] || 0;
+    const amount = Math.round(qty * unitPrice);
+    materialRows.push({
+      name: mat.name,
+      qty: Math.round(qty * 100) / 100,
+      unit: mat.unit,
+      unitPrice: unitPrice,
+      amount: amount,
+      code: mat.code
+    });
+  });
+  const detailMaterialTotal = materialRows.reduce((s, r) => s + r.amount, 0);
+
+  // --- Labor ---
+  const laborRows = [];
+  spec.labor.forEach(lab => {
+    const days = Math.ceil(area / lab.daily_output_sqm * 10) / 10; // round to 0.1
+    const amount = Math.round(days * lab.unit_price);
+    laborRows.push({
+      name: lab.name,
+      qty: days,
+      unit: '人工',
+      unitPrice: lab.unit_price,
+      amount: amount
+    });
+  });
+  const detailLaborTotal = laborRows.reduce((s, r) => s + r.amount, 0);
+
+  // --- Fixed Costs ---
+  const fixedRows = [];
+  spec.fixed.forEach(f => {
+    fixedRows.push({
+      name: f.name,
+      qty: 1,
+      unit: '式',
+      unitPrice: f.unit_price,
+      amount: f.unit_price
+    });
+  });
+
+  // Add selected option costs as fixed items
+  if ($('optLas').checked && spec.options.las) {
+    const amt = Math.round(spec.options.las.per_sqm_price * area);
+    fixedRows.push({ name: spec.options.las.name, qty: area, unit: 'm²', unitPrice: spec.options.las.per_sqm_price, amount: amt });
+  }
+  if ($('optCleaning').checked && spec.options.cleaning) {
+    const amt = Math.round(spec.options.cleaning.per_sqm_price * area);
+    fixedRows.push({ name: spec.options.cleaning.name, qty: area, unit: 'm²', unitPrice: spec.options.cleaning.per_sqm_price, amount: amt });
+  }
+  if ($('optShaping').checked && spec.options.shaping) {
+    const amt = Math.round(spec.options.shaping.per_sqm_price * area);
+    fixedRows.push({ name: spec.options.shaping.name, qty: area, unit: 'm²', unitPrice: spec.options.shaping.per_sqm_price, amount: amt });
+  }
+  if ($('optMachine').checked && spec.options.machine) {
+    fixedRows.push({ name: spec.options.machine.name, qty: 1, unit: '式', unitPrice: spec.options.machine.fixed_price, amount: spec.options.machine.fixed_price });
+  }
+
+  const detailFixedTotal = fixedRows.reduce((s, r) => s + r.amount, 0);
+  const detailSubtotal = detailMaterialTotal + detailLaborTotal + detailFixedTotal;
+  const detailTax = Math.round(detailSubtotal * 0.10);
+  const detailTotal = detailSubtotal + detailTax;
+  const detailPerSqm = Math.round(detailTotal / area);
+
+  // ──────────────────────────────────────────────
+  // Render Results
+  // ──────────────────────────────────────────────
+
+  // Sub header
+  $('resultSubHeader').textContent = spec.name + '｜' + area.toLocaleString() + ' m²' + (thickness ? '｜厚さ ' + thickness + ' cm' : '');
+
+  // Quick
+  $('quickSubtotal').textContent = fmtMoney(quickSubtotal);
+  $('quickTax').textContent = fmtMoney(quickTax);
+  $('quickTotal').textContent = fmtMoney(quickTotal);
+  $('quickPerSqm').textContent = fmtMoney(quickPerSqm) + '/m²';
+
+  // Detail - Material Table
+  renderBreakdownTable('materialTable', materialRows);
+  $('detailMaterialTotal').textContent = fmtMoney(detailMaterialTotal);
+
+  // Detail - Labor Table
+  renderBreakdownTable('laborTable', laborRows);
+  $('detailLaborTotal').textContent = fmtMoney(detailLaborTotal);
+
+  // Detail - Fixed Table
+  renderBreakdownTable('fixedTable', fixedRows);
+  $('detailFixedTotal').textContent = fmtMoney(detailFixedTotal);
+
+  // Detail - Totals
+  $('detailSubtotal').textContent = fmtMoney(detailSubtotal);
+  $('detailTax').textContent = fmtMoney(detailTax);
+  $('detailTotal').textContent = fmtMoney(detailTotal);
+  $('detailPerSqm').textContent = fmtMoney(detailPerSqm) + '/m²';
+
+  // Difference
+  const diff = quickTotal - detailTotal;
+  const diffPct = detailTotal > 0 ? ((diff / detailTotal) * 100).toFixed(1) : 0;
+  const diffEl = $('diffValue');
+  diffEl.textContent = (diff >= 0 ? '+' : '') + fmtMoney(diff);
+  diffEl.className = 'diff-value ' + (Math.abs(diff) < detailTotal * 0.05 ? 'diff-neutral' : diff > 0 ? 'diff-positive' : 'diff-negative');
+  $('diffSub').textContent = 'クイック概算が詳細積算より ' + (diff >= 0 ? '+' : '') + diffPct + '%（' + (Math.abs(diff) < detailTotal * 0.05 ? '許容範囲内' : '要確認') + '）';
+
+  // Store result for save/transfer
+  lastResult = {
+    workType: wt,
+    workTypeName: spec.name,
+    area: area,
+    thickness: thickness,
+    siteName: $('siteName').value.trim(),
+    clientName: $('clientName').value.trim(),
+    quick: { subtotal: Math.round(quickSubtotal), tax: quickTax, total: quickTotal, perSqm: quickPerSqm },
+    detail: {
+      materialRows, laborRows, fixedRows,
+      materialTotal: detailMaterialTotal,
+      laborTotal: detailLaborTotal,
+      fixedTotal: detailFixedTotal,
+      subtotal: detailSubtotal,
+      tax: detailTax,
+      total: detailTotal,
+      perSqm: detailPerSqm
+    },
+    diff: diff,
+    createdAt: new Date().toISOString()
+  };
+
+  setStep(2);
+  toast('計算完了', 'ok');
+}
+
+function renderBreakdownTable(tableId, rows) {
+  const tbody = $(tableId).querySelector('tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.name}</td>
+      <td>${r.qty.toLocaleString()}</td>
+      <td>${r.unit}</td>
+      <td class="right">${fmtMoney(r.unitPrice)}</td>
+      <td class="right">${fmtMoney(r.amount)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Transfer to Mitsumori ─────────────────────────────────
+function transferToMitsumori() {
+  if (!lastResult) {
+    toast('先に計算を実行してください', 'err');
+    return;
+  }
+
+  // Build transfer data compatible with mitsumori.html
+  const items = [];
+  const d = lastResult.detail;
+
+  // Material rows
+  d.materialRows.forEach(r => {
+    items.push({
+      name: r.name,
+      quantity: r.qty,
+      unit: r.unit,
+      unitPrice: r.unitPrice,
+      amount: r.amount,
+      category: '材料費'
+    });
+  });
+
+  // Labor rows
+  d.laborRows.forEach(r => {
+    items.push({
+      name: r.name,
+      quantity: r.qty,
+      unit: r.unit,
+      unitPrice: r.unitPrice,
+      amount: r.amount,
+      category: '労務費'
+    });
+  });
+
+  // Fixed rows
+  d.fixedRows.forEach(r => {
+    items.push({
+      name: r.name,
+      quantity: r.qty,
+      unit: r.unit,
+      unitPrice: r.unitPrice,
+      amount: r.amount,
+      category: '固定費'
+    });
+  });
+
+  const transfer = {
+    workTypeName: lastResult.workTypeName,
+    siteName: lastResult.siteName,
+    clientName: lastResult.clientName,
+    area: lastResult.area,
+    thickness: lastResult.thickness,
+    items: items,
+    subtotal: d.subtotal,
+    tax: d.tax,
+    total: d.total
+  };
+
+  localStorage.setItem('slope_estimate_transfer', JSON.stringify(transfer));
+  toast('見積書データを転送中...', 'ok');
+  setTimeout(() => { location.href = 'mitsumori.html'; }, 600);
+}
+
+// ── Save Estimate ─────────────────────────────────────────
+async function saveEstimate() {
+  if (!lastResult) {
+    toast('先に計算を実行してください', 'err');
+    return;
+  }
+
+  try {
+    const payload = {
+      work_type: lastResult.workType,
+      work_type_name: lastResult.workTypeName,
+      area_sqm: lastResult.area,
+      thickness_cm: lastResult.thickness,
+      site_name: lastResult.siteName || null,
+      client_name: lastResult.clientName || null,
+      quick_subtotal: lastResult.quick.subtotal,
+      quick_tax: lastResult.quick.tax,
+      quick_total: lastResult.quick.total,
+      detail_subtotal: lastResult.detail.subtotal,
+      detail_tax: lastResult.detail.tax,
+      detail_total: lastResult.detail.total,
+      detail_breakdown: {
+        materialRows: lastResult.detail.materialRows,
+        laborRows: lastResult.detail.laborRows,
+        fixedRows: lastResult.detail.fixedRows
+      },
+      diff_amount: lastResult.diff,
+      created_at: lastResult.createdAt
+    };
+
+    const res = await fetch(SB_URL + '/rest/v1/slope_estimates', {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok || res.status === 201) {
+      toast('保存しました', 'ok');
+      setStep(3);
+    } else {
+      const err = await res.text();
+      console.error('Save error:', err);
+      toast('保存に失敗しました: ' + res.status, 'err');
+    }
+  } catch (e) {
+    console.error('Save error:', e);
+    toast('保存に失敗しました', 'err');
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadPrices();
+  onWorkTypeChange();
+});
+</script>
+
+</body>
+</html>
