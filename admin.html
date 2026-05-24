@@ -598,6 +598,29 @@
     <a href="slope-estimate.html" class="cta-primary" style="background:linear-gradient(135deg,#FF6B00,#CC5500);box-shadow:0 4px 14px rgba(255,107,0,.35);">⚡ 法面概算計算機</a>
   </div>
 
+  <!-- 単価マスタ管理 -->
+  <div class="card" id="priceMasterCard" style="margin-top:16px;">
+    <div class="card-header" style="cursor:pointer;" onclick="document.getElementById('priceMasterBody').style.display=document.getElementById('priceMasterBody').style.display==='none'?'block':'none'">
+      <span class="card-icon">💴</span>
+      <span>単価マスタ管理</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--muted);">▼ 開閉</span>
+    </div>
+    <div class="card-body" id="priceMasterBody" style="display:none;padding:0;">
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);" id="pmTabs">
+        <button class="pm-tab active" data-cat="material" onclick="pmSwitchTab('material')">📦 材料</button>
+        <button class="pm-tab" data-cat="labor" onclick="pmSwitchTab('labor')">👷 労務</button>
+        <button class="pm-tab" data-cat="equipment" onclick="pmSwitchTab('equipment')">🚛 機械</button>
+        <button class="pm-tab" data-cat="package" onclick="pmSwitchTab('package')">📊 標準単価</button>
+      </div>
+      <div id="pmTableWrap" style="overflow-x:auto;padding:12px;">
+        <div style="color:var(--muted);font-size:13px;padding:16px;text-align:center;">読み込み中...</div>
+      </div>
+      <div style="padding:8px 12px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);">
+        <button class="btn-sm" onclick="pmRefresh()" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;">🔄 再読込</button>
+      </div>
+    </div>
+  </div>
+
   <!-- KPI Cards -->
   <div class="kpi-grid">
     <div class="kpi-card">
@@ -1152,6 +1175,95 @@ function dismissLoading() {
     clearTimeout(fallbackTimer);
     dismissLoading();
   }
+
+  // ── 単価マスタ管理 ─────────────────────────────────
+  let _pmData = [];
+  let _pmCat = 'material';
+
+  // タブCSS追加
+  (function(){
+    const s = document.createElement('style');
+    s.textContent = `
+      .pm-tab{background:none;border:none;color:var(--muted);padding:10px 16px;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+      .pm-tab:hover{color:var(--text);}
+      .pm-tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+      .pm-table{width:100%;border-collapse:collapse;font-size:13px;}
+      .pm-table th{text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);font-weight:700;border-bottom:1px solid var(--border);}
+      .pm-table td{padding:6px 8px;border-bottom:1px solid var(--border);}
+      .pm-table .pm-price{cursor:pointer;color:var(--orange);font-weight:700;text-align:right;min-width:80px;}
+      .pm-table .pm-price:hover{text-decoration:underline;}
+      .pm-table .pm-price input{background:var(--card2);border:1px solid var(--orange);color:var(--text);padding:4px 6px;border-radius:4px;font-size:13px;width:90px;text-align:right;}
+      .pm-table .pm-src{font-size:11px;color:var(--muted);}
+    `;
+    document.head.appendChild(s);
+  })();
+
+  async function pmLoadData() {
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/price_master?company_id=eq.tsubasa-kougyou&order=item_code.asc`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+      });
+      _pmData = await res.json();
+    } catch(e) { _pmData = []; }
+  }
+
+  function pmSwitchTab(cat) {
+    _pmCat = cat;
+    document.querySelectorAll('.pm-tab').forEach(t => t.classList.toggle('active', t.dataset.cat === cat));
+    pmRender();
+  }
+
+  function pmRender() {
+    const wrap = document.getElementById('pmTableWrap');
+    const rows = _pmData.filter(r => r.category === _pmCat);
+    if (!rows.length) { wrap.innerHTML = '<div style="color:var(--muted);padding:16px;text-align:center;">データなし</div>'; return; }
+
+    wrap.innerHTML = `<table class="pm-table">
+      <thead><tr><th>コード</th><th>品名</th><th>単位</th><th style="text-align:right;">単価（円）</th><th>出典</th></tr></thead>
+      <tbody>${rows.map(r => `
+        <tr data-id="${r.id}">
+          <td style="font-size:11px;color:var(--muted);">${r.item_code}</td>
+          <td>${r.item_name}</td>
+          <td>${r.unit}</td>
+          <td class="pm-price" onclick="pmEditPrice(this,'${r.id}',${r.unit_price})">${Math.round(r.unit_price).toLocaleString('ja-JP')}</td>
+          <td class="pm-src">${r.source||''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function pmEditPrice(td, id, current) {
+    if (td.querySelector('input')) return;
+    const orig = td.textContent;
+    td.innerHTML = `<input type="number" value="${current}" autofocus>`;
+    const input = td.querySelector('input');
+    input.focus();
+    input.select();
+    input.addEventListener('blur', async () => {
+      const newVal = parseFloat(input.value);
+      if (isNaN(newVal) || newVal === current) { td.textContent = orig; return; }
+      td.textContent = '保存中...';
+      try {
+        await fetch(`${SB_URL}/rest/v1/price_master?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ unit_price: newVal, updated_at: new Date().toISOString() }),
+        });
+        const item = _pmData.find(r => r.id === id);
+        if (item) item.unit_price = newVal;
+        td.textContent = Math.round(newVal).toLocaleString('ja-JP');
+      } catch(e) { td.textContent = orig; }
+    });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { td.textContent = orig; } });
+  }
+
+  async function pmRefresh() {
+    await pmLoadData();
+    pmRender();
+  }
+
+  // 初回読み込み
+  pmLoadData().then(() => pmRender());
 
   // SaaS: 作業員ページリンクに自社の company_id を付与
   try {

@@ -62,5 +62,6 @@ INSERT INTO price_master (company_id, category, item_code, item_name, unit, unit
 ('tsubasa-kougyou','equipment','EQP003','法面整形工','式',150000,'翼工業実績R8'),
 ('tsubasa-kougyou','equipment','EQP004','法面清掃工','式',150000,'翼工業実績R8'),
 ('tsubasa-kougyou','package','PKG001','モルタル吹付7cm_東京基準','㎡',4800,'国交省R8施工パッケージ'),
-('tsubasa-kougyou','package','PKG002','種子吹付_東京基準','㎡',1200,'国交省R8施工パッケージ')
+('tsubasa-kougyou','package','PKG002','種子吹付_東京基準','㎡',1200,'国交省R8施工パッケージ'),
+('tsubasa-kougyou','package','PKG003','植生マット_東京基準','㎡',950,'国交省R8施工パッケージ')
 ON CONFLICT (company_id, item_code, prefecture) DO NOTHING;
