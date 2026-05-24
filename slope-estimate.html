@@ -648,122 +648,92 @@ function toast(msg, type='', dur=3000) {
 function fmtMoney(n) { return '\u00A5' + Math.round(n || 0).toLocaleString('ja-JP'); }
 
 // ── HAKADATE Constant ─────────────────────────────────────
-// 施工パッケージ型積算用の歩掛データ
+// 翼工業実績値（小竹現場R8ベース）による歩掛データ
 const HAKADATE = {
   mortar_with_las: {
     name: 'モルタル吹付工（ラス有）',
-    // クイック概算: 施工パッケージ単価（m²あたり, 厚さ7cm基準）
-    package_unit_price: 6800,
-    thickness_base_cm: 7,
-    // 材料（per_sqm = m²あたり使用量）
+    type: 'gun_machine',
+    base_thickness_cm: 7,
     per_sqm: [
-      { code: 'cement',     name: 'セメント',          qty_per_sqm: 1.33,  unit: 'kg' },
-      { code: 'sand',       name: '砂（洗砂）',         qty_per_sqm: 0.0012, unit: 'm³' },
-      { code: 'water',      name: '水',                qty_per_sqm: 0.0008, unit: 'm³' },
-      { code: 'wire_mesh',  name: 'ラス金網',           qty_per_sqm: 1.05,  unit: 'm²' },
-      { code: 'anchor_pin', name: 'アンカーピン',       qty_per_sqm: 4.0,   unit: '本' },
-      { code: 'spacer',     name: 'スペーサー',         qty_per_sqm: 2.0,   unit: '個' },
+      { code:'las_mesh',    label:'ラス金網',     ratio:1.30,  unit:'㎡', scaleWithThickness:false },
+      { code:'main_anchor', label:'主アンカー',   ratio:0.39,  unit:'本', scaleWithThickness:false },
+      { code:'sub_anchor',  label:'補助アンカー', ratio:1.74,  unit:'本', scaleWithThickness:false },
+      { code:'spacer',      label:'スペーサー',   ratio:2.60,  unit:'個', scaleWithThickness:false },
+      { code:'cure_mat',    label:'キュアマット', ratio:0.004, unit:'巻', scaleWithThickness:false },
+      { code:'sand',        label:'砂',           ratio:0.112, unit:'㎥', scaleWithThickness:true },
+      { code:'cement',      label:'セメント',     ratio:1.75,  unit:'袋', scaleWithThickness:true },
     ],
-    // 労務費（1日あたりの施工面積で人工を算出）
     labor: [
-      { name: '法面工（特殊作業員）', daily_output_sqm: 65, unit_price: 25500 },
-      { name: '普通作業員',          daily_output_sqm: 65, unit_price: 21000 },
-      { name: '法面工（世話役）',     daily_output_sqm: 130, unit_price: 27000 },
+      { code:'labor_las',    label:'ラス張工',        unit_price:945,  optionKey:'las' },
+      { code:'labor_mortar', label:'モルタル吹付工',  unit_price:2430, optionKey:null },
     ],
-    // 固定費（1現場あたり）
     fixed: [
-      { name: 'モルタル吹付機 運搬・設置・撤去', unit_price: 180000 },
-      { name: 'コンプレッサー損料',              unit_price: 85000 },
-      { name: '足場仮設・撤去',                  unit_price: 250000 },
-      { name: '安全対策費',                      unit_price: 120000 },
+      { code:'machine_transport', label:'機械運搬費',           price:200000, optionKey:'machine' },
+      { code:'machine_setup',     label:'機械設置費（搬入搬出）', price:300000, optionKey:'machine' },
+      { code:'slope_shaping',     label:'法面整形工',            price:150000, optionKey:'shaping' },
+      { code:'slope_cleaning',    label:'法面清掃工',            price:150000, optionKey:'cleaning' },
     ],
-    // オプション工種
-    options: {
-      las:      { name: 'ラス張工',       per_sqm_price: 1200 },
-      cleaning: { name: '法面清掃工',     per_sqm_price: 350 },
-      shaping:  { name: '法面整形工',     per_sqm_price: 580 },
-      machine:  { name: '機械搬入搬出',   fixed_price: 150000 },
-    }
+    default_prices: {
+      las_mesh:275, main_anchor:155, sub_anchor:29, spacer:51,
+      cure_mat:4400, sand:5200, cement:700
+    },
+    package_unit_price: 4800,
+    region_factor: 0.92,
   },
   seed_spray: {
     name: '種子吹付工',
-    package_unit_price: 1850,
-    thickness_base_cm: null,
+    type: 'no_machine',
+    base_thickness_cm: null,
     per_sqm: [
-      { code: 'seed_mix',      name: '種子（混合）',      qty_per_sqm: 0.03,  unit: 'kg' },
-      { code: 'fertilizer',    name: '肥料',              qty_per_sqm: 0.05,  unit: 'kg' },
-      { code: 'fiber',         name: 'ファイバー',         qty_per_sqm: 0.08,  unit: 'kg' },
-      { code: 'adhesive',      name: '接着剤',            qty_per_sqm: 0.02,  unit: 'kg' },
-      { code: 'coloring',      name: '着色剤',            qty_per_sqm: 0.005, unit: 'kg' },
-      { code: 'water_seed',    name: '水',                qty_per_sqm: 0.003, unit: 'm³' },
+      { code:'seed_material', label:'種子吹付材料一式', ratio:1.0, unit:'㎡', scaleWithThickness:false },
     ],
     labor: [
-      { name: '法面工（特殊作業員）', daily_output_sqm: 300, unit_price: 25500 },
-      { name: '普通作業員',          daily_output_sqm: 300, unit_price: 21000 },
+      { code:'labor_seed', label:'種子吹付工', unit_price:450, optionKey:null },
     ],
     fixed: [
-      { name: 'ハイドロシーダー運搬・設置・撤去', unit_price: 120000 },
-      { name: '安全対策費',                       unit_price: 80000 },
+      { code:'transport', label:'機械運搬費', price:50000, optionKey:'machine' },
     ],
-    options: {
-      cleaning: { name: '法面清掃工',     per_sqm_price: 350 },
-      shaping:  { name: '法面整形工',     per_sqm_price: 580 },
-      machine:  { name: '機械搬入搬出',   fixed_price: 120000 },
-    }
+    default_prices: { seed_material:650 },
+    package_unit_price: 1200,
+    region_factor: 0.92,
   },
   mat_laying: {
     name: '植生マット工',
-    package_unit_price: 2400,
-    thickness_base_cm: null,
+    type: 'no_machine',
+    base_thickness_cm: null,
     per_sqm: [
-      { code: 'veg_mat',       name: '植生マット',        qty_per_sqm: 1.05,  unit: 'm²' },
-      { code: 'anchor_pin_m',  name: 'アンカーピン',      qty_per_sqm: 3.0,   unit: '本' },
-      { code: 'staple',        name: '止め釘',            qty_per_sqm: 2.0,   unit: '本' },
+      { code:'veg_mat', label:'植生マット', ratio:1.05, unit:'㎡', scaleWithThickness:false },
+      { code:'mat_pin', label:'植生ピン',   ratio:3.0,  unit:'本', scaleWithThickness:false },
     ],
     labor: [
-      { name: '法面工（特殊作業員）', daily_output_sqm: 120, unit_price: 25500 },
-      { name: '普通作業員',          daily_output_sqm: 120, unit_price: 21000 },
+      { code:'labor_mat', label:'植生マット張工', unit_price:350, optionKey:null },
     ],
-    fixed: [
-      { name: '運搬費',        unit_price: 80000 },
-      { name: '安全対策費',    unit_price: 80000 },
-    ],
-    options: {
-      cleaning: { name: '法面清掃工',     per_sqm_price: 350 },
-      shaping:  { name: '法面整形工',     per_sqm_price: 580 },
-      machine:  { name: '機械搬入搬出',   fixed_price: 100000 },
-    }
-  }
+    fixed: [],
+    default_prices: { veg_mat:380, mat_pin:25 },
+    package_unit_price: 950,
+    region_factor: 0.92,
+  },
 };
 
 // ── Price Master ──────────────────────────────────────────
-let prices = {};         // code -> unit_price
-let priceNames = {};     // code -> name
+let inputPrices = {};    // code -> user-edited price
+
+function getDefaultPrices(workType) {
+  return HAKADATE[workType]?.default_prices || {};
+}
 
 async function loadPrices() {
+  // Supabaseからprice_masterを取得してinputPricesにマージ
   try {
-    const res = await fetch(SB_URL + '/rest/v1/price_master?select=code,name,unit_price', {
+    const res = await fetch(SB_URL + '/rest/v1/price_master?select=item_code,item_name,unit_price&company_id=eq.tsubasa-kougyou', {
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
     });
     if (res.ok) {
       const rows = await res.json();
-      rows.forEach(r => {
-        prices[r.code] = r.unit_price;
-        priceNames[r.code] = r.name;
-      });
+      rows.forEach(r => { inputPrices[r.item_code] = r.unit_price; });
     }
   } catch (e) {
     console.warn('price_master取得失敗（デフォルト単価を使用）:', e);
-  }
-  // Set default prices for codes that weren't in DB
-  const defaults = {
-    cement: 18, sand: 3500, water: 200, wire_mesh: 480, anchor_pin: 45, spacer: 35,
-    seed_mix: 1800, fertilizer: 120, fiber: 350, adhesive: 800, coloring: 600, water_seed: 200,
-    veg_mat: 650, anchor_pin_m: 45, staple: 15
-  };
-  for (const [code, price] of Object.entries(defaults)) {
-    if (!prices[code]) prices[code] = price;
-    if (!priceNames[code]) priceNames[code] = code;
   }
   buildPriceInputs($('workType').value);
 }
@@ -775,36 +745,37 @@ function getPriceName(code) {
 // ── Work Type Change ──────────────────────────────────────
 function onWorkTypeChange() {
   const wt = $('workType').value;
-  const spec = HAKADATE[wt];
+  const hk = HAKADATE[wt];
 
-  // Show/hide thickness input (mortar only)
-  $('thicknessGroup').style.display = spec.thickness_base_cm ? '' : 'none';
+  // Show/hide thickness input (gun_machine only)
+  $('thicknessGroup').style.display = hk.base_thickness_cm ? '' : 'none';
 
-  // Show/hide las option (mortar only)
-  $('optLasWrap').style.display = spec.options.las ? '' : 'none';
-  if (!spec.options.las) $('optLas').checked = false;
+  // Show/hide las option (mortar only — has labor with optionKey 'las')
+  const hasLas = hk.labor.some(l => l.optionKey === 'las');
+  $('optLasWrap').style.display = hasLas ? '' : 'none';
+  if (!hasLas && $('optLas')) $('optLas').checked = false;
 
   // Show/hide machine option
-  $('optMachineWrap').style.display = spec.options.machine ? '' : 'none';
+  const hasMachine = hk.fixed.some(f => f.optionKey === 'machine');
+  $('optMachineWrap').style.display = hasMachine ? '' : 'none';
 
   // Rebuild price inputs
   buildPriceInputs(wt);
 }
 
 function buildPriceInputs(workType) {
-  const spec = HAKADATE[workType];
+  const hk = HAKADATE[workType];
   const container = $('priceInputs');
   container.innerHTML = '';
 
-  spec.per_sqm.forEach(mat => {
+  hk.per_sqm.forEach(item => {
     const div = document.createElement('div');
     div.className = 'price-item';
-    const currentPrice = prices[mat.code] || 0;
+    const currentPrice = inputPrices[item.code] ?? hk.default_prices[item.code] ?? 0;
     div.innerHTML = `
-      <label>${mat.name}（${mat.unit}）</label>
-      <input type="number" class="f-input" data-code="${mat.code}"
-             value="${currentPrice}" min="0" step="any"
-             onchange="prices['${mat.code}']=Number(this.value)">
+      <label>${item.label}（${item.unit}）</label>
+      <input type="number" class="f-input" data-price-code="${item.code}"
+             value="${currentPrice}" min="0" step="any">
     `;
     container.appendChild(div);
   });
@@ -834,107 +805,71 @@ function calculate() {
     return;
   }
 
-  const spec = HAKADATE[wt];
-  const thickness = spec.thickness_base_cm ? (parseFloat($('thicknessCm').value) || 7) : null;
-  const thicknessRatio = thickness && spec.thickness_base_cm ? thickness / spec.thickness_base_cm : 1;
+  const hk = HAKADATE[wt];
+  const t = hk.base_thickness_cm ? (parseFloat($('thicknessCm').value) || 7) : null;
+  const tRatio = hk.base_thickness_cm ? (t / hk.base_thickness_cm) : 1;
+  const thickness = t;
 
-  // ──────────────────────────────────────────────
-  // Pattern A: Quick Estimate (施工パッケージ)
-  // ──────────────────────────────────────────────
-  let quickSubtotal = spec.package_unit_price * area * thicknessRatio;
+  // 画面上の単価入力値を収集
+  const editedPrices = {};
+  document.querySelectorAll('[data-price-code]').forEach(el => {
+    editedPrices[el.dataset.priceCode] = parseFloat(el.value) || 0;
+  });
 
-  // Add option costs to quick estimate
-  if ($('optLas').checked && spec.options.las) {
-    quickSubtotal += spec.options.las.per_sqm_price * area;
-  }
-  if ($('optCleaning').checked && spec.options.cleaning) {
-    quickSubtotal += spec.options.cleaning.per_sqm_price * area;
-  }
-  if ($('optShaping').checked && spec.options.shaping) {
-    quickSubtotal += spec.options.shaping.per_sqm_price * area;
-  }
-  if ($('optMachine').checked && spec.options.machine) {
-    quickSubtotal += spec.options.machine.fixed_price;
-  }
+  // オプション状態
+  const options = {
+    las:      $('optLas')?.checked ?? true,
+    machine:  $('optMachine')?.checked ?? true,
+    shaping:  $('optShaping')?.checked ?? true,
+    cleaning: $('optCleaning')?.checked ?? true,
+  };
 
-  const quickTax = Math.round(quickSubtotal * 0.10);
-  const quickTotal = Math.round(quickSubtotal) + quickTax;
-  const quickPerSqm = Math.round(quickTotal / area);
-
-  // ──────────────────────────────────────────────
-  // Pattern B: Detail Estimate (歩掛積算)
-  // ──────────────────────────────────────────────
-
-  // --- Materials ---
+  // ── パターンB：歩掛積み上げ詳細計算 ──
+  let matTotal = 0;
   const materialRows = [];
-  spec.per_sqm.forEach(mat => {
-    let qty = mat.qty_per_sqm * area;
-    // Adjust cement/sand/water by thickness ratio for mortar
-    if (wt === 'mortar_with_las' && ['cement', 'sand', 'water'].includes(mat.code)) {
-      qty *= thicknessRatio;
-    }
-    const unitPrice = prices[mat.code] || 0;
+  for (const item of hk.per_sqm) {
+    const ratio = item.scaleWithThickness ? item.ratio * tRatio : item.ratio;
+    const qty = Math.round(area * ratio * 10) / 10;
+    const unitPrice = editedPrices[item.code] ?? hk.default_prices[item.code] ?? 0;
     const amount = Math.round(qty * unitPrice);
-    materialRows.push({
-      name: mat.name,
-      qty: Math.round(qty * 100) / 100,
-      unit: mat.unit,
-      unitPrice: unitPrice,
-      amount: amount,
-      code: mat.code
-    });
-  });
-  const detailMaterialTotal = materialRows.reduce((s, r) => s + r.amount, 0);
+    matTotal += amount;
+    materialRows.push({ name:item.label, qty, unit:item.unit, unitPrice, amount });
+  }
+  const detailMaterialTotal = matTotal;
 
-  // --- Labor ---
+  let laborTotal = 0;
   const laborRows = [];
-  spec.labor.forEach(lab => {
-    const days = Math.ceil(area / lab.daily_output_sqm * 10) / 10; // round to 0.1
-    const amount = Math.round(days * lab.unit_price);
-    laborRows.push({
-      name: lab.name,
-      qty: days,
-      unit: '人工',
-      unitPrice: lab.unit_price,
-      amount: amount
-    });
-  });
-  const detailLaborTotal = laborRows.reduce((s, r) => s + r.amount, 0);
+  for (const item of hk.labor) {
+    if (item.optionKey && !options[item.optionKey]) continue;
+    const amount = Math.round(area * item.unit_price);
+    laborTotal += amount;
+    laborRows.push({ name:item.label, qty:area, unit:'㎡', unitPrice:item.unit_price, amount });
+  }
+  const detailLaborTotal = laborTotal;
 
-  // --- Fixed Costs ---
+  let fixedTotal = 0;
   const fixedRows = [];
-  spec.fixed.forEach(f => {
-    fixedRows.push({
-      name: f.name,
-      qty: 1,
-      unit: '式',
-      unitPrice: f.unit_price,
-      amount: f.unit_price
-    });
-  });
+  for (const item of hk.fixed) {
+    if (item.optionKey && !options[item.optionKey]) continue;
+    fixedTotal += item.price;
+    fixedRows.push({ name:item.label, qty:1, unit:'式', unitPrice:item.price, amount:item.price });
+  }
+  const detailFixedTotal = fixedTotal;
 
-  // Add selected option costs as fixed items
-  if ($('optLas').checked && spec.options.las) {
-    const amt = Math.round(spec.options.las.per_sqm_price * area);
-    fixedRows.push({ name: spec.options.las.name, qty: area, unit: 'm²', unitPrice: spec.options.las.per_sqm_price, amount: amt });
-  }
-  if ($('optCleaning').checked && spec.options.cleaning) {
-    const amt = Math.round(spec.options.cleaning.per_sqm_price * area);
-    fixedRows.push({ name: spec.options.cleaning.name, qty: area, unit: 'm²', unitPrice: spec.options.cleaning.per_sqm_price, amount: amt });
-  }
-  if ($('optShaping').checked && spec.options.shaping) {
-    const amt = Math.round(spec.options.shaping.per_sqm_price * area);
-    fixedRows.push({ name: spec.options.shaping.name, qty: area, unit: 'm²', unitPrice: spec.options.shaping.per_sqm_price, amount: amt });
-  }
-  if ($('optMachine').checked && spec.options.machine) {
-    fixedRows.push({ name: spec.options.machine.name, qty: 1, unit: '式', unitPrice: spec.options.machine.fixed_price, amount: spec.options.machine.fixed_price });
-  }
-
-  const detailFixedTotal = fixedRows.reduce((s, r) => s + r.amount, 0);
   const detailSubtotal = detailMaterialTotal + detailLaborTotal + detailFixedTotal;
-  const detailTax = Math.round(detailSubtotal * 0.10);
+  const detailTax = Math.round(detailSubtotal * 0.1);
   const detailTotal = detailSubtotal + detailTax;
-  const detailPerSqm = Math.round(detailTotal / area);
+  const detailPerSqm = area > 0 ? Math.round(detailSubtotal / area) : 0;
+
+  // ── パターンA：施工パッケージ概算 ──
+  const pkgVar = Math.round(area * hk.package_unit_price * hk.region_factor);
+  const pkgFixed = hk.fixed
+    .filter(f => !f.optionKey || options[f.optionKey])
+    .reduce((s, f) => s + f.price, 0);
+  const quickSubtotal = pkgVar + pkgFixed;
+  const quickTax = Math.round(quickSubtotal * 0.1);
+  const quickTotal = quickSubtotal + quickTax;
+  const quickPerSqm = area > 0 ? Math.round(quickSubtotal / area) : 0;
 
   // ──────────────────────────────────────────────
   // Render Results
