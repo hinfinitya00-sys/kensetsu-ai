@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <script src="js/auth.js"></script>
+  <script>KS_AUTH.checkAuth();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>建設AI｜AI写真台帳</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --orange:       #FF6B00;
+      --orange-dark:  #CC5500;
+      --orange-light: #FF8C33;
+      --black:        #0A0A0A;
+      --dark:         #111418;
+      --card:         #181C22;
+      --card2:        #1E232B;
+      --border:       #2A3040;
+      --text:         #E8EAF0;
+      --muted:        #7A8499;
+      --green:        #22C55E;
+      --blue:         #3B82F6;
+      --yellow:       #F59E0B;
+      --red:          #EF4444;
+      --purple:       #7c3aed;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      background:var(--black); color:var(--text);
+      font-family:'Noto Sans JP',sans-serif; min-height:100vh; overflow-x:hidden;
+    }
+    a { color:inherit; text-decoration:none; }
+    button { font-family:'Noto Sans JP',sans-serif; cursor:pointer; }
+    input, select, textarea { font-family:'Noto Sans JP',sans-serif; }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background:var(--dark); border-bottom:2px solid var(--orange);
+      padding:0 24px; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:100;
+    }
+    .logo {
+      display:flex; align-items:center; gap:10px;
+      font-family:'Oswald',sans-serif; font-size:20px; font-weight:700;
+      letter-spacing:1px; color:var(--text);
+    }
+    .logo-mark {
+      width:32px; height:32px; background:var(--orange);
+      clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+      display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:900; color:white;
+    }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .icon-btn {
+      background:rgba(255,255,255,.08); border:1px solid var(--border);
+      color:var(--muted); width:36px; height:36px; border-radius:8px; font-size:18px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    .icon-btn:hover { background:rgba(255,107,0,.15); border-color:var(--orange); color:var(--orange); }
+
+    /* ── Container ───────────────────────────────────────── */
+    .container { max-width:1100px; margin:0 auto; padding:24px 24px 60px; }
+
+    /* ── Page Header ─────────────────────────────────────── */
+    .page-header { margin-bottom:24px; }
+    .page-title {
+      font-family:'Oswald',sans-serif; font-size:26px; font-weight:700;
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    .page-title span { color:var(--orange); }
+    .page-sub { font-size:13px; color:var(--muted); }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:12px; margin-bottom:20px; overflow:hidden;
+    }
+    .card-header {
+      padding:14px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:8px;
+      font-size:14px; font-weight:700;
+    }
+    .card-header .dot { width:8px; height:8px; background:var(--orange); border-radius:50%; flex-shrink:0; }
+    .card-body { padding:20px; }
+
+    /* ── Form ────────────────────────────────────────────── */
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .f-group { display:flex; flex-direction:column; gap:5px; }
+    .f-group label {
+      font-size:11px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+    .f-input {
+      background:var(--card2); border:1px solid var(--border);
+      color:var(--text); padding:10px 12px; border-radius:8px;
+      font-size:14px; transition:border-color .2s; width:100%;
+    }
+    .f-input:focus { outline:none; border-color:var(--orange); }
+    .f-input::placeholder { color:var(--muted); opacity:.6; }
+
+    /* ── Buttons ──────────────────────────────────────────── */
+    .btn-primary {
+      background:linear-gradient(135deg,var(--orange),var(--orange-dark));
+      color:#fff; border:none; padding:12px 28px; border-radius:10px;
+      font-size:15px; font-weight:700; display:inline-flex; align-items:center; gap:8px;
+      box-shadow:0 4px 14px rgba(255,107,0,.35); transition:all .2s;
+    }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,107,0,.45); }
+    .btn-primary:disabled { opacity:.5; pointer-events:none; }
+    .btn-save {
+      background:linear-gradient(135deg,var(--blue),#2563EB);
+      color:#fff; border:none; padding:12px 28px; border-radius:10px;
+      font-size:15px; font-weight:700; display:inline-flex; align-items:center; gap:8px;
+      box-shadow:0 4px 14px rgba(59,130,246,.35); transition:all .2s;
+    }
+    .btn-save:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(59,130,246,.45); }
+    .btn-save:disabled { opacity:.5; pointer-events:none; }
+    .btn-secondary {
+      background:var(--card2); color:var(--text); border:1px solid var(--border);
+      padding:12px 24px; border-radius:10px; font-size:14px; font-weight:700;
+      display:inline-flex; align-items:center; gap:8px; transition:all .2s;
+    }
+    .btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
+    .btn-sm {
+      padding:6px 12px; font-size:12px; border-radius:6px; font-weight:600;
+    }
+
+    .action-bar {
+      display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+    }
+
+    /* ── Details / Collapsible ────────────────────────────── */
+    details.card { }
+    details.card > summary {
+      padding:14px 20px; cursor:pointer; list-style:none;
+      display:flex; align-items:center; gap:8px;
+      font-size:14px; font-weight:700; user-select:none;
+    }
+    details.card > summary::-webkit-details-marker { display:none; }
+    details.card > summary::before {
+      content:''; display:inline-block; width:8px; height:8px;
+      background:var(--orange); border-radius:50%; flex-shrink:0;
+    }
+    details.card > summary::after {
+      content:''; display:inline-block; width:0; height:0;
+      border-left:5px solid transparent; border-right:5px solid transparent;
+      border-top:6px solid var(--muted); margin-left:auto; transition:transform .2s;
+    }
+    details.card[open] > summary::after { transform:rotate(180deg); }
+    details.card > .card-body { border-top:1px solid var(--border); }
+
+    .api-note { font-size:11px; color:var(--muted); margin-top:8px; }
+
+    /* ── Upload Zone ──────────────────────────────────────── */
+    .upload-zone {
+      border:2px dashed var(--border); border-radius:12px;
+      padding:40px 20px; text-align:center; cursor:pointer;
+      transition:all .3s; position:relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color:var(--orange); background:rgba(255,107,0,.05);
+    }
+    .upload-zone .uz-icon { font-size:40px; margin-bottom:12px; }
+    .upload-zone .uz-text { font-size:14px; font-weight:600; margin-bottom:4px; }
+    .upload-zone .uz-sub { font-size:12px; color:var(--muted); }
+    .upload-zone input[type=file] {
+      position:absolute; inset:0; opacity:0; cursor:pointer;
+    }
+
+    /* ── Progress ─────────────────────────────────────────── */
+    .progress-wrap {
+      display:none; margin-top:16px;
+    }
+    .progress-wrap.show { display:block; }
+    .progress-info {
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:12px; color:var(--muted); margin-bottom:6px;
+    }
+    .progress-bar-bg {
+      height:6px; background:var(--card2); border-radius:3px; overflow:hidden;
+    }
+    .progress-bar {
+      height:100%; width:0; background:linear-gradient(90deg,var(--orange),var(--orange-light));
+      border-radius:3px; transition:width .3s;
+    }
+
+    /* ── Photo Grid ───────────────────────────────────────── */
+    .photo-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    }
+    .photo-card {
+      background:var(--card2); border:1px solid var(--border);
+      border-radius:10px; overflow:hidden; transition:border-color .2s;
+    }
+    .photo-card:hover { border-color:rgba(255,107,0,.4); }
+    .photo-card img {
+      width:100%; height:180px; object-fit:cover; display:block;
+    }
+    .photo-card-body { padding:12px; }
+    .photo-card-top {
+      display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;
+    }
+    .category-badge {
+      font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px;
+      color:#fff; white-space:nowrap;
+    }
+    .cat-着手前   { background:var(--blue); }
+    .cat-施工中   { background:var(--orange); }
+    .cat-完了     { background:var(--green); }
+    .cat-品質管理 { background:var(--purple); }
+    .cat-安全管理 { background:var(--red); }
+    .cat-材料     { background:var(--yellow); color:#000; }
+    .work-type-label {
+      font-size:12px; color:var(--muted); font-weight:600;
+    }
+    .photo-card textarea {
+      width:100%; background:var(--card); border:1px solid var(--border);
+      color:var(--text); padding:8px 10px; border-radius:6px; font-size:13px;
+      resize:vertical; min-height:56px; margin-top:6px;
+    }
+    .photo-card textarea:focus { outline:none; border-color:var(--orange); }
+    .photo-card-actions {
+      display:flex; gap:6px; margin-top:8px; align-items:center; flex-wrap:wrap;
+    }
+    .photo-card-actions select {
+      background:var(--card); border:1px solid var(--border); color:var(--text);
+      padding:4px 8px; border-radius:6px; font-size:12px;
+    }
+    .photo-card-actions select:focus { outline:none; border-color:var(--orange); }
+    .btn-icon {
+      background:none; border:1px solid var(--border); color:var(--muted);
+      width:30px; height:30px; border-radius:6px; font-size:14px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    .btn-icon:hover { border-color:var(--orange); color:var(--orange); }
+    .btn-icon.danger:hover { border-color:var(--red); color:var(--red); }
+
+    .empty-state {
+      text-align:center; padding:40px 20px; color:var(--muted);
+    }
+    .empty-state .es-icon { font-size:48px; margin-bottom:12px; opacity:.5; }
+    .empty-state .es-text { font-size:14px; }
+
+    /* ── Toast ────────────────────────────────────────────── */
+    .toast {
+      position:fixed; bottom:24px; left:50%;
+      transform:translateX(-50%) translateY(80px);
+      padding:10px 22px; border-radius:100px; font-size:13px; font-weight:600;
+      color:#fff; background:var(--dark); z-index:400;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+      white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,.4);
+    }
+    .toast.show { transform:translateX(-50%) translateY(0); }
+    .toast.ok  { background:var(--green); }
+    .toast.err { background:var(--red); }
+
+    /* ── Modal ────────────────────────────────────────────── */
+    .modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.7);
+      z-index:300; align-items:center; justify-content:center;
+    }
+    .modal-overlay.show { display:flex; }
+    .modal {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:14px; width:90%; max-width:560px; max-height:80vh;
+      overflow:hidden; display:flex; flex-direction:column;
+    }
+    .modal-header {
+      padding:16px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      font-size:16px; font-weight:700;
+    }
+    .modal-header .close-btn {
+      background:none; border:none; color:var(--muted); font-size:22px;
+      cursor:pointer; transition:color .2s;
+    }
+    .modal-header .close-btn:hover { color:var(--red); }
+    .modal-body {
+      padding:16px 20px; overflow-y:auto; flex:1;
+    }
+    .project-list-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px; border:1px solid var(--border); border-radius:8px;
+      margin-bottom:8px; cursor:pointer; transition:all .2s;
+    }
+    .project-list-item:hover {
+      border-color:var(--orange); background:rgba(255,107,0,.06);
+    }
+    .project-list-item .pli-name { font-size:14px; font-weight:600; }
+    .project-list-item .pli-date { font-size:11px; color:var(--muted); }
+    .project-list-item .pli-count {
+      font-size:11px; color:var(--orange); font-weight:700;
+    }
+
+    /* ── Animations ───────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation:fadeUp .4s ease both; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media(max-width:640px){
+      .form-grid { grid-template-columns:1fr; }
+      .photo-grid { grid-template-columns:1fr; }
+      .action-bar { flex-direction:column; align-items:stretch; }
+      .action-bar button { justify-content:center; }
+      .container { padding:16px 12px 40px; }
+      header { padding:0 12px; }
+      .page-title { font-size:22px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">建</div>
+    <span>KENSETSU<span style="color:var(--orange)">AI</span></span>
+  </div>
+  <div class="header-right">
+    <a href="admin.html" class="icon-btn" title="ダッシュボードへ戻る">🏠</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Page Header -->
+  <div class="page-header fade-up">
+    <div class="page-title">📸 AI写真台帳 <span>AUTO</span></div>
+    <div class="page-sub">写真をアップロードするだけでAIが自動分類・説明文を生成</div>
+  </div>
+
+  <!-- Section 1: Project Info -->
+  <div class="card fade-up">
+    <div class="card-header"><div class="dot"></div>工事基本情報</div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="f-group">
+          <label>工事名称 *</label>
+          <input type="text" id="projectName" class="f-input" placeholder="○○工事" required>
+        </div>
+        <div class="f-group">
+          <label>工事番号</label>
+          <input type="text" id="projectNo" class="f-input" placeholder="R6-○○-001">
+        </div>
+        <div class="f-group">
+          <label>発注者名</label>
+          <input type="text" id="clientName" class="f-input" placeholder="○○県○○事務所">
+        </div>
+        <div class="f-group">
+          <label>施工場所</label>
+          <input type="text" id="siteLocation" class="f-input" placeholder="○○県○○市○○地内">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: API Key Settings -->
+  <details class="card fade-up">
+    <summary>⚙️ APIキー設定</summary>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="f-group">
+          <label>Anthropic API Key</label>
+          <input type="password" id="anthropicKey" class="f-input" placeholder="sk-ant-...">
+        </div>
+        <div class="f-group">
+          <label>OpenAI API Key</label>
+          <input type="password" id="openaiKey" class="f-input" placeholder="sk-...">
+        </div>
+      </div>
+      <div class="api-note">Anthropic優先。未設定の場合はOpenAIを使用します。</div>
+    </div>
+  </details>
+
+  <!-- Section 3: Upload Zone -->
+  <div class="card fade-up">
+    <div class="card-header"><div class="dot"></div>写真アップロード</div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <div class="uz-icon">📁</div>
+        <div class="uz-text">写真をドラッグ＆ドロップ または クリックして選択</div>
+        <div class="uz-sub">JPEG / PNG 対応・複数選択可</div>
+      </div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-info">
+          <span id="progressLabel">解析中...</span>
+          <span id="progressCount">0 / 0</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Photo Grid -->
+  <div class="card fade-up" id="photoSection">
+    <div class="card-header"><div class="dot"></div>写真一覧 (<span id="photoCount">0</span>枚)</div>
+    <div class="card-body">
+      <div id="photoGrid" class="photo-grid"></div>
+      <div id="emptyState" class="empty-state">
+        <div class="es-icon">📷</div>
+        <div class="es-text">写真をアップロードするとここに表示されます</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Action Buttons -->
+  <div class="action-bar fade-up">
+    <button class="btn-primary" onclick="generatePDF()" id="btnPdf" disabled>📄 PDF出力</button>
+    <button class="btn-save" onclick="saveToSupabase()" id="btnSave" disabled>💾 保存</button>
+    <button class="btn-secondary" onclick="openProjectModal()">📂 過去のプロジェクトを開く</button>
+  </div>
+
+</div><!-- /container -->
+
+<!-- Project List Modal -->
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span>📂 過去のプロジェクト</span>
+      <button class="close-btn" onclick="closeProjectModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="projectListBody">
+      <div class="empty-state">
+        <div class="es-icon">📋</div>
+        <div class="es-text">読み込み中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  Supabase Config
+// ═══════════════════════════════════════════════════════
+const SB_URL = 'https://bjohdzcoziezdkqcebhe.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
+
+const CATEGORIES = ['着手前','施工中','完了','品質管理','安全管理','材料'];
+const CAT_COLORS = {
+  '着手前':'#3B82F6','施工中':'#FF6B00','完了':'#22C55E',
+  '品質管理':'#7c3aed','安全管理':'#EF4444','材料':'#F59E0B'
+};
+
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+let photos = [];
+let projectInfo = {};
+let currentProjectId = null;
+
+// ═══════════════════════════════════════════════════════
+//  DOM refs
+// ═══════════════════════════════════════════════════════
+const $  = id => document.getElementById(id);
+const uploadZone   = $('uploadZone');
+const fileInput    = $('fileInput');
+const progressWrap = $('progressWrap');
+const progressBar  = $('progressBar');
+const progressLabel= $('progressLabel');
+const progressCount= $('progressCount');
+const photoGrid    = $('photoGrid');
+const emptyState   = $('emptyState');
+const photoCount   = $('photoCount');
+const btnPdf       = $('btnPdf');
+const btnSave      = $('btnSave');
+const toastEl      = $('toast');
+
+// ═══════════════════════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════════════════════
+function showToast(msg, type='ok') {
+  toastEl.textContent = msg;
+  toastEl.className = 'toast ' + type;
+  requestAnimationFrame(() => toastEl.classList.add('show'));
+  setTimeout(() => toastEl.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════════════════════
+//  API Keys — localStorage
+// ═══════════════════════════════════════════════════════
+let apiKeySaveTimer = null;
+
+function loadApiKeys() {
+  $('anthropicKey').value = localStorage.getItem('anthropic_api_key') || '';
+  $('openaiKey').value    = localStorage.getItem('openai_api_key') || '';
+}
+
+function saveApiKeysDebounced() {
+  clearTimeout(apiKeySaveTimer);
+  apiKeySaveTimer = setTimeout(() => {
+    localStorage.setItem('anthropic_api_key', $('anthropicKey').value.trim());
+    localStorage.setItem('openai_api_key',    $('openaiKey').value.trim());
+  }, 600);
+}
+
+// ═══════════════════════════════════════════════════════
+//  File → Base64 (resized)
+// ═══════════════════════════════════════════════════════
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+      };
+      img.onerror = () => reject(new Error('画像読み込み失敗'));
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  AI Analysis
+// ═══════════════════════════════════════════════════════
+const AI_SYSTEM = `あなたは建設工事の施工管理写真を解析する専門家です。
+必ず以下のJSONのみを返してください（前置き・後置き一切不要）：
+{
+  "photo_category": "着手前|施工中|完了|品質管理|安全管理|材料",
+  "work_type": "写真から判断した工種名",
+  "description": "工事写真台帳に記載する説明文（60〜80文字・ですます調）"
+}`;
+
+async function analyzePhoto(base64Data, projectContext) {
+  const anthropicKey = $('anthropicKey').value.trim();
+  const openaiKey    = $('openaiKey').value.trim();
+
+  const userMsg = projectContext
+    ? `工事名: ${projectContext}\nこの建設工事写真を解析してください。`
+    : 'この建設工事写真を解析してください。';
+
+  // Try Anthropic first
+  if (anthropicKey) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 400,
+          system: AI_SYSTEM,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Data } },
+              { type: 'text', text: userMsg }
+            ]
+          }]
+        })
+      });
+      if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+      const data = await res.json();
+      const text = data.content[0].text;
+      return JSON.parse(text);
+    } catch (e) {
+      console.warn('Anthropic failed, trying OpenAI:', e.message);
+    }
+  }
+
+  // Fallback to OpenAI
+  if (openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 400,
+          messages: [
+            { role: 'system', content: AI_SYSTEM },
+            { role: 'user', content: [
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Data}` } },
+              { type: 'text', text: userMsg }
+            ]}
+          ]
+        })
+      });
+      if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+      const data = await res.json();
+      const text = data.choices[0].message.content;
+      return JSON.parse(text);
+    } catch (e) {
+      console.warn('OpenAI failed:', e.message);
+    }
+  }
+
+  throw new Error('APIキーが未設定、または全てのAPI呼び出しに失敗しました');
+}
+
+// ═══════════════════════════════════════════════════════
+//  Batch Analysis (3 at a time)
+// ═══════════════════════════════════════════════════════
+async function analyzeAllPhotos(files) {
+  const total = files.length;
+  let done = 0;
+
+  progressWrap.classList.add('show');
+  progressLabel.textContent = '解析中...';
+  progressCount.textContent = `0 / ${total}`;
+  progressBar.style.width = '0%';
+
+  const projectContext = $('projectName').value.trim();
+  const batchSize = 3;
+
+  for (let i = 0; i < total; i += batchSize) {
+    const batch = Array.from(files).slice(i, i + batchSize);
+    const results = await Promise.allSettled(
+      batch.map(async (file) => {
+        const base64 = await fileToBase64(file);
+        let analysis;
+        try {
+          analysis = await analyzePhoto(base64, projectContext);
+        } catch (e) {
+          analysis = {
+            photo_category: '施工中',
+            work_type: '不明',
+            description: 'AI解析に失敗しました。手動で説明文を入力してください。'
+          };
+        }
+        return {
+          id: crypto.randomUUID(),
+          base64,
+          photo_category: analysis.photo_category || '施工中',
+          work_type_detected: analysis.work_type || '',
+          description_ai: analysis.description || '',
+          description_final: analysis.description || '',
+          taken_at: new Date().toISOString().split('T')[0],
+          sort_order: photos.length + done
+        };
+      })
+    );
+
+    results.forEach(r => {
+      if (r.status === 'fulfilled') {
+        photos.push(r.value);
+      }
+      done++;
+      progressCount.textContent = `${done} / ${total}`;
+      progressBar.style.width = `${Math.round(done / total * 100)}%`;
+    });
+  }
+
+  progressLabel.textContent = '解析完了';
+  setTimeout(() => progressWrap.classList.remove('show'), 1500);
+
+  renderPhotos();
+  showToast(`${total}枚の写真を解析しました`);
+}
+
+// ═══════════════════════════════════════════════════════
+//  Render Photo Grid
+// ═══════════════════════════════════════════════════════
+function renderPhotos() {
+  const count = photos.length;
+  photoCount.textContent = count;
+  btnPdf.disabled  = count === 0;
+  btnSave.disabled = count === 0;
+
+  if (count === 0) {
+    photoGrid.innerHTML = '';
+    emptyState.style.display = '';
+    return;
+  }
+  emptyState.style.display = 'none';
+
+  photoGrid.innerHTML = photos.map((p, idx) => `
+    <div class="photo-card" data-idx="${idx}">
+      <img src="data:image/jpeg;base64,${p.base64}" alt="工事写真">
+      <div class="photo-card-body">
+        <div class="photo-card-top">
+          <span class="category-badge cat-${p.photo_category}">${p.photo_category}</span>
+          <span class="work-type-label">${p.work_type_detected}</span>
+        </div>
+        <textarea rows="3" onchange="updateDesc(${idx}, this.value)">${p.description_final}</textarea>
+        <div class="photo-card-actions">
+          <select onchange="updateCategory(${idx}, this.value)">
+            ${CATEGORIES.map(c => `<option value="${c}" ${c===p.photo_category?'selected':''}>${c}</option>`).join('')}
+          </select>
+          <button class="btn-icon" onclick="movePhoto(${idx}, -1)" title="上へ移動" ${idx===0?'disabled':''}>▲</button>
+          <button class="btn-icon" onclick="movePhoto(${idx}, 1)" title="下へ移動" ${idx===count-1?'disabled':''}>▼</button>
+          <button class="btn-icon danger" onclick="deletePhoto(${idx})" title="削除">🗑</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateDesc(idx, val)  { photos[idx].description_final = val; }
+function updateCategory(idx, val) {
+  photos[idx].photo_category = val;
+  renderPhotos();
+}
+function movePhoto(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= photos.length) return;
+  [photos[idx], photos[target]] = [photos[target], photos[idx]];
+  photos.forEach((p,i) => p.sort_order = i);
+  renderPhotos();
+}
+function deletePhoto(idx) {
+  if (!confirm('この写真を削除しますか？')) return;
+  photos.splice(idx, 1);
+  photos.forEach((p,i) => p.sort_order = i);
+  renderPhotos();
+}
+
+// ═══════════════════════════════════════════════════════
+//  Upload Event Handlers
+// ═══════════════════════════════════════════════════════
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) {
+    const anthropicKey = $('anthropicKey').value.trim();
+    const openaiKey    = $('openaiKey').value.trim();
+    if (!anthropicKey && !openaiKey) {
+      showToast('APIキーを設定してください', 'err');
+      return;
+    }
+    analyzeAllPhotos(e.target.files);
+    e.target.value = '';
+  }
+});
+
+uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault(); uploadZone.classList.add('dragover');
+});
+uploadZone.addEventListener('dragleave', () => {
+  uploadZone.classList.remove('dragover');
+});
+uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault(); uploadZone.classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length) {
+    const anthropicKey = $('anthropicKey').value.trim();
+    const openaiKey    = $('openaiKey').value.trim();
+    if (!anthropicKey && !openaiKey) {
+      showToast('APIキーを設定してください', 'err');
+      return;
+    }
+    analyzeAllPhotos(files);
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+//  PDF Generation
+// ═══════════════════════════════════════════════════════
+function addJPText(doc, text, x, y, maxW, fontSize, options={}) {
+  if (!text) return;
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d');
+  const scale = 4;
+  c.width  = Math.ceil(maxW * scale * 2.5);
+  c.height = Math.ceil(fontSize * scale * 2);
+  if (options.bg) { ctx.fillStyle = options.bg; ctx.fillRect(0,0,c.width,c.height); }
+  ctx.fillStyle = options.color || '#000';
+  ctx.font = `${options.bold?'bold ':''}${fontSize*scale}px "Noto Sans JP",sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 4, c.height / 2);
+  doc.addImage(c.toDataURL('image/png'), 'PNG', x, y, maxW, fontSize * 0.35);
+}
+
+function generatePDF() {
+  if (photos.length === 0) { showToast('写真がありません', 'err'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pw = 210, ph = 297;
+  const mx = 15, mxr = pw - mx;
+  const contentW = mxr - mx;
+
+  const projName = $('projectName').value || '（未入力）';
+  const projNo   = $('projectNo').value   || '';
+  const client   = $('clientName').value  || '';
+  const site     = $('siteLocation').value|| '';
+
+  // ── Cover Page ──
+  doc.setDrawColor(200);
+  doc.setLineWidth(0.5);
+  doc.rect(mx, mx, contentW, ph - mx*2);
+  doc.rect(mx+1, mx+1, contentW-2, ph - mx*2 - 2);
+
+  addJPText(doc, '工 事 写 真 台 帳', 40, 55, 130, 24, { bold:true });
+
+  const tableTop = 100;
+  const rowH = 14;
+  const labelW = 40;
+  const rows = [
+    ['工事名称', projName],
+    ['工事番号', projNo],
+    ['発注者名', client],
+    ['施工場所', site],
+    ['施  工  者', '翼工業']
+  ];
+
+  rows.forEach((row, i) => {
+    const ry = tableTop + i * rowH;
+    doc.setDrawColor(150);
+    doc.setLineWidth(0.3);
+    doc.rect(mx + 10, ry, contentW - 20, rowH);
+    doc.line(mx + 10 + labelW, ry, mx + 10 + labelW, ry + rowH);
+    addJPText(doc, row[0], mx + 14, ry + 3, labelW - 8, 11, { bold:true });
+    addJPText(doc, row[1], mx + 14 + labelW, ry + 3, contentW - labelW - 30, 11);
+  });
+
+  addJPText(doc, `出力日: ${new Date().toLocaleDateString('ja-JP')}`, mx + 10, tableTop + rows.length * rowH + 20, 100, 9, { color:'#666' });
+
+  // ── Photo Pages (2 photos per page) ──
+  let pageNum = 1;
+  for (let i = 0; i < photos.length; i += 2) {
+    doc.addPage();
+    pageNum++;
+
+    // Header line
+    doc.setDrawColor(255, 107, 0);
+    doc.setLineWidth(1);
+    doc.line(mx, 12, mxr, 12);
+    addJPText(doc, `工事写真台帳 — ${projName}`, mx, 15, contentW, 9, { color:'#666' });
+
+    for (let j = 0; j < 2; j++) {
+      const idx = i + j;
+      if (idx >= photos.length) break;
+      const p = photos[idx];
+      const baseY = j === 0 ? 28 : 155;
+
+      // Info header box
+      doc.setFillColor(245, 245, 245);
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.3);
+      doc.rect(mx, baseY, contentW, 10, 'FD');
+      addJPText(doc, `No.${idx+1}`, mx + 2, baseY + 2, 14, 9, { bold:true, color:'#FF6B00' });
+      addJPText(doc, `工種: ${p.work_type_detected}`, mx + 18, baseY + 2, 50, 9);
+      addJPText(doc, `区分: ${p.photo_category}`, mx + 72, baseY + 2, 40, 9);
+      addJPText(doc, `撮影日: ${p.taken_at}`, mx + 116, baseY + 2, 50, 9);
+
+      // Photo
+      const imgY = baseY + 12;
+      const imgH = 85;
+      try {
+        doc.addImage('data:image/jpeg;base64,' + p.base64, 'JPEG', mx, imgY, contentW, imgH);
+      } catch(e) {
+        doc.setFillColor(240,240,240);
+        doc.rect(mx, imgY, contentW, imgH, 'F');
+        addJPText(doc, '（画像読み込みエラー）', mx + 50, imgY + 35, 80, 11, { color:'#999' });
+      }
+
+      // Description box
+      const descY = imgY + imgH + 2;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(200);
+      doc.rect(mx, descY, contentW, 14, 'FD');
+      addJPText(doc, p.description_final || p.description_ai, mx + 3, descY + 3, contentW - 6, 10);
+    }
+
+    // Footer
+    addJPText(doc, `${pageNum}`, pw / 2 - 4, ph - 10, 10, 9, { color:'#999' });
+  }
+
+  doc.save(`写真台帳_${projName}_${new Date().toISOString().slice(0,10)}.pdf`);
+  showToast('PDFを出力しました');
+}
+
+// ═══════════════════════════════════════════════════════
+//  Supabase helpers
+// ═══════════════════════════════════════════════════════
+async function sbFetch(path, options={}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || 'return=representation',
+      ...options.headers
+    },
+    method: options.method || 'GET',
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Save to Supabase
+// ═══════════════════════════════════════════════════════
+async function saveToSupabase() {
+  const projName = $('projectName').value.trim();
+  if (!projName) { showToast('工事名称を入力してください', 'err'); return; }
+  if (photos.length === 0) { showToast('写真がありません', 'err'); return; }
+
+  btnSave.disabled = true;
+  btnSave.textContent = '保存中...';
+
+  try {
+    // Upsert project
+    const projData = {
+      project_name: projName,
+      project_no:   $('projectNo').value.trim(),
+      client_name:  $('clientName').value.trim(),
+      site_location:$('siteLocation').value.trim(),
+      photo_count:  photos.length,
+      updated_at:   new Date().toISOString()
+    };
+
+    let project;
+    if (currentProjectId) {
+      projData.id = currentProjectId;
+      const result = await sbFetch('photo_projects?on_conflict=id', {
+        method: 'POST', body: projData, headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }
+      });
+      project = result[0];
+    } else {
+      const result = await sbFetch('photo_projects', {
+        method: 'POST', body: projData
+      });
+      project = result[0];
+      currentProjectId = project.id;
+    }
+
+    // Delete existing photos for this project, then insert new
+    await sbFetch(`site_photos?project_id=eq.${currentProjectId}`, {
+      method: 'DELETE', prefer: 'return=minimal'
+    });
+
+    // Insert photos in batches of 5
+    for (let i = 0; i < photos.length; i += 5) {
+      const batch = photos.slice(i, i + 5).map((p, j) => ({
+        project_id: currentProjectId,
+        photo_data: p.base64,
+        photo_category: p.photo_category,
+        work_type: p.work_type_detected,
+        description: p.description_final || p.description_ai,
+        taken_at: p.taken_at,
+        sort_order: i + j
+      }));
+      await sbFetch('site_photos', { method: 'POST', body: batch });
+    }
+
+    showToast('保存しました');
+  } catch (e) {
+    console.error('Save error:', e);
+    showToast('保存に失敗しました: ' + e.message, 'err');
+  } finally {
+    btnSave.disabled = false;
+    btnSave.innerHTML = '💾 保存';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Load Project List
+// ═══════════════════════════════════════════════════════
+async function loadProjectList() {
+  const body = $('projectListBody');
+  body.innerHTML = '<div class="empty-state"><div class="es-icon">⏳</div><div class="es-text">読み込み中...</div></div>';
+
+  try {
+    const projects = await sbFetch('photo_projects?order=updated_at.desc&limit=50');
+    if (!projects || projects.length === 0) {
+      body.innerHTML = '<div class="empty-state"><div class="es-icon">📋</div><div class="es-text">保存されたプロジェクトはありません</div></div>';
+      return;
+    }
+    body.innerHTML = projects.map(p => `
+      <div class="project-list-item" onclick="loadProject('${p.id}')">
+        <div>
+          <div class="pli-name">${p.project_name}</div>
+          <div class="pli-date">${p.updated_at ? new Date(p.updated_at).toLocaleDateString('ja-JP') : ''} ${p.project_no || ''}</div>
+        </div>
+        <div class="pli-count">${p.photo_count || 0}枚</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('Load error:', e);
+    body.innerHTML = '<div class="empty-state"><div class="es-icon">⚠️</div><div class="es-text">読み込みに失敗しました</div></div>';
+  }
+}
+
+async function loadProject(projectId) {
+  closeProjectModal();
+  showToast('プロジェクトを読み込み中...');
+
+  try {
+    // Load project info
+    const projects = await sbFetch(`photo_projects?id=eq.${projectId}`);
+    if (!projects || projects.length === 0) { showToast('プロジェクトが見つかりません', 'err'); return; }
+    const proj = projects[0];
+
+    $('projectName').value  = proj.project_name  || '';
+    $('projectNo').value    = proj.project_no     || '';
+    $('clientName').value   = proj.client_name    || '';
+    $('siteLocation').value = proj.site_location  || '';
+    currentProjectId = proj.id;
+
+    // Load photos
+    const sitePhotos = await sbFetch(`site_photos?project_id=eq.${projectId}&order=sort_order.asc`);
+    photos = (sitePhotos || []).map(sp => ({
+      id: sp.id,
+      base64: sp.photo_data,
+      photo_category: sp.photo_category || '施工中',
+      work_type_detected: sp.work_type || '',
+      description_ai: sp.description || '',
+      description_final: sp.description || '',
+      taken_at: sp.taken_at || '',
+      sort_order: sp.sort_order || 0
+    }));
+
+    renderPhotos();
+    showToast(`「${proj.project_name}」を読み込みました (${photos.length}枚)`);
+  } catch (e) {
+    console.error('Load project error:', e);
+    showToast('プロジェクトの読み込みに失敗しました', 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Modal
+// ═══════════════════════════════════════════════════════
+function openProjectModal() {
+  $('projectModal').classList.add('show');
+  loadProjectList();
+}
+function closeProjectModal() {
+  $('projectModal').classList.remove('show');
+}
+$('projectModal').addEventListener('click', (e) => {
+  if (e.target === $('projectModal')) closeProjectModal();
+});
+
+// ═══════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadApiKeys();
+
+  $('anthropicKey').addEventListener('input', saveApiKeysDebounced);
+  $('openaiKey').addEventListener('input', saveApiKeysDebounced);
+
+  renderPhotos();
+});
+</script>
+</body>
+</html>
