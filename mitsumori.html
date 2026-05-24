@@ -1503,6 +1503,41 @@ $('clearDraftBtn').addEventListener('click', () => {
   if (pname) $('projectName').value = decodeURIComponent(pname);
   const recipient = params.get('recipient');
   if (recipient) $('recipientName').value = decodeURIComponent(recipient);
+
+  // 法面概算からの引き継ぎ
+  try {
+    const transferRaw = localStorage.getItem('slope_estimate_transfer');
+    if (transferRaw) {
+      const transfer = JSON.parse(transferRaw);
+      if (transfer && transfer.rows && transfer.rows.length > 0) {
+        if (confirm('法面概算計算機から取り込みますか？\n明細行が自動生成されます。')) {
+          // 既存行をクリア
+          $('detailBody').innerHTML = '';
+          rowIdCounter = 0;
+
+          // 現場名・元請会社名をセット
+          if (transfer.siteName && $('projectName')) $('projectName').value = transfer.siteName;
+          if (transfer.clientName && $('recipientName')) $('recipientName').value = transfer.clientName;
+
+          // 明細行を追加
+          transfer.rows.forEach(r => {
+            addRow({
+              month: '', day: '',
+              kouji: r.kouji || r.name || '',
+              desc: r.desc || '',
+              qty: r.qty || 1,
+              unit: r.unit || '式',
+              price: r.price || 0,
+            });
+          });
+
+          calcTotals();
+          toast('法面概算の結果を取り込みました ✅', 'ok');
+        }
+        localStorage.removeItem('slope_estimate_transfer');
+      }
+    }
+  } catch(e) {}
 })();
 </script>
 </body>
