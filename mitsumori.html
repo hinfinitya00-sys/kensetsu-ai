@@ -353,9 +353,9 @@
       body { margin:0; }
       #printArea { display:block !important; }
       .print-page {
-        width:210mm; min-height:297mm; padding:8mm 12mm 8mm 12mm;
+        width:210mm; min-height:297mm; padding:7mm 10mm 7mm 10mm;
         font-family:'Noto Sans JP','Hiragino Sans',sans-serif;
-        color:#000; background:#fff; font-size:10pt; box-sizing:border-box;
+        color:#000; background:#fff; font-size:11pt; box-sizing:border-box;
       }
       .p-date { text-align:right; font-size:10pt; margin-bottom:6pt; }
       .p-title {
@@ -390,11 +390,15 @@
         width:100%; border-collapse:collapse; font-size:10pt; margin-bottom:8pt;
       }
       table.p-items th {
-        background:#efefef; border:0.5pt solid #999; padding:4pt 5pt;
-        font-weight:700; text-align:center; white-space:nowrap; font-size:9.5pt;
+        background:#efefef; border:0.5pt solid #999; padding:5pt 6pt;
+        font-weight:700; text-align:center; white-space:nowrap; font-size:10pt;
       }
       table.p-items td {
-        border:0.5pt solid #ccc; padding:4pt 5pt; vertical-align:middle;
+        border:0.5pt solid #ccc; padding:5pt 6pt; vertical-align:middle;
+        font-size:10pt; word-break:break-all; overflow-wrap:break-word;
+      }
+      table.p-items td:nth-child(4) {
+        word-break:normal; overflow-wrap:break-word; white-space:pre-wrap;
       }
       table.p-items td.right { text-align:right; }
       table.p-items td.center { text-align:center; }
@@ -402,7 +406,7 @@
         height:6pt; background:#fff; border-left:none; border-right:none;
       }
       .p-totals {
-        width:200pt; margin-left:auto; border:0.5pt solid #999; margin-bottom:10pt;
+        width:220pt; margin-left:auto; border:0.5pt solid #999; margin-bottom:10pt;
       }
       .p-total-row {
         display:flex; justify-content:space-between;
@@ -410,7 +414,7 @@
       }
       .p-total-row:last-child { border-bottom:none; }
       .p-total-row.p-total-final {
-        font-weight:700; font-size:12pt;
+        font-weight:700; font-size:13pt;
         border-top:2pt solid #000; padding:6pt 10pt;
       }
       .p-total-row.p-discount-row .p-val-right { color:#c00; }
