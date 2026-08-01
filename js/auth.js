@@ -26,6 +26,7 @@ const KS_AUTH = (() => {
   const SB_KEY_KEY  = 'dr_sb_key';
   const COMPANY_KEY = 'ks_company';
   const CDN_URL     = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+  let companyOptions = [];
 
   /* ── Supabase クライアント生成 ─────────────────── */
   function _client() {
@@ -84,47 +85,35 @@ const KS_AUTH = (() => {
   /* ── 会社情報をキャッシュ ──────────────────────── */
   async function _ensureCompany(client, userId) {
     try {
-      // FK join (user_companies → companies)
+      // ユーザーが所属する会社をすべて取得する。
       const { data, error } = await client
         .from('user_companies')
         .select('company_id, companies(id, name)')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
 
-      if (!error && data && data.companies) {
-        localStorage.setItem(COMPANY_KEY, JSON.stringify({
-          id:   data.company_id,
-          name: data.companies.name,
-        }));
+      if (error) throw error;
+      companyOptions = (data || []).map(row => {
+        const company = Array.isArray(row.companies) ? row.companies[0] : row.companies;
+        return company ? { id: row.company_id, name: company.name } : null;
+      }).filter(Boolean);
+
+      if (!companyOptions.length) {
+        localStorage.removeItem(COMPANY_KEY);
         return;
       }
 
-      // FK join が使えない場合: 2クエリでフォールバック
-      const { data: uc } = await client
-        .from('user_companies')
-        .select('company_id')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!uc) return;
-
-      const { data: co } = await client
-        .from('companies')
-        .select('id, name')
-        .eq('id', uc.company_id)
-        .maybeSingle();
-      if (co) {
-        localStorage.setItem(COMPANY_KEY, JSON.stringify({ id: co.id, name: co.name }));
-      }
+      const current = getSession();
+      const selected = companyOptions.find(company => company.id === current?.id) || companyOptions[0];
+      localStorage.setItem(COMPANY_KEY, JSON.stringify(selected));
     } catch (e) {
+      companyOptions = [];
+      localStorage.removeItem(COMPANY_KEY);
       console.error('[KS_AUTH] _ensureCompany:', e);
     }
   }
 
-  /* ── ページ右上に会社名 + ログアウトボタンを挿入 ─ */
+  /* ── ページ右上に会社切替 + ログアウトを挿入 ───── */
   function _injectBar() {
     if (document.getElementById('ks-auth-bar')) return;
     const name = getCompanyName() || '未設定';
@@ -134,14 +123,18 @@ const KS_AUTH = (() => {
       'position:fixed', 'top:0', 'right:0', 'z-index:99999',
       'background:rgba(11,20,38,.9)', 'backdrop-filter:blur(10px)',
       '-webkit-backdrop-filter:blur(10px)',
-      'padding:7px 14px', 'display:flex', 'align-items:center', 'gap:12px',
+      'padding:7px 14px', 'display:flex', 'align-items:center', 'gap:8px',
       'font-size:12px', "font-family:'Noto Sans JP',sans-serif", 'color:#E8EDF8',
       'border-bottom-left-radius:10px',
       'border:1px solid #2A3D6B', 'border-top:none', 'border-right:none',
     ].join(';');
+    const options = companyOptions.length
+      ? companyOptions.map(company => `<option value="${_esc(company.id)}"${company.id === getCompanyId() ? ' selected' : ''}>${_esc(company.name)}</option>`).join('')
+      : `<option value="">${_esc(name)}</option>`;
     bar.innerHTML =
-      '<span style="color:#7A8CAE;font-size:14px">🏢</span>' +
-      `<span style="font-weight:700;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(name)}</span>` +
+      '<label for="ks-company-select" style="display:flex;align-items:center;gap:5px;color:#7A8CAE;font-size:14px">🏢' +
+      '<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">請求書を作成する会社</span>' +
+      `<select id="ks-company-select" aria-label="請求書を作成する会社" style="min-height:34px;max-width:190px;background:#172744;border:1px solid #3B5A92;border-radius:6px;color:#E8EDF8;padding:4px 26px 4px 8px;font:700 12px 'Noto Sans JP',sans-serif;cursor:pointer">${options}</select></label>` +
       '<button id="ks-logout-btn" style="' +
         'background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);' +
         'color:#FCA5A5;padding:3px 10px;border-radius:6px;font-size:11px;' +
@@ -151,6 +144,13 @@ const KS_AUTH = (() => {
     const attach = () => {
       if (!document.body) return;
       document.body.appendChild(bar);
+      const companySelect = document.getElementById('ks-company-select');
+      companySelect.addEventListener('change', () => {
+        const selected = companyOptions.find(company => company.id === companySelect.value);
+        if (!selected) return;
+        localStorage.setItem(COMPANY_KEY, JSON.stringify(selected));
+        window.dispatchEvent(new CustomEvent('ks-company-change', { detail: selected }));
+      });
       document.getElementById('ks-logout-btn')
         .addEventListener('click', () => KS_AUTH.logout());
     };
