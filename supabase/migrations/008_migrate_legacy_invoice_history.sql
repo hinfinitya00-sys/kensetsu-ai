@@ -32,7 +32,7 @@ ON CONFLICT (id) DO NOTHING;
 
 NOTIFY pgrst, 'reload schema';
 
--- 件数確認: legacy_count と current_count が一致すれば移行完了。
+-- 件数確認: current_count が legacy_count 以上なら、旧データは移行済み。
 SELECT
   (SELECT count(*) FROM public.invoice WHERE company_id IS NOT NULL) AS legacy_count,
   (SELECT count(*) FROM public.invoices) AS current_count;
