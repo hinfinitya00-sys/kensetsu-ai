@@ -89,6 +89,8 @@ const KS_AUTH = (() => {
         .from('user_companies')
         .select('company_id, companies(id, name)')
         .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (!error && data && data.companies) {
@@ -104,6 +106,8 @@ const KS_AUTH = (() => {
         .from('user_companies')
         .select('company_id')
         .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (!uc) return;
 
