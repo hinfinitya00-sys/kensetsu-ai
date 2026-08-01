@@ -769,18 +769,18 @@
 const SB_URL = localStorage.getItem('dr_sb_url') || 'https://bjohdzcoziezdkqcebhe.supabase.co';
 const SB_KEY = localStorage.getItem('dr_sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqb2hkemNvemllemRrcWNlYmhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMTI5NTAsImV4cCI6MjA4ODg4ODk1MH0.SUZ35eULi_RQzNPDQG2n5cBJCdTDXJZ1pB307ZNbSPU';
 
-function getAccessToken() {
-  try {
-    const ref = new URL(SB_URL).hostname.split('.')[0];
-    const stored = JSON.parse(localStorage.getItem(`sb-${ref}-auth-token`) || 'null');
-    return stored?.access_token || stored?.session?.access_token || null;
-  } catch { return null; }
-}
-
-function supabaseHeaders(extra = {}) {
+async function supabaseHeaders(extra = {}) {
+  // localStorageを直接読むと、古いプロジェクト・期限切れのトークンを拾うことがある。
+  // Supabaseクライアントから現在のセッションを取得してRLSに渡す。
+  const client = window.supabase?.createClient(SB_URL, SB_KEY);
+  if (!client) throw new Error('認証モジュールを読み込めませんでした。ページを再読み込みしてください');
+  const { data: { session }, error } = await client.auth.getSession();
+  if (error || !session?.access_token) {
+    throw new Error('ログインセッションを確認できません。再ログインしてください');
+  }
   return {
     apikey: SB_KEY,
-    Authorization: `Bearer ${getAccessToken() || SB_KEY}`,
+    Authorization: `Bearer ${session.access_token}`,
     ...extra,
   };
 }
@@ -1211,6 +1211,9 @@ let _savedData = null;
 async function saveToSupabase(d) {
   const companyId = (typeof KS_AUTH !== 'undefined' && KS_AUTH.getCompanyId()) || null;
   try {
+    if (!companyId) {
+      throw new Error('ログインアカウントに会社情報が紐付いていません。管理者にDB設定をご確認ください');
+    }
     const payload = {
       invoice_no:       d.invoiceNo,
       invoice_date:     d.invoiceDate || null,
@@ -1236,11 +1239,11 @@ async function saveToSupabase(d) {
       final_amount:     Math.round(d.saibiki||d.total),
       remarks:          d.remarks || null,
     };
-    if (companyId) payload.company_id = companyId;
+    payload.company_id = companyId;
 
     const res = await fetch(`${SB_URL}/rest/v1/invoices`, {
       method: 'POST',
-      headers: supabaseHeaders({
+      headers: await supabaseHeaders({
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
       }),
@@ -1313,7 +1316,7 @@ async function loadPastInvoiceList() {
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/invoices?select=id,recipient_name,project_name,invoice_date,issuer_name,issuer_reg_num,issuer_address,issuer_tel,issuer_bank,recipient_person&order=created_at.desc&limit=30`,
-      { headers: supabaseHeaders() }
+      { headers: await supabaseHeaders() }
     );
     const data = await res.json();
     if (!data || !data.length) {

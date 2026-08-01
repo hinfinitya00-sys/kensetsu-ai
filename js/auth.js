@@ -83,7 +83,6 @@ const KS_AUTH = (() => {
 
   /* ── 会社情報をキャッシュ ──────────────────────── */
   async function _ensureCompany(client, userId) {
-    if (localStorage.getItem(COMPANY_KEY)) return;
     try {
       // FK join (user_companies → companies)
       const { data, error } = await client
