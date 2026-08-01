@@ -1,6 +1,6 @@
 -- ============================================================
 -- 003_missing_tables.sql
--- user_companies / invoice テーブル追加
+-- user_companies / invoices テーブル追加
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS user_companies (
@@ -23,32 +23,51 @@ CREATE POLICY uc_ins ON user_companies
 
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS invoice (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id   UUID REFERENCES companies(id),
-  created_at   TIMESTAMPTZ DEFAULT NOW(),
-  invoice_no   TEXT,
-  client_name  TEXT,
-  total_amount NUMERIC,
-  data         TEXT
+CREATE TABLE IF NOT EXISTS invoices (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id       UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  invoice_no       TEXT,
+  invoice_date     DATE,
+  due_date         DATE,
+  invoice_type     TEXT,
+  project_name     TEXT,
+  project_site     TEXT,
+  project_no       TEXT,
+  period_start     DATE,
+  period_end       DATE,
+  recipient_name   TEXT,
+  recipient_person TEXT,
+  issuer_name      TEXT,
+  issuer_reg_num   TEXT,
+  issuer_address   TEXT,
+  issuer_tel       TEXT,
+  issuer_bank      TEXT,
+  items            JSONB,
+  subtotal         INTEGER,
+  tax_amount       INTEGER,
+  total_amount     INTEGER,
+  gensen_amount    INTEGER,
+  final_amount     INTEGER,
+  remarks          TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE invoice ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS inv_sel ON invoice;
-CREATE POLICY inv_sel ON invoice
+DROP POLICY IF EXISTS inv_sel ON invoices;
+CREATE POLICY inv_sel ON invoices
   FOR SELECT USING (company_id IN (
     SELECT company_id FROM user_companies WHERE user_id = auth.uid()
   ));
 
-DROP POLICY IF EXISTS inv_ins ON invoice;
-CREATE POLICY inv_ins ON invoice
+DROP POLICY IF EXISTS inv_ins ON invoices;
+CREATE POLICY inv_ins ON invoices
   FOR INSERT WITH CHECK (company_id IN (
     SELECT company_id FROM user_companies WHERE user_id = auth.uid()
   ));
 
-DROP POLICY IF EXISTS inv_upd ON invoice;
-CREATE POLICY inv_upd ON invoice
+DROP POLICY IF EXISTS inv_upd ON invoices;
+CREATE POLICY inv_upd ON invoices
   FOR UPDATE USING (company_id IN (
     SELECT company_id FROM user_companies WHERE user_id = auth.uid()
   ));
